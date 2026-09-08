@@ -32,7 +32,7 @@ export default async function AttendancePage({
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Attendance</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Today's check-ins, check-outs, and monthly totals. Expected shift times come
+            Today&apos;s check-ins, check-outs, and monthly totals. Expected shift times come
             from the{" "}
             <Link href="/shift-schedule" className="text-primary hover:underline">
               Shift Schedule

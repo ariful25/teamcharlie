@@ -25,7 +25,7 @@ export default async function EmployeeAttendanceHistoryPage({ params }: { params
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">{employee.name}'s Attendance History</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">{employee.name}&apos;s Attendance History</h1>
         <p className="mt-1 text-sm text-muted-foreground">Last 90 days of recorded attendance.</p>
       </div>
 

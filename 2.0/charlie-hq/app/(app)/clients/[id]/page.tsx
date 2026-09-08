@@ -42,7 +42,7 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Today's Tasks</CardTitle>
+              <CardTitle>Today&apos;s Tasks</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 p-0 pb-2">
               {tasks.length === 0 ? (

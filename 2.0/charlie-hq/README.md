@@ -83,6 +83,26 @@ Visit `http://localhost:3000`. Seeded logins (password `charliehq123` for all):
 - `john@strassistance.com` — Employee
 - `sarah@strassistance.com` — Employee
 
+### 5. Deploy to Vercel
+
+Import this repository into Vercel with the project root set to the repository root.
+The default Next.js framework preset and build command are sufficient; `npm run build`
+generates the Prisma Client before compiling Next.js.
+
+Add these environment variables in Vercel for the Production environment:
+
+- `DATABASE_URL` — Supabase pooler URL, normally port `6543` with `pgbouncer=true`
+- `DIRECT_URL` — Supabase direct database URL, normally port `5432`
+- `NEXTAUTH_URL` — the deployed Vercel URL
+- `NEXTAUTH_SECRET` — a new random production secret
+- `TEAM_TIMEZONE` and `NEXT_PUBLIC_TEAM_TIMEZONE` — normally `Asia/Dhaka`
+- `DISCORD_CHECKIN_WEBHOOK_URL` and `DISCORD_CHECKOUT_WEBHOOK_URL` — optional webhooks
+
+Before the first production deployment, apply the Prisma schema to the production
+database with `npm run db:push` using the production environment values, then run
+`npm run db:seed` once if the database is empty. Do not commit `.env` or place real
+credentials in `.env.example`.
+
 ## Project structure
 
 ```

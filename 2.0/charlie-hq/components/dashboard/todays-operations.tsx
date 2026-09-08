@@ -41,7 +41,7 @@ export function TodaysOperations({ rows }: { rows: OperationRow[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Today's Operations</CardTitle>
+        <CardTitle>Today&apos;s Operations</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         {rows.length === 0 ? (

@@ -118,7 +118,7 @@ export function ShiftGrid({
             <span>Unassigned Shift — {unassignedRows.length}</span>
             {hasRemovedShiftAssignments && (
               <span className="font-normal text-muted-foreground/75">
-                These assignments reference a shift type that's been removed.
+                These assignments reference a shift type that&apos;s been removed.
               </span>
             )}
           </div>

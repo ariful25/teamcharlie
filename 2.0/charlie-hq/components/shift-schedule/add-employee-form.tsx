@@ -75,7 +75,7 @@ export function AddEmployeeForm({
             />
           </Field>
           <p className="text-xs text-muted-foreground">
-            All 7 days will be set to Working with this shift's default times — flip
+            All 7 days will be set to Working with this shift&apos;s default times — flip
             individual days to Weekend/Leave afterward.
           </p>
           <Button type="submit" disabled={submitting} className="w-full">
