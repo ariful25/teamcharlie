@@ -10,7 +10,7 @@ export default async function ClientsIndexPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Clients</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Team Charlie's active client roster.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Team Charlie&apos;s active client roster.</p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {clientStats.map((c) => (

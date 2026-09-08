@@ -59,7 +59,7 @@ export default async function SettingsPage() {
         <CardContent>
           <p className="mb-3 text-sm text-muted-foreground">
             The shift blocks used across the Shift Schedule. Fully editable — add a new
-            one any time your team's rotation changes.
+            one any time your team&apos;s rotation changes.
           </p>
           <ShiftTypesPanel shiftTypes={shiftTypes} />
         </CardContent>

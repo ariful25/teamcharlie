@@ -126,7 +126,7 @@ export function ShiftCard(props: Props) {
 
       {completed && (
         <div className="mt-3 space-y-1 text-sm">
-          <p className="font-semibold text-success">Today's Shift Completed</p>
+          <p className="font-semibold text-success">Today&apos;s Shift Completed</p>
           <div className="flex justify-between text-muted-foreground">
             <span>Check-in</span>
             <span className="tabular-nums">{formatClientTime(new Date(props.actualCheckIn!))}</span>
