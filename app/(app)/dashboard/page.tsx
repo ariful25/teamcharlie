@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { generateRecurringTaskInstances, refreshOverdueTasks } from "@/lib/services/task-generation";
+import { flagMissingCheckouts } from "@/lib/services/attendance";
 import { getDashboardData } from "@/lib/queries/dashboard";
 import { formatDateLong, formatTime, greeting } from "@/lib/time";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -34,6 +35,7 @@ export default async function DashboardPage() {
   if (shouldRefreshTasks) {
     await generateRecurringTaskInstances(user.teamId);
     await refreshOverdueTasks(user.teamId);
+    await flagMissingCheckouts(user.teamId);
     await prisma.team.update({
       where: { id: user.teamId },
       data: { lastGeneratedAt: new Date() },
@@ -44,7 +46,14 @@ export default async function DashboardPage() {
 
   const today = new Date();
   const record = await prisma.attendanceRecord.findFirst({
-    where: { userId: user.id, date: new Date(today.toISOString().slice(0, 10)) },
+    where: {
+      userId: user.id,
+      OR: [
+        { actualCheckIn: { not: null }, actualCheckOut: null },
+        { date: new Date(today.toISOString().slice(0, 10)) },
+      ],
+    },
+    orderBy: { date: "desc" },
   });
 
   const [clients, employees, categories] = await Promise.all([

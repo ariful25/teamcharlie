@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { startOfDayUTC, combineDateAndTime, minutesLate } from "@/lib/time";
 import { sendCheckInNotification, sendCheckOutNotification } from "@/lib/discord";
 
+const OPEN_CHECK_IN_WINDOW_MS = 20 * 60 * 60 * 1000;
+
 /**
  * The Shift Schedule (ShiftAssignment) is the single source of truth for "who is
  * expected to work when." A day marked WEEKEND/LEAVE, or with no assignment at all,
@@ -48,10 +50,6 @@ export async function checkIn(userId: string) {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { team: true } });
   const record = await getOrCreateTodayRecord(userId, now);
 
-  if (record.actualCheckIn) {
-    throw new Error("ALREADY_CHECKED_IN");
-  }
-
   let isLate = false;
   let lateMinutes = 0;
   if (record.scheduledCheckIn) {
@@ -60,14 +58,17 @@ export async function checkIn(userId: string) {
     isLate = lateMinutes > 0;
   }
 
-  const updated = await prisma.attendanceRecord.update({
-    where: { id: record.id },
+  const result = await prisma.attendanceRecord.updateMany({
+    where: { id: record.id, actualCheckIn: null },
     data: {
       actualCheckIn: now,
       lateMinutes: isLate ? lateMinutes : 0,
       status: isLate ? "LATE" : "ON_TIME",
     },
   });
+  if (result.count === 0) {
+    throw new Error("ALREADY_CHECKED_IN");
+  }
 
   // 1. DB write already committed above. 2. Attempt Discord — never let a
   // Discord outage roll back or block the attendance record.
@@ -95,37 +96,48 @@ export async function checkIn(userId: string) {
 export async function checkOut(userId: string) {
   const now = new Date();
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { team: true } });
-  const record = await getOrCreateTodayRecord(userId, now);
+  const openRecord = await prisma.attendanceRecord.findFirst({
+    where: { userId, actualCheckIn: { not: null }, actualCheckOut: null },
+    orderBy: { date: "desc" },
+  });
 
-  if (!record.actualCheckIn) {
+  if (!openRecord?.actualCheckIn) {
     throw new Error("NOT_CHECKED_IN");
   }
-  if (record.actualCheckOut) {
-    throw new Error("ALREADY_CHECKED_OUT");
+
+  if (now.getTime() - openRecord.actualCheckIn.getTime() > OPEN_CHECK_IN_WINDOW_MS) {
+    await prisma.attendanceRecord.update({
+      where: { id: openRecord.id },
+      data: { status: "MISSING_CHECK_OUT" },
+    });
+    throw new Error("STALE_CHECK_IN");
   }
 
-  const totalMinutes = Math.round((now.getTime() - record.actualCheckIn.getTime()) / 60000);
+  const totalMinutes = Math.round((now.getTime() - openRecord.actualCheckIn.getTime()) / 60000);
 
-  const updated = await prisma.attendanceRecord.update({
-    where: { id: record.id },
+  const result = await prisma.attendanceRecord.updateMany({
+    where: { id: openRecord.id, actualCheckOut: null },
     data: {
       actualCheckOut: now,
       totalMinutes,
       status: "CHECKED_OUT",
     },
   });
+  if (result.count === 0) {
+    throw new Error("ALREADY_CHECKED_OUT");
+  }
 
   const discordResult = await sendCheckOutNotification({
     employeeName: user.name,
     teamName: user.team.name,
-    date: record.date,
-    actualCheckIn: record.actualCheckIn,
+    date: openRecord.date,
+    actualCheckIn: openRecord.actualCheckIn,
     actualCheckOut: now,
     totalMinutes,
   });
 
   const final = await prisma.attendanceRecord.update({
-    where: { id: record.id },
+    where: { id: openRecord.id },
     data: {
       discordCheckOutSynced: discordResult.ok,
       discordCheckOutError: discordResult.ok ? null : discordResult.error,
@@ -133,6 +145,27 @@ export async function checkOut(userId: string) {
   });
 
   return final;
+}
+
+export async function flagMissingCheckouts(teamId: string) {
+  const cutoff = new Date(Date.now() - OPEN_CHECK_IN_WINDOW_MS);
+  const stale = await prisma.attendanceRecord.findMany({
+    where: {
+      user: { teamId },
+      actualCheckIn: { not: null, lt: cutoff },
+      actualCheckOut: null,
+      status: { notIn: ["MISSING_CHECK_OUT"] },
+    },
+  });
+
+  if (stale.length === 0) return { flagged: 0 };
+
+  await prisma.attendanceRecord.updateMany({
+    where: { id: { in: stale.map((record) => record.id) } },
+    data: { status: "MISSING_CHECK_OUT" },
+  });
+
+  return { flagged: stale.length };
 }
 
 export async function retryDiscordSync(recordId: string, kind: "checkin" | "checkout") {

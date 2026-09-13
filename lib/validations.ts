@@ -67,3 +67,110 @@ export const updateUserSchema = z.object({
   active: z.boolean().optional(),
   defaultShiftTypeId: z.string().optional().nullable(),
 });
+
+const optionalText = z.string().optional().nullable();
+const optionalDate = z.string().optional().nullable();
+const optionalMoney = z.union([z.string(), z.number()]).optional().nullable();
+
+export const propertySchema = z.object({
+  clientId: z.string(),
+  internalCode: z.string().min(1, "Property code is required"),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State is required"),
+  zip: optionalText,
+  photosLink: optionalText,
+  redfinLink: optionalText,
+  zillowLink: optionalText,
+  googleMapsLink: optionalText,
+  driveTimesNote: optionalText,
+  generalNotes: optionalText,
+  active: z.boolean().optional(),
+});
+
+export const unitSchema = z.object({
+  propertyId: z.string(),
+  parentUnitId: optionalText,
+  internalName: z.string().min(1, "Unit name is required"),
+  listingLevel: z.enum(["WHOLE_PROPERTY", "WHOLE_HOUSE", "PRIVATE_ROOM", "DETACHED_UNIT"]),
+  bedBathConfig: optionalText,
+  bedType: optionalText,
+  hasSofaBed: z.boolean().default(false),
+  thermostatLocation: optionalText,
+  parkingInfo: optionalText,
+  petPolicy: optionalText,
+  hasTV: z.boolean().optional().nullable(),
+  airbnbLink: optionalText,
+  vrboLink: optionalText,
+  amenitiesDocLink: optionalText,
+  active: z.boolean().optional(),
+});
+
+export const tenancySchema = z.object({
+  unitId: z.string(),
+  status: z.enum(["CURRENT", "UPCOMING", "VACANT", "AIRBNB_TRANSITION"]),
+  tenantName: optionalText,
+  tenantContact: optionalText,
+  moveInDate: optionalDate,
+  moveOutDate: optionalDate,
+  nextTenantName: optionalText,
+  nextTenantMoveIn: optionalDate,
+  nextTenantMoveOut: optionalDate,
+  leaseSource: optionalText,
+  rentAmount: optionalMoney,
+  securityDeposit: optionalMoney,
+  cleaningFee: optionalMoney,
+  petFee: optionalMoney,
+  utilitiesNote: optionalText,
+  parkingNote: optionalText,
+  amountDue: optionalMoney,
+  notes: optionalText,
+});
+
+export const leadSchema = z.object({
+  clientId: z.string(),
+  interestedUnitId: optionalText,
+  name: z.string().min(1, "Lead name is required"),
+  channel: z.string().min(1, "Channel is required"),
+  status: z.string().min(1, "Status is required"),
+  contactedDate: optionalDate,
+  notes: optionalText,
+});
+
+const airbnbUrl = z.string().url("Enter a valid Airbnb URL").refine((value) => {
+  try {
+    const host = new URL(value).hostname.replace(/^www\./, "");
+    return host === "airbnb.com" || host.endsWith(".airbnb.com");
+  } catch {
+    return false;
+  }
+}, "Use an Airbnb URL");
+
+export const propertyKnowledgeItemSchema = z.object({
+  clientId: z.string().min(1, "Client is required"),
+  internalName: z.string().min(1, "Property name is required"),
+  airbnbUrl,
+  status: z.enum(["PENDING", "EXTRACTING", "NEEDS_REVIEW", "READY", "EXPORTED", "FAILED"]).optional(),
+  listingName: optionalText,
+  description: optionalText,
+  amenities: z.array(z.string()).optional(),
+  propertyType: optionalText,
+  location: optionalText,
+  guestCapacity: z.coerce.number().int().min(0).optional().nullable(),
+  bedrooms: z.coerce.number().min(0).optional().nullable(),
+  bathrooms: z.coerce.number().min(0).optional().nullable(),
+  beds: z.coerce.number().min(0).optional().nullable(),
+  rules: optionalText,
+  wifiName: optionalText,
+  wifiPassword: optionalText,
+  doorCode: optionalText,
+  parkingInfo: optionalText,
+  checkInInfo: optionalText,
+  checkoutInfo: optionalText,
+  internalNotes: optionalText,
+});
+
+export const propertyKnowledgeBulkImportSchema = z.object({
+  clientId: z.string().min(1, "Client is required"),
+  csvText: z.string().min(1, "Paste at least one property row"),
+});

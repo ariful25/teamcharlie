@@ -73,6 +73,8 @@ export const permissions = {
   canManageShiftSchedule: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageClients: (role: AppRole) => role === "ADMIN",
   canEditAttendance: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
+  canManageProperties: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
+  canManageKnowledgeBase: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageDiscordSettings: (role: AppRole) => role === "ADMIN",
   canViewAllAttendance: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canAssignTasks: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",

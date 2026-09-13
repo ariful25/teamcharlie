@@ -40,11 +40,16 @@ export function statusTone(status: string): Tone {
     case "ON_TIME":
     case "CHECKED_OUT":
     case "WORKING":
+    case "CURRENT":
+    case "READY":
+    case "EXPORTED":
       return "success";
     case "IN_PROGRESS":
     case "ATTENTION":
     case "LATE":
     case "WEEKEND":
+    case "AIRBNB_TRANSITION":
+    case "NEEDS_REVIEW":
       return "warning";
     case "OVERDUE":
     case "URGENT":
@@ -52,10 +57,14 @@ export function statusTone(status: string): Tone {
     case "MISSING_CHECK_IN":
     case "MISSING_CHECK_OUT":
     case "LEAVE":
+    case "FAILED":
       return "danger";
     case "WAITING":
     case "UPCOMING":
     case "CHECKED_IN":
+    case "VACANT":
+    case "PENDING":
+    case "EXTRACTING":
       return "info";
     default:
       return "neutral";
