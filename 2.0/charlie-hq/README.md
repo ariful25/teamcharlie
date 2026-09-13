@@ -31,6 +31,11 @@ NextAuth, Framer Motion, anime.js, and React Three Fiber.
   select in the app
 - Clients — Andrea/Allen/Shawn fully wired, Perfect Stay/Jack as placeholders per spec
 - Issues
+- **Property Knowledge Base** (`/knowledge-base`): lightweight Airbnb listing
+  preparation tool for client onboarding. Bulk import internal property names +
+  Airbnb URLs, run best-effort public listing extraction, review/fill operational
+  fields, and export CSV for Google Sheets / NotebookLM. This intentionally does not
+  add embeddings, chatbots, or a heavy AI knowledge system inside Charlie HQ.
 
 ## Getting started
 
@@ -191,3 +196,6 @@ Perfect Stay and Jack are seeded as placeholder client workspaces only, as speci
 - New users are created with a randomly generated temporary password shown once in the
   Settings UI — there's no outbound email/invite flow yet (no email infrastructure in
   Module 1).
+- The Property Knowledge Base extractor reads only public Airbnb page metadata on a
+  best-effort basis. Airbnb may change markup or block requests, so the review step and
+  manual operational fields remain first-class parts of the workflow.

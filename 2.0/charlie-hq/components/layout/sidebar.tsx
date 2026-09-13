@@ -13,6 +13,7 @@ import {
   Radar,
   LogOut,
   Circle,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/tasks", label: "Tasks", icon: ListChecks },
   { href: "/attendance", label: "Attendance", icon: Clock },
   { href: "/issues", label: "Issues", icon: AlertTriangle },
+  { href: "/knowledge-base", label: "Knowledge Base", icon: FileSpreadsheet },
 ];
 
 export function Sidebar({

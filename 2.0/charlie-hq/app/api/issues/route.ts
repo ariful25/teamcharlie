@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       title: body.title,
       description: body.description || null,
       clientId: body.clientId || null,
+      unitId: body.unitId || null,
       severity: body.severity || "MEDIUM",
       teamId,
       reportedById: userId,

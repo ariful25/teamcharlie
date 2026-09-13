@@ -19,6 +19,12 @@ export async function POST() {
     if (err.message === "ALREADY_CHECKED_OUT") {
       return NextResponse.json({ error: "You have already checked out today." }, { status: 409 });
     }
+    if (err.message === "STALE_CHECK_IN") {
+      return NextResponse.json(
+        { error: "Your last check-in looks like it was missed. Ask an admin to correct it." },
+        { status: 409 }
+      );
+    }
     console.error(err);
     return NextResponse.json({ error: "Could not check out. Please try again." }, { status: 500 });
   }

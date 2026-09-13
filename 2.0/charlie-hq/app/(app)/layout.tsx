@@ -20,11 +20,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const todayRecord = await prisma.attendanceRecord.findFirst({
     where: {
       userId: user.id,
-      date: new Date(new Date().toISOString().slice(0, 10)),
+      actualCheckIn: { not: null },
+      actualCheckOut: null,
     },
+    orderBy: { date: "desc" },
   });
 
-  const checkedIn = !!todayRecord?.actualCheckIn && !todayRecord?.actualCheckOut;
+  const checkedIn = !!todayRecord;
 
   return (
     <div className="flex min-h-screen">

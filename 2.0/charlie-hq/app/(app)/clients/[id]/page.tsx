@@ -1,13 +1,24 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getClientWorkspaceData } from "@/lib/queries/clients";
+import { getCurrentUser } from "@/lib/session";
+import { permissions } from "@/lib/auth";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge, statusTone, priorityTone } from "@/components/ui/badge";
+import { PerfectStayWorkspace } from "@/components/properties/perfect-stay-workspace";
 
 export default async function ClientWorkspacePage({ params }: { params: { id: string } }) {
-  const { client, tasks, recurringTasks, issues } = await getClientWorkspaceData(params.id);
+  const currentUser = await getCurrentUser();
+  const { client, tasks, recurringTasks, issues, properties, leads } = await getClientWorkspaceData(params.id);
   if (!client) notFound();
 
-  const isPlaceholder = client.name === "Perfect Stay" || client.name === "Jack";
+  const canManageProperties = permissions.canManageProperties(currentUser.role);
+  const isJackPlaceholder = client.name === "Jack";
+  const isPerfectStay = client.name === "Perfect Stay";
+  const plainProperties = JSON.parse(JSON.stringify(properties));
+  const plainLeads = JSON.parse(JSON.stringify(leads));
+  const plainIssues = JSON.parse(JSON.stringify(issues));
+  const plainRecurringTasks = JSON.parse(JSON.stringify(recurringTasks));
 
   return (
     <div className="space-y-6">
@@ -26,9 +37,15 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
             )}
           </div>
         </div>
+        <Link
+          href={`/knowledge-base?clientId=${client.id}`}
+          className="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+        >
+          Prepare Knowledge Base
+        </Link>
       </div>
 
-      {isPlaceholder ? (
+      {isJackPlaceholder ? (
         <Card className="p-8 text-center">
           <p className="text-sm text-muted-foreground">
             {client.notes ?? "Workflow pending configuration."}
@@ -38,6 +55,15 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
             in a future module.
           </p>
         </Card>
+      ) : isPerfectStay ? (
+        <PerfectStayWorkspace
+          client={client}
+          properties={plainProperties}
+          leads={plainLeads}
+          issues={plainIssues}
+          recurringTasks={plainRecurringTasks}
+          canManage={canManageProperties}
+        />
       ) : (
         <>
           <Card>

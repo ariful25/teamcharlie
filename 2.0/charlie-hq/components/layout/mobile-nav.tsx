@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarClock, ListChecks, Clock, Settings } from "lucide-react";
+import { LayoutDashboard, CalendarClock, ListChecks, Clock, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -10,7 +10,7 @@ const items = [
   { href: "/shift-schedule", label: "Shifts", icon: CalendarClock },
   { href: "/tasks", label: "Tasks", icon: ListChecks },
   { href: "/attendance", label: "Attendance", icon: Clock },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/knowledge-base", label: "Knowledge", icon: FileSpreadsheet },
 ];
 
 export function MobileNav() {
