@@ -29,11 +29,23 @@ function parseCsvLine(line: string) {
 
 function parseRows(csvText: string) {
   const lines = csvText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const rows = lines.map(parseCsvLine);
-  const first = rows[0]?.map((cell) => cell.toLowerCase()) ?? [];
-  const hasHeader = first.some((cell) => cell.includes("property") || cell.includes("airbnb"));
+  const rows = lines.map((line) => {
+    const cells = parseCsvLine(line);
+    const airbnbUrl = cells.find((cell) => /https?:\/\/(?:www\.)?airbnb\.[^\s,"]+/i.test(cell));
+    if (airbnbUrl) {
+      const internalName = cells.filter((cell) => cell !== airbnbUrl).join(" ").trim() || airbnbUrl;
+      return { internalName, airbnbUrl };
+    }
+
+    const urlMatch = line.match(/https?:\/\/(?:www\.)?airbnb\.[^\s,"]+/i);
+    if (!urlMatch) return { internalName: cells[0], airbnbUrl: cells[1] };
+
+    const airbnbUrlFromLine = urlMatch[0];
+    const internalName = line.slice(0, urlMatch.index).replace(/,+$/, "").trim() || airbnbUrlFromLine;
+    return { internalName, airbnbUrl: airbnbUrlFromLine };
+  });
+  const hasHeader = lines[0] && /property|airbnb/i.test(lines[0]) && !/https?:\/\/(?:www\.)?airbnb\./i.test(lines[0]);
   return (hasHeader ? rows.slice(1) : rows)
-    .map(([internalName, airbnbUrl]) => ({ internalName, airbnbUrl }))
     .filter((row) => row.internalName && row.airbnbUrl);
 }
 
@@ -87,6 +99,10 @@ export async function POST(req: NextRequest) {
       },
     });
     imported++;
+  }
+
+  if (imported === 0) {
+    return NextResponse.json({ error: "No valid Airbnb URLs found. Paste rows like: Property Name, https://www.airbnb.com/rooms/123" }, { status: 400 });
   }
 
   return NextResponse.json({ imported, skipped });
