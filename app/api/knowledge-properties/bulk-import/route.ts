@@ -28,12 +28,39 @@ function rowsFromCsv(csvText: string): ParsedRow[] {
     !firstRow.some((cell) => LOOSE_AIRBNB_CELL.test(cell));
   const dataRows = looksLikeHeader ? rows.slice(1) : rows;
 
-  return dataRows.map((cells) => {
+  // Some people paste the name and URL as two separate lines (e.g. copying
+  // from a doc where each wraps onto its own line) rather than "Name, URL"
+  // on one line. A name-only row has no URL cell at all, and the URL-only
+  // row that follows has no name cell — treated independently, the name row
+  // would be silently dropped (no valid URL) and the URL row would fall
+  // back to "Airbnb <id>". Carrying the most recent name-only line forward
+  // as `pendingName` until the next row with a URL consumes it fixes that,
+  // without changing anything about the normal single-line format (a row
+  // that already has both simply uses its own name and never touches
+  // `pendingName`).
+  const parsedRows: ParsedRow[] = [];
+  let pendingName: string | null = null;
+
+  for (const cells of dataRows) {
     const trimmed = cells.map((cell) => cell.trim());
     const airbnbUrl = trimmed.find((cell) => LOOSE_AIRBNB_CELL.test(cell)) ?? "";
-    const internalName = trimmed.find((cell) => cell && cell !== airbnbUrl) ?? "";
-    return { internalName, airbnbUrl };
-  });
+    const rawName = trimmed.find((cell) => cell && cell !== airbnbUrl) ?? "";
+
+    if (!airbnbUrl) {
+      if (rawName) pendingName = rawName;
+      continue;
+    }
+
+    const nameForRow = rawName || pendingName || "";
+    pendingName = null;
+    // Hosts commonly label a unit as "Property Name: Room/Unit" (e.g. "The
+    // Wake House: Kayaks") — only the part before the colon is the property's
+    // internal name, so that's what gets stored, not the full label.
+    const internalName = nameForRow.split(":")[0].trim();
+    parsedRows.push({ internalName, airbnbUrl });
+  }
+
+  return parsedRows;
 }
 
 export async function POST(req: NextRequest) {

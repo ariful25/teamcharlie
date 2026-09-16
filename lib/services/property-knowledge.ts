@@ -140,10 +140,14 @@ export function computeCompletionPct(data: Record<string, unknown>): number {
 
 // ---------- Extraction merge ----------
 
-// The subset of fields Airbnb extraction is allowed to touch. Operational
-// fields (wifi, door code, parking, check-in/out notes, internal notes)
-// are never in this list, so extraction can never overwrite them even by
-// accident — they simply aren't part of the patch.
+// The subset of fields Airbnb extraction is allowed to touch. Most
+// operational fields (wifi, door code, parking, internal notes) are never
+// in this list, so extraction can never overwrite them even by accident —
+// they simply aren't part of the patch. checkInInfo/checkoutInfo are the
+// deliberate exception: extraction only ever seeds them from Airbnb's own
+// published check-in/checkout time window when the field is still blank
+// (same non-destructive rule as every other field here), which is exactly
+// the kind of manual entry this is meant to save.
 const AIRBNB_SOURCED_FIELDS = [
   "listingName",
   "description",
@@ -155,6 +159,8 @@ const AIRBNB_SOURCED_FIELDS = [
   "bathrooms",
   "beds",
   "rules",
+  "checkInInfo",
+  "checkoutInfo",
 ] as const;
 
 export type ExtractedAirbnbFields = Partial<Record<(typeof AIRBNB_SOURCED_FIELDS)[number], unknown>> & {

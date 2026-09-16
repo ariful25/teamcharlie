@@ -70,9 +70,17 @@ export function Sidebar({
         })}
 
         <div className="pt-4">
-          <p className="px-3 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <Link
+            href="/clients"
+            className={cn(
+              "block px-3 pb-1.5 text-[11px] font-medium uppercase tracking-wider transition-colors",
+              pathname === "/clients"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
             Clients
-          </p>
+          </Link>
           {clients.map((c) => (
             <Link
               key={c.id}
