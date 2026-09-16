@@ -44,6 +44,16 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
+
+  if (data.clientId) {
+    const client = await prisma.client.findFirst({ where: { id: data.clientId, teamId } });
+    if (!client) return NextResponse.json({ error: "Invalid clientId" }, { status: 400 });
+  }
+  if (data.assignedUserId) {
+    const assignee = await prisma.user.findFirst({ where: { id: data.assignedUserId, teamId } });
+    if (!assignee) return NextResponse.json({ error: "Invalid assignedUserId" }, { status: 400 });
+  }
+
   const isRecurring = data.repeatMode && data.repeatMode !== "NONE";
 
   const task = await prisma.task.create({

@@ -206,16 +206,16 @@ function PropertyFormModal({
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Operational Information</p>
           </div>
           <Field label="WiFi Name">
-            <input name="wifiName" defaultValue={existing?.wifiName ?? ""} className={inputClass} />
+            <input name="wifiName" defaultValue={existing?.wifiName ?? ""} placeholder="Type N/A if this property has no WiFi" className={inputClass} />
           </Field>
           <Field label="WiFi Password">
             <input name="wifiPassword" defaultValue={existing?.wifiPassword ?? ""} className={inputClass} />
           </Field>
           <Field label="Door Code">
-            <input name="doorCode" defaultValue={existing?.doorCode ?? ""} className={inputClass} />
+            <input name="doorCode" defaultValue={existing?.doorCode ?? ""} placeholder="Type N/A if there's no door code" className={inputClass} />
           </Field>
           <Field label="Parking">
-            <input name="parkingInfo" defaultValue={existing?.parkingInfo ?? ""} className={inputClass} />
+            <input name="parkingInfo" defaultValue={existing?.parkingInfo ?? ""} placeholder="Type N/A if there's no parking" className={inputClass} />
           </Field>
           <Field label="Check-in" className="col-span-2">
             <textarea name="checkInInfo" rows={3} defaultValue={existing?.checkInInfo ?? ""} className={inputClass} />

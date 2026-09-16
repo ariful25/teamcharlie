@@ -70,20 +70,25 @@ export function extractAirbnbListingId(value: string): string | null {
 export type NormalizedAirbnbUrl = { url: string; listingId: string | null };
 
 // Collapses every variant of the same listing (different query strings,
-// tracking params, http/https, host casing, trailing slash) to one
-// canonical URL so duplicate-prevention and lookups work on listing
-// identity rather than raw string equality. Returns null for non-Airbnb
-// input; callers should validate with isAirbnbUrl first for a clean error.
+// tracking params, http/https, host casing, trailing slash, and regional
+// domain — airbnb.co.uk/rooms/123 and airbnb.com/rooms/123 are the same
+// listing) to one canonical URL so duplicate-prevention and lookups work on
+// listing identity rather than raw string equality. Returns null for
+// non-Airbnb input; callers should validate with isAirbnbUrl first for a
+// clean error.
 export function normalizeAirbnbUrl(value: string): NormalizedAirbnbUrl | null {
   if (!isAirbnbUrl(value)) return null;
   const url = new URL(value);
-  const host = url.hostname.toLowerCase().replace(/^www\./, "");
   const listingId = extractAirbnbListingId(value);
 
   if (listingId) {
-    return { url: `https://www.${host}/rooms/${listingId}`, listingId };
+    // Every regional domain serves the same listing at the same numeric id
+    // under airbnb.com, so canonicalizing there is what actually collapses
+    // duplicates instead of just tidying each domain's own variants.
+    return { url: `https://www.airbnb.com/rooms/${listingId}`, listingId };
   }
 
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
   const path = url.pathname.replace(/\/+$/, "") || "/";
   return { url: `https://www.${host}${path}`, listingId: null };
 }
@@ -157,19 +162,23 @@ export type ExtractedAirbnbFields = Partial<Record<(typeof AIRBNB_SOURCED_FIELDS
 };
 
 // Builds a Prisma update patch from a fresh extraction without ever
-// clobbering a manually-reviewed field with null/undefined/""/[] — only a
-// meaningful new value from Airbnb is allowed to replace what's already
-// there. Fields Airbnb didn't return anything useful for are simply left
-// out of the patch, so re-running extraction can only add information.
-export function mergeAirbnbExtraction(extracted: ExtractedAirbnbFields): Record<string, unknown> {
+// clobbering a manually-reviewed field. A field is only populated when
+// Airbnb returned a meaningful value AND the existing record doesn't
+// already have one filled in — so a value someone typed in by hand (or a
+// prior extraction already filled) is never replaced by a later
+// extraction run, only fields that are still blank get filled in.
+export function mergeAirbnbExtraction(
+  existing: Record<string, unknown>,
+  extracted: ExtractedAirbnbFields
+): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
   for (const field of AIRBNB_SOURCED_FIELDS) {
     const value = extracted[field];
-    if (isFieldFilled(value)) {
+    if (isFieldFilled(value) && !isFieldFilled(existing[field])) {
       patch[field] = value;
     }
   }
-  if (extracted.airbnbListingId) {
+  if (extracted.airbnbListingId && !existing.airbnbListingId) {
     patch.airbnbListingId = extracted.airbnbListingId;
   }
   return patch;
@@ -181,4 +190,9 @@ export function mergeAirbnbExtraction(extracted: ExtractedAirbnbFields): Record<
 // EXTRACTING and FAILED are process-only states written exclusively by the
 // extraction route (app/api/knowledge-properties/[id]/extract) — letting a
 // form set them would let someone claim an extraction ran when it didn't.
-export const MANUAL_KNOWLEDGE_STATUSES = ["PENDING", "NEEDS_REVIEW", "READY", "EXPORTED"] as const;
+// EXPORTED is excluded too: the export route only stamps `exportedAt` now
+// (see app/api/knowledge-properties/export/route.ts), so a manually-picked
+// EXPORTED would just be a claim with nothing behind it. The value still
+// exists on KnowledgePropertyStatus for any historical rows already set to
+// it, but it's no longer offered as a choice.
+export const MANUAL_KNOWLEDGE_STATUSES = ["PENDING", "NEEDS_REVIEW", "READY"] as const;

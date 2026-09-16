@@ -7,6 +7,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const teamId = (session.user as any).teamId as string;
+  const existing = await prisma.issue.findFirst({ where: { id: params.id, teamId } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const body = await req.json();
   const issue = await prisma.issue.update({
     where: { id: params.id },

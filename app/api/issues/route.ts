@@ -26,6 +26,15 @@ export async function POST(req: NextRequest) {
 
   if (!body.title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
 
+  if (body.clientId) {
+    const client = await prisma.client.findFirst({ where: { id: body.clientId, teamId } });
+    if (!client) return NextResponse.json({ error: "Invalid clientId" }, { status: 400 });
+  }
+  if (body.unitId) {
+    const unit = await prisma.unit.findFirst({ where: { id: body.unitId, property: { client: { teamId } } } });
+    if (!unit) return NextResponse.json({ error: "Invalid unitId" }, { status: 400 });
+  }
+
   const issue = await prisma.issue.create({
     data: {
       title: body.title,

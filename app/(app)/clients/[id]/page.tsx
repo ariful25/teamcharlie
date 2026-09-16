@@ -14,7 +14,10 @@ import { getClientIntegrationOverview } from "@/lib/services/integrations";
 
 export default async function ClientWorkspacePage({ params }: { params: { id: string } }) {
   const currentUser = await getCurrentUser();
-  const { client, tasks, recurringTasks, issues, properties, leads } = await getClientWorkspaceData(params.id);
+  const { client, tasks, recurringTasks, issues, properties, leads } = await getClientWorkspaceData(
+    params.id,
+    currentUser.teamId
+  );
   if (!client) notFound();
 
   const canManageClients = permissions.canManageClients(currentUser.role);

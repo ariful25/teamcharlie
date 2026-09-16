@@ -25,7 +25,7 @@ type IntegrationRow = {
 };
 
 const STATUS_META: Record<string, { label: string; tone: Tone; icon: typeof CheckCircle2 }> = {
-  CONNECTED: { label: "Connected", tone: "success", icon: CheckCircle2 },
+  CONNECTED: { label: "Externally Configured", tone: "success", icon: CheckCircle2 },
   NEEDS_AUTHORIZATION: { label: "Needs Authorization", tone: "warning", icon: AlertCircle },
   ERROR: { label: "Error", tone: "danger", icon: AlertCircle },
   NOT_CONNECTED: { label: "Not Connected", tone: "neutral", icon: CircleDashed },
@@ -75,7 +75,7 @@ function ConfigureModal({ clientId, row }: { clientId: string; row: IntegrationR
           <p className="text-xs text-muted-foreground">
             {row.hasConnector
               ? "Set this once the connection is set up."
-              : `Charlie HQ has no automated ${row.label} connector yet — this only records the status for team visibility. Set it up directly in ${row.label}, then mark it Connected here.`}
+              : `Charlie HQ has no automated ${row.label} connector yet — this only records the status for team visibility, it does not give Charlie HQ access. Set it up directly in ${row.label}, then mark it "Externally Configured" here.`}
           </p>
           <Field label="Status">
             <Select
@@ -84,7 +84,7 @@ function ConfigureModal({ clientId, row }: { clientId: string; row: IntegrationR
               options={[
                 { value: "NOT_CONNECTED", label: "Not Connected" },
                 { value: "NEEDS_AUTHORIZATION", label: "Needs Authorization" },
-                { value: "CONNECTED", label: "Connected" },
+                { value: "CONNECTED", label: "Externally Configured" },
                 { value: "ERROR", label: "Error" },
               ]}
             />

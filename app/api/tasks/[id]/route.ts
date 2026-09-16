@@ -7,8 +7,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const teamId = (session.user as any).teamId as string;
+  const existing = await prisma.task.findFirst({ where: { id: params.id, teamId } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const body = await req.json();
   const userId = (session.user as any).id as string;
+
+  if (body.assignedUserId !== undefined && body.assignedUserId !== null) {
+    const assignee = await prisma.user.findFirst({ where: { id: body.assignedUserId, teamId } });
+    if (!assignee) return NextResponse.json({ error: "Invalid assignedUserId" }, { status: 400 });
+  }
 
   const updateData: Record<string, unknown> = {};
   if (body.status) {
@@ -35,6 +44,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const teamId = (session.user as any).teamId as string;
+  const existing = await prisma.task.findFirst({ where: { id: params.id, teamId } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.task.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });

@@ -36,10 +36,10 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   try {
     const extracted = await extractAirbnbListing(existing.airbnbUrl);
-    // Only fields with a meaningful new value are included in this patch —
-    // manually reviewed fields (and Airbnb fields Airbnb returned nothing
-    // useful for) are left untouched. See mergeAirbnbExtraction for why.
-    const patch = mergeAirbnbExtraction(extracted);
+    // Only fields that are still blank get filled in — anything already
+    // set (manually, or by a prior extraction) is left untouched. See
+    // mergeAirbnbExtraction for why.
+    const patch = mergeAirbnbExtraction(existing, extracted);
     const merged = { ...existing, ...patch };
     const item = await prisma.propertyKnowledgeItem.update({
       where: { id: existing.id },
