@@ -1,3 +1,5 @@
+import { extractAirbnbListingId } from "@/lib/services/property-knowledge";
+
 type ExtractedAirbnbListing = {
   airbnbListingId: string | null;
   listingName: string | null;
@@ -11,6 +13,11 @@ type ExtractedAirbnbListing = {
   beds: number | null;
   rules: string | null;
 };
+
+// Kept comfortably under Vercel's default Hobby-plan function limit (10s) so
+// our own friendly timeout error always fires before the platform kills the
+// request and returns a raw, unstyled 504 instead.
+const FETCH_TIMEOUT_MS = 8_000;
 
 function cleanText(value: unknown) {
   if (typeof value !== "string") return null;
@@ -40,18 +47,6 @@ function metaContent(html: string, selector: string) {
   return null;
 }
 
-export function extractAirbnbListingId(airbnbUrl: string) {
-  const fromRoomPath = airbnbUrl.match(/\/rooms\/(\d+)/i)?.[1];
-  if (fromRoomPath) return fromRoomPath;
-
-  try {
-    const url = new URL(airbnbUrl);
-    return url.searchParams.get("source_impression_id") ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function extractJsonLd(html: string): Record<string, any>[] {
   const blocks = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
   return blocks.flatMap((block) => {
@@ -69,21 +64,54 @@ function firstNumberFromText(value: string, label: string) {
   return match ? Number(match[1]) : null;
 }
 
-export async function extractAirbnbListing(airbnbUrl: string): Promise<ExtractedAirbnbListing> {
-  const res = await fetch(airbnbUrl, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (compatible; CharlieHQ/1.0; +https://github.com/ariful25/teamcharlie)",
-      Accept: "text/html,application/xhtml+xml",
-    },
-    cache: "no-store",
-  });
+// Airbnb can return HTTP 200 for a bot-challenge/interstitial page, or ship
+// a markup change that breaks every selector above — in both cases we'd
+// otherwise "succeed" with an almost-empty record. Require a real signal
+// (a title) plus at least one other independent field before trusting the
+// page actually was the listing.
+function isMeaningfulExtraction(listing: ExtractedAirbnbListing) {
+  if (!listing.listingName) return false;
+  const otherSignals = [
+    listing.description,
+    listing.location,
+    listing.guestCapacity,
+    listing.bedrooms,
+    listing.bathrooms,
+    listing.beds,
+  ].filter((value) => value !== null && value !== undefined);
+  return otherSignals.length > 0;
+}
 
-  if (!res.ok) {
-    throw new Error(`Airbnb returned ${res.status}`);
+export async function extractAirbnbListing(airbnbUrl: string): Promise<ExtractedAirbnbListing> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  let html: string;
+  try {
+    const res = await fetch(airbnbUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; CharlieHQ/1.0; +https://github.com/ariful25/teamcharlie)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Airbnb returned HTTP ${res.status}. The listing may be private, removed, or temporarily blocking automated requests.`);
+    }
+
+    html = await res.text();
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      throw new Error("Airbnb did not respond in time. Try again in a moment, or fill in the listing details manually.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
 
-  const html = await res.text();
   const jsonLd = extractJsonLd(html);
   const lodging = jsonLd.find((item) => {
     const type = item?.["@type"];
@@ -112,7 +140,7 @@ export async function extractAirbnbListing(airbnbUrl: string): Promise<Extracted
     cleanText(typeof address === "string" ? address : [address?.addressLocality, address?.addressRegion, address?.addressCountry].filter(Boolean).join(", ")) ??
     metaContent(html, `property=["']og:locality["']`);
 
-  return {
+  const listing: ExtractedAirbnbListing = {
     airbnbListingId: extractAirbnbListingId(airbnbUrl),
     listingName: title,
     description,
@@ -125,4 +153,12 @@ export async function extractAirbnbListing(airbnbUrl: string): Promise<Extracted
     beds,
     rules: null,
   };
+
+  if (!isMeaningfulExtraction(listing)) {
+    throw new Error(
+      "Airbnb did not return usable listing information (the page may have been blocked, redirected to a challenge page, or changed format). Fill in the details manually and try extraction again later."
+    );
+  }
+
+  return listing;
 }

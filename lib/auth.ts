@@ -79,4 +79,12 @@ export const permissions = {
   canViewAllAttendance: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canAssignTasks: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageUsers: (role: AppRole) => role === "ADMIN",
+  // Integration connection status is ADMIN-only, same as canManageClients
+  // above (a Team Lead operates within existing clients but doesn't touch
+  // integration status) — kept as its own key since the task treats them
+  // as distinct capabilities even though they resolve the same today.
+  canManageIntegrations: (role: AppRole) => role === "ADMIN",
+  // Files are an operational module like the knowledge base — Team Leads
+  // can manage them day-to-day, everyone on the team can view them.
+  canManageClientFiles: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
 };

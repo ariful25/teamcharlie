@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isAirbnbUrl, MANUAL_KNOWLEDGE_STATUSES } from "@/lib/services/property-knowledge";
 
 export const taskSchema = z.object({
   title: z.string().min(2, "Task name is required"),
@@ -31,6 +32,81 @@ export const clientSchema = z.object({
   operationPlatform: z.string().optional().nullable(),
   clientCommunicationPlatform: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+});
+
+// Every provider Charlie HQ's integration registry knows about today. None
+// has a real connector — see lib/services/integrations.ts.
+export const INTEGRATION_PROVIDERS = [
+  "GUESTY",
+  "AIRBNB",
+  "CLICKUP",
+  "WHATSAPP",
+  "ENSO",
+  "HOSTBUDDY",
+  "GOOGLE_DRIVE",
+  "GOOGLE_SHEETS",
+  "NOTION",
+  "OTHER",
+] as const;
+
+// Client-safe (no Prisma import) so both server routes and the client-side
+// wizard/integrations panel can use the same display labels without the
+// panel having to import lib/services/integrations.ts (which is
+// server-only). lib/services/integrations.ts re-exports this.
+export const INTEGRATION_LABELS: Record<(typeof INTEGRATION_PROVIDERS)[number], string> = {
+  GUESTY: "Guesty",
+  AIRBNB: "Airbnb (official API)",
+  CLICKUP: "ClickUp",
+  WHATSAPP: "WhatsApp",
+  ENSO: "Enso",
+  HOSTBUDDY: "HostBuddy",
+  GOOGLE_DRIVE: "Google Drive",
+  GOOGLE_SHEETS: "Google Sheets",
+  NOTION: "Notion",
+  OTHER: "Other",
+};
+
+// The Add Client wizard's Step 3 (Integrations) only ever *enables a
+// capability* — it creates NOT_CONNECTED rows, never CONNECTED ones. See
+// app/api/clients/route.ts.
+export const clientCreateSchema = clientSchema.extend({
+  integrations: z.array(z.enum(INTEGRATION_PROVIDERS)).optional().default([]),
+});
+
+// Edit Client reuses the base fields plus active (deactivate/reactivate).
+// workspaceTemplate is deliberately NOT editable here — it's a rare,
+// legitimately-special-workflow flag (see ClientWorkspaceTemplate), not a
+// normal per-client setting an admin should casually flip from this form.
+export const clientUpdateSchema = clientSchema.partial().extend({
+  active: z.boolean().optional(),
+});
+
+// Client creation only ever enables a capability (creates a NOT_CONNECTED or
+// NEEDS_AUTHORIZATION row) — it never claims CONNECTED, since that would be
+// asserting a real external connection nothing has verified. Only an
+// explicit later edit (a human confirming they set it up) can mark CONNECTED.
+export const clientIntegrationCreateSchema = z.object({
+  provider: z.enum(INTEGRATION_PROVIDERS),
+  status: z.enum(["NOT_CONNECTED", "NEEDS_AUTHORIZATION"]).default("NOT_CONNECTED"),
+});
+
+export const clientIntegrationUpdateSchema = z.object({
+  status: z.enum(["NOT_CONNECTED", "NEEDS_AUTHORIZATION", "CONNECTED", "ERROR"]),
+  note: z.string().max(500).optional().nullable(),
+});
+
+export const CLIENT_FILE_CATEGORIES = ["SOP", "PROPERTIES", "INVOICES", "KNOWLEDGE", "OTHER"] as const;
+// UPLOAD is a recognized source in the schema for when binary storage is
+// wired up, but the create form only accepts link-based sources today — see
+// the ClientFileSource comment in prisma/schema.prisma.
+export const CLIENT_FILE_LINK_SOURCES = ["GOOGLE_DRIVE", "URL", "GENERATED", "EXTERNAL"] as const;
+
+export const clientFileSchema = z.object({
+  clientId: z.string().min(1, "Client is required"),
+  name: z.string().min(1, "File name is required"),
+  category: z.enum(CLIENT_FILE_CATEGORIES).default("OTHER"),
+  source: z.enum(CLIENT_FILE_LINK_SOURCES),
+  url: z.string().url("Enter a valid URL"),
 });
 
 export const shiftTypeSchema = z.object({
@@ -137,20 +213,15 @@ export const leadSchema = z.object({
   notes: optionalText,
 });
 
-const airbnbUrl = z.string().url("Enter a valid Airbnb URL").refine((value) => {
-  try {
-    const host = new URL(value).hostname.replace(/^www\./, "");
-    return host === "airbnb.com" || host.endsWith(".airbnb.com");
-  } catch {
-    return false;
-  }
-}, "Use an Airbnb URL");
+const airbnbUrl = z.string().url("Enter a valid Airbnb URL").refine(isAirbnbUrl, "Use an Airbnb URL");
 
 export const propertyKnowledgeItemSchema = z.object({
   clientId: z.string().min(1, "Client is required"),
   internalName: z.string().min(1, "Property name is required"),
   airbnbUrl,
-  status: z.enum(["PENDING", "EXTRACTING", "NEEDS_REVIEW", "READY", "EXPORTED", "FAILED"]).optional(),
+  // EXTRACTING/FAILED are process-only states set by the extraction route —
+  // a manual create/edit request may never claim them directly.
+  status: z.enum(MANUAL_KNOWLEDGE_STATUSES).optional(),
   listingName: optionalText,
   description: optionalText,
   amenities: z.array(z.string()).optional(),

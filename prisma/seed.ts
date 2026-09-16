@@ -1,4 +1,4 @@
-import { PrismaClient, Role, ClientStatus, Priority, TaskStatus } from "@prisma/client";
+import { PrismaClient, Role, ClientStatus, Priority, TaskStatus, ClientWorkspaceTemplate } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -193,6 +193,12 @@ async function main() {
     where: { id: perfectStay.id },
     data: {
       status: ClientStatus.ATTENTION,
+      // Opts this specific client into the Property/Unit/Tenancy/Lead LTR
+      // workspace (components/properties/perfect-stay-workspace.tsx)
+      // instead of the generic Tasks/Issues workspace every other client
+      // gets by default — a data flag, not a client.name === "Perfect Stay"
+      // check, so renaming this client can never break it.
+      workspaceTemplate: ClientWorkspaceTemplate.PERFECT_STAY_LTR,
       notes:
         "Tenant policy: credit score 670+ and income >=3x rent required; 620-669 requires an extra month's rent as additional deposit; below 620 or any eviction/criminal history is not accepted. International students provide full name, email, phone, move-in date, nationality, lease term, passport photo, and student ID; initial payment is 2 months' rent as deposit plus cleaning fee plus first month's rent. Whole-house utilities are tenant-owned or Perfect Stay-managed with a 10% admin surcharge and prepaid top-up balance. Lease closes after signature plus deposit, first rent, and cleaning fee. Reference docs: English https://docs.google.com/document/d/16q-wwHafEaQXJiPoCuuBCJcWUdCJu8FRpCuLG2KT3YE/edit ; Chinese https://docs.google.com/document/d/18l1d5eYuyyqee62PGNzyS3jloG6gBUfUPv1mhxv3sRQ/edit",
     },

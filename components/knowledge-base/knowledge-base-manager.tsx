@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Download, FileSpreadsheet, Pencil, Plus, RefreshCcw, Trash2, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, Info, Pencil, Plus, RefreshCcw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, statusTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,18 +10,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { MANUAL_KNOWLEDGE_STATUSES } from "@/lib/services/property-knowledge";
 
 type ClientOption = { id: string; name: string };
 type KnowledgeItem = any;
 
-const STATUS_OPTIONS = [
-  { value: "PENDING", label: "Pending" },
-  { value: "EXTRACTING", label: "Extracting" },
-  { value: "NEEDS_REVIEW", label: "Needs Review" },
-  { value: "READY", label: "Ready" },
-  { value: "EXPORTED", label: "Exported" },
-  { value: "FAILED", label: "Failed" },
-];
+// EXTRACTING/FAILED are process-only states written by the extraction route
+// and are intentionally left out here — the server rejects them from a
+// manual create/edit request too (see lib/validations.ts), this just keeps
+// the form from offering a choice the API will reject.
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pending",
+  NEEDS_REVIEW: "Needs Review",
+  READY: "Ready",
+  EXPORTED: "Exported",
+};
+const STATUS_OPTIONS = MANUAL_KNOWLEDGE_STATUSES.map((value) => ({ value, label: STATUS_LABELS[value] }));
+const PROCESS_ONLY_STATUSES = new Set(["EXTRACTING", "FAILED"]);
 
 function text(form: FormData, key: string) {
   const value = String(form.get(key) ?? "").trim();
@@ -71,6 +76,22 @@ function PropertyFormModal({
   const [clientId, setClientId] = useState(existing?.clientId ?? defaultClientId ?? clients[0]?.id ?? "");
   const [status, setStatus] = useState(existing?.status ?? "PENDING");
 
+  // useState's initial value is only read once, so without this the modal
+  // would keep defaulting to whichever client was selected the first time
+  // it opened. Re-reading the current props on every open (rather than a
+  // remount-by-key hack) keeps "Add Property" defaulting to the page's
+  // current client filter and keeps an editable item's own status valid —
+  // an item stuck in a process-only state (Extracting/Failed) opens as
+  // "Needs Review" so saving edits can't accidentally resubmit a status the
+  // API no longer accepts from a manual form.
+  function handleOpenChange(next: boolean) {
+    if (next) {
+      setClientId(existing?.clientId ?? defaultClientId ?? clients[0]?.id ?? "");
+      setStatus(existing && !PROCESS_ONLY_STATUSES.has(existing.status) ? existing.status : "NEEDS_REVIEW");
+    }
+    setOpen(next);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
@@ -111,7 +132,7 @@ function PropertyFormModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {existing ? (
           <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Edit property">
@@ -125,6 +146,15 @@ function PropertyFormModal({
       </DialogTrigger>
       <DialogContent title={existing ? "Review Property Knowledge" : "Add Property"} className="max-w-3xl">
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
+          {existing && (
+            <div className="col-span-2 flex items-start gap-2 rounded-xl border border-info/30 bg-info/10 p-3 text-xs text-muted-foreground">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-info" />
+              <p>
+                Airbnb extraction is only a starting point — it never overwrites a field you&apos;ve already filled in here,
+                including amenities and rules. Review everything below before marking this Ready.
+              </p>
+            </div>
+          )}
           <Field label="Client">
             <Select value={clientId} onValueChange={setClientId} options={clients.map((client) => ({ value: client.id, label: client.name }))} />
           </Field>
@@ -212,12 +242,23 @@ function BulkImportModal({ clients, defaultClientId }: { clients: ClientOption[]
   const [clientId, setClientId] = useState(defaultClientId ?? clients[0]?.id ?? "");
   const [csvText, setCsvText] = useState("Internal Property Name,Airbnb URL\n");
 
+  // See the matching comment in PropertyFormModal — same fix so Bulk Import
+  // defaults to whichever client is currently selected on the page.
+  function handleOpenChange(next: boolean) {
+    if (next) setClientId(defaultClientId ?? clients[0]?.id ?? "");
+    setOpen(next);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     try {
       const result = await submitJson("/api/knowledge-properties/bulk-import", "POST", { clientId, csvText });
-      toast.success(`Imported ${result.imported} properties${result.skipped ? `, skipped ${result.skipped}` : ""}`);
+      const parts = [`Imported ${result.imported}`];
+      if (result.updated) parts.push(`updated ${result.updated}`);
+      if (result.skippedDuplicates) parts.push(`skipped ${result.skippedDuplicates} duplicate${result.skippedDuplicates === 1 ? "" : "s"}`);
+      if (result.invalidRows) parts.push(`${result.invalidRows} invalid row${result.invalidRows === 1 ? "" : "s"}`);
+      toast.success(parts.join(", "));
       setOpen(false);
       window.location.reload();
     } catch (err: any) {
@@ -227,7 +268,7 @@ function BulkImportModal({ clients, defaultClientId }: { clients: ClientOption[]
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <Upload className="h-4 w-4" /> Bulk Import
@@ -256,6 +297,48 @@ function BulkImportModal({ clients, defaultClientId }: { clients: ClientOption[]
   );
 }
 
+function ExtractAllButton({ items }: { items: KnowledgeItem[] }) {
+  const [running, setRunning] = useState(false);
+  const pendingItems = useMemo(() => items.filter((item) => item.status === "PENDING"), [items]);
+
+  if (pendingItems.length === 0) return null;
+
+  async function runAll() {
+    if (pendingItems.length > 10) {
+      const proceed = confirm(
+        `Extract ${pendingItems.length} properties? Requests run one at a time (never in parallel) to stay polite to Airbnb, so this may take a few minutes.`
+      );
+      if (!proceed) return;
+    }
+    setRunning(true);
+    let ok = 0;
+    let failed = 0;
+    for (const item of pendingItems) {
+      try {
+        await submitJson(`/api/knowledge-properties/${item.id}/extract`, "POST");
+        ok++;
+      } catch {
+        failed++;
+      }
+      // Sequential with a gap, never parallel — this loop is the throttle.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    if (failed === 0) {
+      toast.success(`Extracted ${ok} propert${ok === 1 ? "y" : "ies"}. Review each before marking Ready.`);
+    } else {
+      toast.warning(`Extracted ${ok}, ${failed} failed — review the Failed rows below.`);
+    }
+    window.location.reload();
+  }
+
+  return (
+    <Button variant="outline" onClick={runAll} disabled={running}>
+      <RefreshCcw className={running ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+      {running ? `Extracting… (${pendingItems.length})` : `Extract All Pending (${pendingItems.length})`}
+    </Button>
+  );
+}
+
 function RowActions({ item, clients, canManage }: { item: KnowledgeItem; clients: ClientOption[]; canManage: boolean }) {
   const [pending, startTransition] = useTransition();
 
@@ -267,7 +350,9 @@ function RowActions({ item, clients, canManage }: { item: KnowledgeItem; clients
         window.location.reload();
       } catch (err: any) {
         toast.error(err.message);
-        window.location.reload();
+        // Give the error toast a moment on screen before the reload (which
+        // reflects the new FAILED status in the table) clears it.
+        setTimeout(() => window.location.reload(), 1800);
       }
     });
   }
@@ -289,8 +374,14 @@ function RowActions({ item, clients, canManage }: { item: KnowledgeItem; clients
 
   return (
     <div className="flex justify-end gap-1">
-      <button disabled={pending} onClick={runExtract} className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Extract Airbnb info">
-        <RefreshCcw className="h-4 w-4" />
+      <button
+        disabled={pending || item.status === "EXTRACTING"}
+        onClick={runExtract}
+        className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label={pending ? "Extracting…" : "Extract Airbnb info"}
+        title={pending ? "Extracting…" : "Extract Airbnb info"}
+      >
+        <RefreshCcw className={pending ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
       </button>
       <PropertyFormModal clients={clients} existing={item} />
       <button disabled={pending} onClick={remove} className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger/10 hover:text-danger" aria-label="Delete property">
@@ -329,12 +420,15 @@ export function KnowledgeBaseManager({
         <div className="flex flex-wrap gap-2">
           {canManage && <BulkImportModal clients={clients} defaultClientId={clientId || undefined} />}
           {canManage && <PropertyFormModal clients={clients} defaultClientId={clientId || undefined} />}
-          <a
-            href={exportHref}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-medium transition hover:bg-muted/40"
-          >
-            <Download className="h-4 w-4" /> Export CSV
-          </a>
+          {canManage && <ExtractAllButton items={filteredItems} />}
+          {canManage && (
+            <a
+              href={exportHref}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-medium transition hover:bg-muted/40"
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </a>
+          )}
         </div>
       </div>
 

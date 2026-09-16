@@ -4,34 +4,7 @@ import { Prisma } from "@prisma/client";
 import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { propertyKnowledgeItemSchema } from "@/lib/validations";
-
-const COMPLETION_FIELDS = [
-  "listingName",
-  "description",
-  "amenities",
-  "propertyType",
-  "location",
-  "guestCapacity",
-  "bedrooms",
-  "bathrooms",
-  "beds",
-  "rules",
-  "wifiName",
-  "wifiPassword",
-  "doorCode",
-  "parkingInfo",
-  "checkInInfo",
-  "checkoutInfo",
-  "internalNotes",
-];
-
-function completionPct(data: Record<string, any>) {
-  const completed = COMPLETION_FIELDS.filter((field) => {
-    const value = data[field];
-    return Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== "";
-  }).length;
-  return Math.round((completed / COMPLETION_FIELDS.length) * 100);
-}
+import { computeCompletionPct, normalizeAirbnbUrl } from "@/lib/services/property-knowledge";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -72,18 +45,32 @@ export async function POST(req: NextRequest) {
   const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, teamId } });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
+  // normalizeAirbnbUrl only returns null for a non-Airbnb URL, which the
+  // zod schema already rejected above, but guard defensively anyway.
+  const normalized = normalizeAirbnbUrl(parsed.data.airbnbUrl);
+  if (!normalized) {
+    return NextResponse.json({ error: "Enter a valid Airbnb listing URL" }, { status: 400 });
+  }
+
+  const data = {
+    ...parsed.data,
+    airbnbUrl: normalized.url,
+    airbnbListingId: normalized.listingId,
+  };
+
   try {
     const item = await prisma.propertyKnowledgeItem.create({
       data: {
-        ...parsed.data,
-        completionPct: completionPct(parsed.data),
+        ...data,
+        completionPct: computeCompletionPct(data),
       },
     });
     return NextResponse.json({ item });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      return NextResponse.json({ error: "This Airbnb URL is already imported for this client." }, { status: 409 });
+      return NextResponse.json({ error: "This Airbnb listing is already imported for this client." }, { status: 409 });
     }
-    throw err;
+    console.error("Failed to create property knowledge item", err);
+    return NextResponse.json({ error: "Could not save this property. Please try again." }, { status: 500 });
   }
 }

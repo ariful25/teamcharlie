@@ -109,6 +109,60 @@ enum KnowledgePropertyStatus {
   FAILED
 }
 
+// STANDARD is the generic Tasks/Issues/Knowledge-Base workspace every client
+// gets automatically. PERFECT_STAY_LTR opts into the Property/Unit/Tenancy/
+// Lead long-term-rental workspace (components/properties/perfect-stay-workspace.tsx).
+// This replaces a client.name === "Perfect Stay" string check — renaming a
+// client must never change which workspace it gets.
+enum ClientWorkspaceTemplate {
+  STANDARD
+  PERFECT_STAY_LTR
+}
+
+// Charlie HQ has no real connector implementation for any of these today —
+// this registry tracks capability + manually-recorded connection status
+// only (see ClientIntegration), the same way TeamSettings already tracks
+// discordCheckinWebhookConfigured as a manual flag rather than a live check.
+// No credentials are ever stored against this model.
+enum IntegrationProvider {
+  GUESTY
+  AIRBNB
+  CLICKUP
+  WHATSAPP
+  ENSO
+  HOSTBUDDY
+  GOOGLE_DRIVE
+  GOOGLE_SHEETS
+  NOTION
+  OTHER
+}
+
+enum IntegrationStatus {
+  NOT_CONNECTED
+  NEEDS_AUTHORIZATION
+  CONNECTED
+  ERROR
+}
+
+enum ClientFileCategory {
+  SOP
+  PROPERTIES
+  INVOICES
+  KNOWLEDGE
+  OTHER
+}
+
+// UPLOAD is reserved for when a binary storage provider (Vercel Blob,
+// Supabase Storage, S3, ...) is configured — none is today, so the UI only
+// accepts link-based sources. See lib/services/client-files.ts.
+enum ClientFileSource {
+  UPLOAD
+  GOOGLE_DRIVE
+  URL
+  GENERATED
+  EXTERNAL
+}
+
 // ---------- CORE ----------
 
 model Team {
@@ -173,6 +227,10 @@ model Client {
   clientCommunicationPlatform String?
   notes                       String?
   active                      Boolean      @default(true)
+  // Every client gets STANDARD automatically — this is what makes a new
+  // client's workspace fully functional without any code change. Only an
+  // explicit admin action moves a client onto a specialized template.
+  workspaceTemplate           ClientWorkspaceTemplate @default(STANDARD)
   teamId                      String
   team                        Team         @relation(fields: [teamId], references: [id])
 
@@ -181,11 +239,62 @@ model Client {
   properties Property[]
   leads      Lead[]
   knowledgeItems PropertyKnowledgeItem[]
+  integrations   ClientIntegration[]
+  files          ClientFile[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([teamId])
+}
+
+// Capability/connection-status registry for a client's external
+// integrations. Deliberately holds no credentials/tokens — status is
+// recorded the same way TeamSettings.discordCheckinWebhookConfigured is:
+// a manually-set fact, not a live-verified one, because Charlie HQ has no
+// real OAuth/API connector for any of these providers yet.
+model ClientIntegration {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  provider IntegrationProvider
+  status   IntegrationStatus   @default(NOT_CONNECTED)
+  note     String?
+
+  connectedAt   DateTime?
+  lastCheckedAt DateTime?
+  lastError     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, provider])
+  @@index([clientId])
+}
+
+// A client-scoped document/link reference. Every source today is a link
+// (GOOGLE_DRIVE/URL/GENERATED/EXTERNAL) — see the ClientFileSource comment
+// for why raw UPLOAD bytes aren't wired up yet.
+model ClientFile {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  name     String
+  category ClientFileCategory @default(OTHER)
+  source   ClientFileSource
+  url      String
+
+  // Plain id, not a relation — matches the existing audit-trail convention
+  // (AttendanceRecord.editedBy, Task.completedBy) elsewhere in this schema.
+  createdById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([clientId, category])
 }
 
 model Category {

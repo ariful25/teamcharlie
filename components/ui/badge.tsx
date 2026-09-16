@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type Tone = "success" | "warning" | "danger" | "info" | "neutral" | "primary";
+export type Tone = "success" | "warning" | "danger" | "info" | "neutral" | "primary";
 
 const toneClasses: Record<Tone, string> = {
   success: "bg-success/15 text-success border-success/30",

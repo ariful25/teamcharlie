@@ -17,14 +17,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const clients = [
-  { name: "Andrea", id: "seed-client-andrea" },
-  { name: "Allen", id: "seed-client-allen" },
-  { name: "Shawn", id: "seed-client-shawn" },
-  { name: "Perfect Stay", id: "seed-client-perfectstay" },
-  { name: "Jack", id: "seed-client-jack" },
-];
-
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/shift-schedule", label: "Shift Schedule", icon: CalendarClock },
@@ -37,9 +29,11 @@ const navItems = [
 export function Sidebar({
   user,
   checkedIn,
+  clients,
 }: {
   user: { name: string; role: string; avatarUrl?: string | null };
   checkedIn: boolean;
+  clients: { id: string; name: string }[];
 }) {
   const pathname = usePathname();
 

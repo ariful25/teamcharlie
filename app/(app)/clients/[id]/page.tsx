@@ -3,26 +3,43 @@ import Link from "next/link";
 import { getClientWorkspaceData } from "@/lib/queries/clients";
 import { getCurrentUser } from "@/lib/session";
 import { permissions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge, statusTone, priorityTone } from "@/components/ui/badge";
 import { PerfectStayWorkspace } from "@/components/properties/perfect-stay-workspace";
+import { ClientWorkspaceActions } from "@/components/clients/client-workspace-actions";
+import { ClientIntegrationsPanel } from "@/components/clients/client-integrations-panel";
+import { ClientFilesPanel } from "@/components/clients/client-files-panel";
+import { getClientIntegrationOverview } from "@/lib/services/integrations";
 
 export default async function ClientWorkspacePage({ params }: { params: { id: string } }) {
   const currentUser = await getCurrentUser();
   const { client, tasks, recurringTasks, issues, properties, leads } = await getClientWorkspaceData(params.id);
   if (!client) notFound();
 
+  const canManageClients = permissions.canManageClients(currentUser.role);
   const canManageProperties = permissions.canManageProperties(currentUser.role);
-  const isJackPlaceholder = client.name === "Jack";
-  const isPerfectStay = client.name === "Perfect Stay";
+  const canManageIntegrations = permissions.canManageIntegrations(currentUser.role);
+  const canManageClientFiles = permissions.canManageClientFiles(currentUser.role);
+  // A data-driven flag, not a client.name string check — renaming this
+  // client (or any other) can never change which workspace it gets.
+  const isPerfectStayWorkspace = client.workspaceTemplate === "PERFECT_STAY_LTR";
+
+  const [integrations, files] = await Promise.all([
+    getClientIntegrationOverview(client.id),
+    prisma.clientFile.findMany({ where: { clientId: client.id }, orderBy: [{ category: "asc" }, { createdAt: "desc" }] }),
+  ]);
+
   const plainProperties = JSON.parse(JSON.stringify(properties));
   const plainLeads = JSON.parse(JSON.stringify(leads));
   const plainIssues = JSON.parse(JSON.stringify(issues));
   const plainRecurringTasks = JSON.parse(JSON.stringify(recurringTasks));
+  const plainFiles = JSON.parse(JSON.stringify(files));
+  const plainIntegrations = JSON.parse(JSON.stringify(integrations));
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">{client.name}</h1>
           <div className="mt-2 flex items-center gap-2">
@@ -37,25 +54,18 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
             )}
           </div>
         </div>
-        <Link
-          href={`/knowledge-base?clientId=${client.id}`}
-          className="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-        >
-          Prepare Knowledge Base
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/knowledge-base?clientId=${client.id}`}
+            className="inline-flex h-10 items-center rounded-xl border border-border px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+          >
+            Prepare Knowledge Base
+          </Link>
+          {canManageClients && <ClientWorkspaceActions client={client} />}
+        </div>
       </div>
 
-      {isJackPlaceholder ? (
-        <Card className="p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            {client.notes ?? "Workflow pending configuration."}
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground/70">
-            This is a placeholder workspace. Full operational workflow for {client.name} will be configured
-            in a future module.
-          </p>
-        </Card>
-      ) : isPerfectStay ? (
+      {isPerfectStayWorkspace ? (
         <PerfectStayWorkspace
           client={client}
           properties={plainProperties}
@@ -138,6 +148,11 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
           </Card>
         </>
       )}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ClientIntegrationsPanel clientId={client.id} integrations={plainIntegrations} canManage={canManageIntegrations} />
+        <ClientFilesPanel clientId={client.id} files={plainFiles} canManage={canManageClientFiles} />
+      </div>
     </div>
   );
 }

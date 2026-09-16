@@ -3,33 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { extractAirbnbListing } from "@/lib/services/airbnb-extractor";
+import { computeCompletionPct, mergeAirbnbExtraction } from "@/lib/services/property-knowledge";
 
-function completionPct(data: Record<string, any>) {
-  const fields = [
-    "listingName",
-    "description",
-    "amenities",
-    "propertyType",
-    "location",
-    "guestCapacity",
-    "bedrooms",
-    "bathrooms",
-    "beds",
-    "rules",
-    "wifiName",
-    "wifiPassword",
-    "doorCode",
-    "parkingInfo",
-    "checkInInfo",
-    "checkoutInfo",
-    "internalNotes",
-  ];
-  const completed = fields.filter((field) => {
-    const value = data[field];
-    return Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== "";
-  }).length;
-  return Math.round((completed / fields.length) * 100);
-}
+// Gives the route headroom up to 30s on Vercel plans that honor maxDuration
+// (Hobby caps this at 60s max, Pro/Enterprise higher) — harmless on plans
+// that ignore it. The extractor's own 8s AbortController timeout still fires
+// well before this, so this is a ceiling, not the expected duration.
+export const maxDuration = 30;
 
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -45,6 +25,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     where: { id: params.id, client: { teamId } },
   });
   if (!existing) return NextResponse.json({ error: "Property not found" }, { status: 404 });
+  if (existing.status === "EXTRACTING") {
+    return NextResponse.json({ error: "Extraction is already running for this property." }, { status: 409 });
+  }
 
   await prisma.propertyKnowledgeItem.update({
     where: { id: existing.id },
@@ -53,12 +36,16 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   try {
     const extracted = await extractAirbnbListing(existing.airbnbUrl);
-    const merged = { ...existing, ...extracted };
+    // Only fields with a meaningful new value are included in this patch —
+    // manually reviewed fields (and Airbnb fields Airbnb returned nothing
+    // useful for) are left untouched. See mergeAirbnbExtraction for why.
+    const patch = mergeAirbnbExtraction(extracted);
+    const merged = { ...existing, ...patch };
     const item = await prisma.propertyKnowledgeItem.update({
       where: { id: existing.id },
       data: {
-        ...extracted,
-        completionPct: completionPct(merged),
+        ...patch,
+        completionPct: computeCompletionPct(merged),
         status: "NEEDS_REVIEW",
         extractedAt: new Date(),
         extractionError: null,
@@ -66,13 +53,14 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     });
     return NextResponse.json({ item });
   } catch (err: any) {
+    const message = err?.message ?? "Could not extract Airbnb listing";
     const item = await prisma.propertyKnowledgeItem.update({
       where: { id: existing.id },
       data: {
         status: "FAILED",
-        extractionError: err?.message ?? "Could not extract Airbnb listing",
+        extractionError: message,
       },
     });
-    return NextResponse.json({ item, error: item.extractionError }, { status: 502 });
+    return NextResponse.json({ item, error: message }, { status: 502 });
   }
 }

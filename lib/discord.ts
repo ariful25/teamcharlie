@@ -91,3 +91,27 @@ export async function sendTestNotification(kind: "checkin" | "checkout") {
   const content = `✅ **Charlie HQ Test Notification**\n\nThis is a test of the ${kind} channel connection.\nSource: Charlie HQ`;
   return postToWebhook(url, content);
 }
+
+type KnowledgeExportPayload = {
+  actorName: string;
+  teamName: string;
+  clientName: string | null;
+  itemCount: number;
+};
+
+// Optional — silently a no-op if DISCORD_KNOWLEDGE_EXPORT_WEBHOOK_URL isn't
+// set, same as every other webhook in this file. Gives admins/team leads
+// visibility into who pulled a CSV containing WiFi passwords and door codes
+// and when, without needing a dedicated audit-log feature.
+export async function sendKnowledgeExportNotification(payload: KnowledgeExportPayload) {
+  const content = [
+    `📤 **Property Knowledge Base Exported**`,
+    ``,
+    `By: ${payload.actorName}`,
+    `Team: ${payload.teamName}`,
+    `Scope: ${payload.clientName ?? "All clients"}`,
+    `Properties: ${payload.itemCount}`,
+    `Source: Charlie HQ`,
+  ].join("\n");
+  return postToWebhook(process.env.DISCORD_KNOWLEDGE_EXPORT_WEBHOOK_URL || "", content);
+}

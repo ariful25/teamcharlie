@@ -1,53 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import Papa from "papaparse";
 import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { propertyKnowledgeBulkImportSchema } from "@/lib/validations";
-import { extractAirbnbListingId } from "@/lib/services/airbnb-extractor";
+import { normalizeAirbnbUrl } from "@/lib/services/property-knowledge";
 
-function parseCsvLine(line: string) {
-  const cells: string[] = [];
-  let current = "";
-  let quoted = false;
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"' && line[i + 1] === '"') {
-      current += '"';
-      i++;
-    } else if (char === '"') {
-      quoted = !quoted;
-    } else if (char === "," && !quoted) {
-      cells.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  cells.push(current.trim());
-  return cells;
-}
+// A loose pre-filter to pick out which cell in a row is the Airbnb URL
+// column before running it through the strict, centralized
+// normalizeAirbnbUrl validator (which also rejects lookalike domains).
+const LOOSE_AIRBNB_CELL = /airbnb\.[a-z.]{2,24}\//i;
 
-function parseRows(csvText: string) {
-  const lines = csvText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const rows = lines.map((line) => {
-    const cells = parseCsvLine(line);
-    const urlMatch = line.match(/https?:\/\/(?:www\.)?airbnb\.[^\s,"]+/i);
-    if (!urlMatch) {
-      return { internalName: cells[0], airbnbUrl: cells[1] };
-    }
+type ParsedRow = { internalName: string; airbnbUrl: string };
 
-    const airbnbUrl = urlMatch[0];
-    const nameBeforeUrl = line.slice(0, urlMatch.index).replace(/,+$/, "").trim();
-    const nameFromCsv = cells.find((cell) => cell !== airbnbUrl && !cell.includes("airbnb."))?.trim();
-    const listingId = airbnbUrl.match(/\/rooms\/(\d+)/i)?.[1];
-    return {
-      internalName: nameBeforeUrl || nameFromCsv || (listingId ? `Airbnb ${listingId}` : "Airbnb listing"),
-      airbnbUrl,
-    };
+// Uses a real CSV parser (papaparse) instead of hand-rolled line splitting,
+// so quoted property names containing commas, quotes, or extra whitespace
+// survive intact — the previous regex-based approach corrupted exactly
+// those cases (see issue 5 in the audit).
+function rowsFromCsv(csvText: string): ParsedRow[] {
+  const result = Papa.parse<string[]>(csvText.trim(), { skipEmptyLines: true });
+  const rows = (result.data ?? []).filter((cells) => cells.some((cell) => cell.trim() !== ""));
+  if (rows.length === 0) return [];
+
+  const [firstRow] = rows;
+  const looksLikeHeader =
+    firstRow.some((cell) => /property|internal|airbnb|url|name/i.test(cell)) &&
+    !firstRow.some((cell) => LOOSE_AIRBNB_CELL.test(cell));
+  const dataRows = looksLikeHeader ? rows.slice(1) : rows;
+
+  return dataRows.map((cells) => {
+    const trimmed = cells.map((cell) => cell.trim());
+    const airbnbUrl = trimmed.find((cell) => LOOSE_AIRBNB_CELL.test(cell)) ?? "";
+    const internalName = trimmed.find((cell) => cell && cell !== airbnbUrl) ?? "";
+    return { internalName, airbnbUrl };
   });
-  const hasHeader = lines[0] && /property|airbnb/i.test(lines[0]) && !/https?:\/\/(?:www\.)?airbnb\./i.test(lines[0]);
-  return (hasHeader ? rows.slice(1) : rows)
-    .filter((row) => row.internalName && row.airbnbUrl);
 }
 
 export async function POST(req: NextRequest) {
@@ -68,43 +54,77 @@ export async function POST(req: NextRequest) {
   const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, teamId } });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
-  const rows = parseRows(parsed.data.csvText);
+  const rows = rowsFromCsv(parsed.data.csvText);
   if (rows.length === 0) {
-    return NextResponse.json({ error: "No valid rows found. Use: Property Name, Airbnb URL" }, { status: 400 });
+    return NextResponse.json({ error: "No valid rows found. Use: Internal Property Name, Airbnb URL" }, { status: 400 });
   }
 
   let imported = 0;
-  let skipped = 0;
-  for (const row of rows) {
-    let url: URL;
-    try {
-      url = new URL(row.airbnbUrl);
-    } catch {
-      skipped++;
+  let updated = 0;
+  let skippedDuplicates = 0;
+  let invalidRows = 0;
+  const seenInBatch = new Set<string>();
+
+  // Every URL variant of the same listing normalizes to one canonical URL
+  // (see property-knowledge.ts), so this lookup — and the upsert below —
+  // key on listing identity rather than the raw pasted string.
+  const normalizedRows = rows.map((row) => ({
+    row,
+    normalized: row.airbnbUrl ? normalizeAirbnbUrl(row.airbnbUrl) : null,
+  }));
+  const candidateUrls = normalizedRows
+    .map((r) => r.normalized?.url)
+    .filter((url): url is string => Boolean(url));
+  const existing = candidateUrls.length
+    ? await prisma.propertyKnowledgeItem.findMany({
+        where: { clientId: client.id, airbnbUrl: { in: candidateUrls } },
+        select: { airbnbUrl: true },
+      })
+    : [];
+  const existingUrls = new Set(existing.map((item) => item.airbnbUrl));
+
+  for (const { row, normalized } of normalizedRows) {
+    if (!normalized) {
+      invalidRows++;
       continue;
     }
-    const host = url.hostname.replace(/^www\./, "");
-    if (host !== "airbnb.com" && !host.endsWith(".airbnb.com")) {
-      skipped++;
+
+    const internalName = row.internalName || (normalized.listingId ? `Airbnb ${normalized.listingId}` : "");
+    if (!internalName) {
+      invalidRows++;
       continue;
     }
+
+    if (seenInBatch.has(normalized.url)) {
+      skippedDuplicates++;
+      continue;
+    }
+    seenInBatch.add(normalized.url);
 
     await prisma.propertyKnowledgeItem.upsert({
-      where: { clientId_airbnbUrl: { clientId: client.id, airbnbUrl: url.toString() } },
-      update: { internalName: row.internalName, airbnbListingId: extractAirbnbListingId(url.toString()) },
+      where: { clientId_airbnbUrl: { clientId: client.id, airbnbUrl: normalized.url } },
+      update: { internalName, airbnbListingId: normalized.listingId },
       create: {
         clientId: client.id,
-        internalName: row.internalName,
-        airbnbUrl: url.toString(),
-        airbnbListingId: extractAirbnbListingId(url.toString()),
+        internalName,
+        airbnbUrl: normalized.url,
+        airbnbListingId: normalized.listingId,
       },
     });
-    imported++;
+
+    if (existingUrls.has(normalized.url)) {
+      updated++;
+    } else {
+      imported++;
+    }
   }
 
-  if (imported === 0) {
-    return NextResponse.json({ error: "No valid Airbnb URLs found. Paste rows like: Property Name, https://www.airbnb.com/rooms/123" }, { status: 400 });
+  if (imported === 0 && updated === 0) {
+    return NextResponse.json(
+      { error: "No valid Airbnb URLs found. Paste rows like: Property Name, https://www.airbnb.com/rooms/123" },
+      { status: 400 }
+    );
   }
 
-  return NextResponse.json({ imported, skipped });
+  return NextResponse.json({ imported, updated, skippedDuplicates, invalidRows });
 }

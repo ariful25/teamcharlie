@@ -1,16 +1,22 @@
 import { getCurrentUser } from "@/lib/session";
+import { permissions } from "@/lib/auth";
 import { ClientStatusCard } from "@/components/dashboard/client-status-card";
+import { AddClientWizard } from "@/components/clients/add-client-wizard";
 import { getDashboardData } from "@/lib/queries/dashboard";
 
 export default async function ClientsIndexPage() {
   const currentUser = await getCurrentUser();
   const { clientStats } = await getDashboardData(currentUser.teamId);
+  const canManageClients = permissions.canManageClients(currentUser.role);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">Clients</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Team Charlie&apos;s active client roster.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Clients</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Team Charlie&apos;s active client roster.</p>
+        </div>
+        {canManageClients && <AddClientWizard />}
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {clientStats.map((c) => (

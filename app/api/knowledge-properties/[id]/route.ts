@@ -1,39 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { propertyKnowledgeItemSchema } from "@/lib/validations";
-
-const COMPLETION_FIELDS = [
-  "listingName",
-  "description",
-  "amenities",
-  "propertyType",
-  "location",
-  "guestCapacity",
-  "bedrooms",
-  "bathrooms",
-  "beds",
-  "rules",
-  "wifiName",
-  "wifiPassword",
-  "doorCode",
-  "parkingInfo",
-  "checkInInfo",
-  "checkoutInfo",
-  "internalNotes",
-];
+import { computeCompletionPct, normalizeAirbnbUrl } from "@/lib/services/property-knowledge";
 
 async function getItemForTeam(id: string, teamId: string) {
   return prisma.propertyKnowledgeItem.findFirst({ where: { id, client: { teamId } } });
-}
-
-function completionPct(data: Record<string, any>) {
-  const completed = COMPLETION_FIELDS.filter((field) => {
-    const value = data[field];
-    return Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== "";
-  }).length;
-  return Math.round((completed / COMPLETION_FIELDS.length) * 100);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -58,16 +32,34 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
 
-  const merged = { ...existing, ...parsed.data };
-  const item = await prisma.propertyKnowledgeItem.update({
-    where: { id: params.id },
-    data: {
-      ...parsed.data,
-      completionPct: completionPct(merged),
-    },
-  });
+  const data: Record<string, unknown> = { ...parsed.data };
+  if (parsed.data.airbnbUrl) {
+    const normalized = normalizeAirbnbUrl(parsed.data.airbnbUrl);
+    if (!normalized) {
+      return NextResponse.json({ error: "Enter a valid Airbnb listing URL" }, { status: 400 });
+    }
+    data.airbnbUrl = normalized.url;
+    data.airbnbListingId = normalized.listingId;
+  }
 
-  return NextResponse.json({ item });
+  const merged = { ...existing, ...data };
+
+  try {
+    const item = await prisma.propertyKnowledgeItem.update({
+      where: { id: params.id },
+      data: {
+        ...data,
+        completionPct: computeCompletionPct(merged),
+      },
+    });
+    return NextResponse.json({ item });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return NextResponse.json({ error: "This Airbnb listing is already imported for this client." }, { status: 409 });
+    }
+    console.error("Failed to update property knowledge item", err);
+    return NextResponse.json({ error: "Could not save this property. Please try again." }, { status: 500 });
+  }
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {

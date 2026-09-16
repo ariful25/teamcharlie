@@ -28,6 +28,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const checkedIn = !!todayRecord;
 
+  const clients = await prisma.client.findMany({
+    where: { teamId: user.teamId, active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+
   return (
     <div className="flex min-h-screen">
       <Sidebar
@@ -37,6 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           avatarUrl: user.avatarUrl,
         }}
         checkedIn={checkedIn}
+        clients={clients}
       />
       <div className="flex-1 pb-20 md:pb-0 md:pl-64">
         <main className="mx-auto max-w-[1600px] px-4 py-6 md:px-8 md:py-8">{children}</main>
