@@ -1,12 +1,17 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { encode as defaultEncode, decode as defaultDecode } from "next-auth/jwt";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { AUTH_ERROR_INVALID_CREDENTIALS, AUTH_ERROR_ACCOUNT_DISABLED } from "@/lib/auth-errors";
+
+const ONE_DAY_SECONDS = 24 * 60 * 60;
+const THIRTY_DAYS_SECONDS = 30 * ONE_DAY_SECONDS;
 
 // Modular auth: swap/extend providers later (Google, Azure AD, etc.) without
 // touching the rest of the app — everything reads role/team off the session.
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: THIRTY_DAYS_SECONDS },
   pages: {
     signIn: "/login",
   },
@@ -16,19 +21,29 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        rememberMe: { label: "Remember me", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error(AUTH_ERROR_INVALID_CREDENTIALS);
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email.toLowerCase() },
           include: { team: true },
         });
 
-        if (!user || !user.active) return null;
+        // Same generic error for "no such user" and "wrong password" —
+        // distinguishing them would let a caller enumerate which emails
+        // have accounts. A disabled account is intentionally still
+        // distinguished (see AUTH_ERROR_ACCOUNT_DISABLED) since that's a
+        // deliberate admin action the user should know to ask about,
+        // not something to hide.
+        if (!user) throw new Error(AUTH_ERROR_INVALID_CREDENTIALS);
+        if (!user.active) throw new Error(AUTH_ERROR_ACCOUNT_DISABLED);
 
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!valid) return null;
+        if (!valid) throw new Error(AUTH_ERROR_INVALID_CREDENTIALS);
 
         return {
           id: user.id,
@@ -38,6 +53,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           teamId: user.teamId,
           teamSlug: user.team.slug,
+          rememberMe: credentials.rememberMe !== "false",
         } as any;
       },
     }),
@@ -49,6 +65,7 @@ export const authOptions: NextAuthOptions = {
         token.teamId = (user as any).teamId;
         token.teamSlug = (user as any).teamSlug;
         token.id = (user as any).id;
+        token.rememberMe = (user as any).rememberMe;
       }
       return token;
     },
@@ -61,6 +78,21 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+  },
+  // Both functions delegate straight to next-auth's own tested
+  // encode/decode — decode is untouched (existing sessions keep working
+  // exactly as before), and encode only changes which `maxAge` gets baked
+  // into the token's expiry: unchecking "Remember me" signs the user out
+  // after 1 day instead of the default 30, without needing a shorter-lived
+  // cookie or any custom crypto.
+  jwt: {
+    maxAge: THIRTY_DAYS_SECONDS,
+    async encode(params) {
+      const rememberMe = (params.token as any)?.rememberMe;
+      const maxAge = rememberMe === false ? ONE_DAY_SECONDS : params.maxAge ?? THIRTY_DAYS_SECONDS;
+      return defaultEncode({ ...params, maxAge });
+    },
+    decode: defaultDecode,
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

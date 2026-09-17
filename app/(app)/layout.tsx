@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { MobileTopbar } from "@/components/layout/mobile-topbar";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const currentUser = await getCurrentUser();
@@ -12,9 +13,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     include: { team: true },
   });
 
-  if (!user) {
-    // Account was deactivated/removed after the session token was issued.
-    redirect("/login");
+  if (!user || !user.active) {
+    // Account was deactivated or removed after the session token was
+    // issued — the JWT itself is still valid, so this DB check is what
+    // actually locks a deactivated user out mid-session instead of only
+    // preventing their next fresh login.
+    redirect("/login?disabled=1");
   }
 
   const todayRecord = await prisma.attendanceRecord.findFirst({
@@ -46,6 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         clients={clients}
       />
       <div className="flex-1 pb-20 md:pb-0 md:pl-64">
+        <MobileTopbar userName={user.name} />
         <main className="mx-auto max-w-[1600px] px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
       <MobileNav />

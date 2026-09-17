@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSheetsClient, getDriveClient, isGoogleSheetsConfigured, isUsingServiceAccount } from "./client";
 import { TABS, SYSTEM_COLUMNS, seedSystemColumnRegistry } from "./columns";
+import { syncClientKnowledgeBase } from "./sync";
 
 const NEEDS_REVIEW_HEADERS = ["Property", "Missing Fields", "Completion %", "Status"];
 const FAILED_EXTRACTION_HEADERS = ["Property", "Airbnb URL", "Error", "Last Attempt"];
@@ -204,6 +205,20 @@ export async function createClientSpreadsheet(clientId: string) {
         message: `Created "${client.name} - Property Knowledge Base"${warning ? ` (warning: ${warning})` : ""}`,
       },
     });
+
+    // Backfill: a client that already has properties (the common case when
+    // creating a sheet for an existing client, as opposed to a brand-new
+    // one) should see them appear immediately, not sit on an empty
+    // Properties tab until someone happens to click "Sync Now". Best-effort
+    // — the sheet is already fully created and CONNECTED at this point, so
+    // a backfill hiccup shouldn't undo that; it's retryable via Sync Now.
+    try {
+      await syncClientKnowledgeBase(clientId);
+    } catch (err: any) {
+      await prisma.knowledgeSyncLog.create({
+        data: { clientId, action: "SYNC_ERROR", source: "SYSTEM", message: `Initial backfill sync failed: ${err?.message ?? err}` },
+      });
+    }
 
     return record;
   } catch (err: any) {
