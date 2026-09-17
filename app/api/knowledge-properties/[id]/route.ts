@@ -5,6 +5,7 @@ import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { propertyKnowledgeItemSchema } from "@/lib/validations";
 import { computeCompletionPct, normalizeAirbnbUrl } from "@/lib/services/property-knowledge";
+import { syncPropertyToSheet } from "@/lib/google-sheets/sync";
 
 async function getItemForTeam(id: string, teamId: string) {
   return prisma.propertyKnowledgeItem.findFirst({ where: { id, client: { teamId } } });
@@ -52,6 +53,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         completionPct: computeCompletionPct(merged),
       },
     });
+    syncPropertyToSheet(item.id, "MANUAL_EDIT").catch((err) => console.error("Google Sheets sync failed", err));
     return NextResponse.json({ item });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {

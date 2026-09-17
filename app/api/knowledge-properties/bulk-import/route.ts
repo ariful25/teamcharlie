@@ -5,6 +5,7 @@ import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { propertyKnowledgeBulkImportSchema } from "@/lib/validations";
 import { normalizeAirbnbUrl } from "@/lib/services/property-knowledge";
+import { syncClientKnowledgeBase } from "@/lib/google-sheets/sync";
 
 // A loose pre-filter to pick out which cell in a row is the Airbnb URL
 // column before running it through the strict, centralized
@@ -152,6 +153,12 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  // One full resync after the batch, not per-row — a bulk import can be
+  // dozens of rows, and syncClientKnowledgeBase already walks every
+  // property for this client in one pass. Best-effort: never fails the
+  // import response itself.
+  syncClientKnowledgeBase(client.id).catch((err) => console.error("Google Sheets sync failed", err));
 
   return NextResponse.json({ imported, updated, skippedDuplicates, invalidRows });
 }

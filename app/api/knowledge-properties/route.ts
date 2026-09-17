@@ -5,6 +5,7 @@ import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { propertyKnowledgeItemSchema } from "@/lib/validations";
 import { computeCompletionPct, normalizeAirbnbUrl } from "@/lib/services/property-knowledge";
+import { syncPropertyToSheet } from "@/lib/google-sheets/sync";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -65,6 +66,10 @@ export async function POST(req: NextRequest) {
         completionPct: computeCompletionPct(data),
       },
     });
+    // Best-effort: a client without a Google Sheet (or a Sheets API hiccup)
+    // must never block creating the property itself — see syncPropertyToSheet,
+    // which already no-ops quietly when there's nothing connected to sync to.
+    syncPropertyToSheet(item.id, "MANUAL_EDIT").catch((err) => console.error("Google Sheets sync failed", err));
     return NextResponse.json({ item });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {

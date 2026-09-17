@@ -87,4 +87,9 @@ export const permissions = {
   // Files are an operational module like the knowledge base — Team Leads
   // can manage them day-to-day, everyone on the team can view them.
   canManageClientFiles: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
+  // Per the Google Sheets knowledge-base spec: Admins can create the sheet,
+  // trigger a sync, and view the log; everyone else is view-only (the
+  // sheet itself is also shared read-only with non-admins — see
+  // lib/google-sheets/spreadsheet.ts's shareWithTeam).
+  canManageGoogleSheets: (role: AppRole) => role === "ADMIN",
 };

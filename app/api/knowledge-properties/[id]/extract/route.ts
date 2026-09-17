@@ -4,6 +4,7 @@ import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { extractAirbnbListing } from "@/lib/services/airbnb-extractor";
 import { computeCompletionPct, mergeAirbnbExtraction } from "@/lib/services/property-knowledge";
+import { syncPropertyToSheet } from "@/lib/google-sheets/sync";
 
 // Gives the route headroom up to 30s on Vercel plans that honor maxDuration
 // (Hobby caps this at 60s max, Pro/Enterprise higher) — harmless on plans
@@ -51,6 +52,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
         extractionError: null,
       },
     });
+    syncPropertyToSheet(item.id, "AIRBNB_EXTRACTION").catch((err) => console.error("Google Sheets sync failed", err));
     return NextResponse.json({ item });
   } catch (err: any) {
     const message = err?.message ?? "Could not extract Airbnb listing";
@@ -61,6 +63,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
         extractionError: message,
       },
     });
+    // Still sync — this is what actually populates the Failed Extraction
+    // tab, since refreshDerivedTabs runs as part of every property sync.
+    syncPropertyToSheet(item.id, "AIRBNB_EXTRACTION").catch((err) => console.error("Google Sheets sync failed", err));
     return NextResponse.json({ item, error: message }, { status: 502 });
   }
 }

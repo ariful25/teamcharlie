@@ -10,6 +10,7 @@ import { PerfectStayWorkspace } from "@/components/properties/perfect-stay-works
 import { ClientWorkspaceActions } from "@/components/clients/client-workspace-actions";
 import { ClientIntegrationsPanel } from "@/components/clients/client-integrations-panel";
 import { ClientFilesPanel } from "@/components/clients/client-files-panel";
+import { ClientGoogleSheetPanel } from "@/components/clients/client-google-sheet-panel";
 import { getClientIntegrationOverview } from "@/lib/services/integrations";
 
 export default async function ClientWorkspacePage({ params }: { params: { id: string } }) {
@@ -24,13 +25,16 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
   const canManageProperties = permissions.canManageProperties(currentUser.role);
   const canManageIntegrations = permissions.canManageIntegrations(currentUser.role);
   const canManageClientFiles = permissions.canManageClientFiles(currentUser.role);
+  const canManageGoogleSheets = permissions.canManageGoogleSheets(currentUser.role);
   // A data-driven flag, not a client.name string check — renaming this
   // client (or any other) can never change which workspace it gets.
   const isPerfectStayWorkspace = client.workspaceTemplate === "PERFECT_STAY_LTR";
 
-  const [integrations, files] = await Promise.all([
+  const [integrations, files, googleSheet, propertiesSynced] = await Promise.all([
     getClientIntegrationOverview(client.id),
     prisma.clientFile.findMany({ where: { clientId: client.id }, orderBy: [{ category: "asc" }, { createdAt: "desc" }] }),
+    prisma.clientGoogleSheet.findUnique({ where: { clientId: client.id } }),
+    prisma.propertyKnowledgeItem.count({ where: { clientId: client.id, googleSheetSyncedAt: { not: null } } }),
   ]);
 
   const plainProperties = JSON.parse(JSON.stringify(properties));
@@ -39,6 +43,7 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
   const plainRecurringTasks = JSON.parse(JSON.stringify(recurringTasks));
   const plainFiles = JSON.parse(JSON.stringify(files));
   const plainIntegrations = JSON.parse(JSON.stringify(integrations));
+  const plainGoogleSheet = JSON.parse(JSON.stringify(googleSheet));
 
   return (
     <div className="space-y-6">
@@ -155,6 +160,13 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
       <div className="grid gap-6 lg:grid-cols-2">
         <ClientIntegrationsPanel clientId={client.id} integrations={plainIntegrations} canManage={canManageIntegrations} />
         <ClientFilesPanel clientId={client.id} files={plainFiles} canManage={canManageClientFiles} />
+        <ClientGoogleSheetPanel
+          clientId={client.id}
+          clientName={client.name}
+          googleSheet={plainGoogleSheet}
+          propertiesSynced={propertiesSynced}
+          canManage={canManageGoogleSheets}
+        />
       </div>
     </div>
   );

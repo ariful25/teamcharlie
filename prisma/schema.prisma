@@ -163,6 +163,25 @@ enum ClientFileSource {
   EXTERNAL
 }
 
+// CREATING is a short-lived transitional state while the Drive/Sheets API
+// calls that build the spreadsheet are in flight — a client should never
+// stay in it; see lib/google-sheets/spreadsheet.ts.
+enum GoogleSheetStatus {
+  NOT_CONNECTED
+  CREATING
+  CONNECTED
+  ERROR
+}
+
+// SYSTEM columns are the fixed Properties-tab columns Charlie itself writes
+// (see lib/google-sheets/columns.ts's SYSTEM_COLUMNS) — sync always updates
+// them. CUSTOM columns are anything an admin added directly in the sheet;
+// sync discovers and records them here but never writes to or removes them.
+enum KnowledgeColumnType {
+  SYSTEM
+  CUSTOM
+}
+
 // ---------- CORE ----------
 
 model Team {
@@ -241,6 +260,9 @@ model Client {
   knowledgeItems PropertyKnowledgeItem[]
   integrations   ClientIntegration[]
   files          ClientFile[]
+  googleSheet    ClientGoogleSheet?
+  knowledgeColumns KnowledgeColumn[]
+  knowledgeSyncLogs KnowledgeSyncLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -295,6 +317,75 @@ model ClientFile {
 
   @@index([clientId])
   @@index([clientId, category])
+}
+
+// One spreadsheet per client (see lib/google-sheets/spreadsheet.ts). No
+// credentials live here — only the file's own id/url and sync bookkeeping.
+// @@unique(clientId) enforces the "one spreadsheet per client" rule at the
+// database level, not just in application logic.
+model ClientGoogleSheet {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  spreadsheetId  String?
+  spreadsheetUrl String?
+  status         GoogleSheetStatus @default(NOT_CONNECTED)
+
+  lastSyncedAt  DateTime?
+  lastSyncError String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A DB-side cache of the column registry that actually lives in each
+// spreadsheet's hidden _CharlieConfig sheet (see lib/google-sheets/columns.ts).
+// The sheet itself is always the source of truth for sync decisions; this
+// table exists so Charlie's own UI can list a client's custom columns
+// without an extra Sheets API round-trip on every page load.
+model KnowledgeColumn {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  columnName String
+  columnType KnowledgeColumnType
+  // Free-text provenance ("CHARLIE" for a system column, "ADMIN" for a
+  // custom column discovered in the sheet) — not a relation, since a custom
+  // column isn't tied to the specific user who happened to add it.
+  source     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, columnName])
+  @@index([clientId])
+}
+
+// Backs both the sheet's own "Change Log" tab and the "View Sync Log"
+// button in the client workspace — every sync-related event is written
+// here first, then mirrored into the spreadsheet, so the panel never needs
+// a Sheets API call just to show recent activity.
+model KnowledgeSyncLog {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  propertyId String?
+  property   PropertyKnowledgeItem? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  action   String // SPREADSHEET_CREATED | FIELD_UPDATED | PROPERTY_ADDED | SYNC_ERROR | ...
+  field    String?
+  oldValue String?
+  newValue String?
+  source   String // AIRBNB_EXTRACTION | MANUAL_EDIT | BULK_IMPORT | SYSTEM
+  message  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([clientId, createdAt])
+  @@index([propertyId])
 }
 
 model Category {
@@ -412,6 +503,13 @@ model PropertyKnowledgeItem {
 
   extractedAt     DateTime?
   exportedAt      DateTime?
+  // Set every time this row is written to the client's Google Sheet — not
+  // the same as exportedAt (which tracks the CSV export instead). Null
+  // means it has never been synced (e.g. the client has no spreadsheet, or
+  // this property was created before one existed).
+  googleSheetSyncedAt DateTime?
+
+  syncLogs        KnowledgeSyncLog[]
 
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt

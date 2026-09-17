@@ -26,7 +26,7 @@ const ALWAYS_ON_MODULES = ["Tasks", "Recurring Tasks", "Issues", "Property Knowl
 
 const PROVIDERS = Object.keys(INTEGRATION_LABELS) as (keyof typeof INTEGRATION_LABELS)[];
 
-const STEPS = ["Client", "Platforms", "Integrations", "Modules", "Review"] as const;
+const STEPS = ["Client", "Platforms", "Integrations", "Google Sheets", "Modules", "Review"] as const;
 
 async function submitJson(url: string, method: string, payload?: Record<string, any>) {
   const res = await fetch(url, {
@@ -52,6 +52,7 @@ export function AddClientWizard() {
   const [operationPlatform, setOperationPlatform] = useState("");
   const [clientCommunicationPlatform, setClientCommunicationPlatform] = useState("");
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set());
+  const [createGoogleSheet, setCreateGoogleSheet] = useState(true);
 
   function reset() {
     setStep(0);
@@ -62,6 +63,7 @@ export function AddClientWizard() {
     setOperationPlatform("");
     setClientCommunicationPlatform("");
     setSelectedIntegrations(new Set());
+    setCreateGoogleSheet(true);
   }
 
   function handleOpenChange(next: boolean) {
@@ -94,6 +96,7 @@ export function AddClientWizard() {
         operationPlatform: operationPlatform.trim() || null,
         clientCommunicationPlatform: clientCommunicationPlatform.trim() || null,
         integrations: Array.from(selectedIntegrations),
+        createGoogleSheet,
       });
       toast.success(`${client.name} created`);
       handleOpenChange(false);
@@ -183,6 +186,30 @@ export function AddClientWizard() {
         )}
 
         {step === 3 && (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Charlie HQ is the source of truth — this creates a client-specific Google Spreadsheet that mirrors the
+              Property Knowledge Base (read-only for NotebookLM/employees, editable by Admins) and stays in sync
+              automatically. Never the other way around: nothing typed into the sheet flows back into Charlie HQ.
+            </p>
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm hover:bg-muted/40">
+              <input
+                type="checkbox"
+                checked={createGoogleSheet}
+                onChange={(e) => setCreateGoogleSheet(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              Create Google Spreadsheet automatically
+            </label>
+            {!createGoogleSheet && (
+              <p className="text-xs text-muted-foreground">
+                You can still create it later from the client workspace&apos;s Google Knowledge Base panel.
+              </p>
+            )}
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Every client automatically gets these Charlie HQ modules — nothing to configure.</p>
             <div className="grid grid-cols-2 gap-2">
@@ -195,7 +222,7 @@ export function AddClientWizard() {
           </div>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <div className="space-y-3 text-sm">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Client</p>
@@ -219,6 +246,12 @@ export function AddClientWizard() {
                   ))}
                 </ul>
               )}
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Google Knowledge Base</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {createGoogleSheet ? "Spreadsheet will be created automatically" : "Not created — can be added later"}
+              </p>
             </div>
           </div>
         )}

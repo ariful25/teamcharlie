@@ -71,6 +71,11 @@ export const INTEGRATION_LABELS: Record<(typeof INTEGRATION_PROVIDERS)[number], 
 // app/api/clients/route.ts.
 export const clientCreateSchema = clientSchema.extend({
   integrations: z.array(z.enum(INTEGRATION_PROVIDERS)).optional().default([]),
+  // Wizard's "Google Knowledge Base" step — defaults on, matching the spec's
+  // "Default: Enabled." A client can always get a spreadsheet later from
+  // the workspace panel, so this only controls whether it happens
+  // automatically at creation time.
+  createGoogleSheet: z.boolean().optional().default(true),
 });
 
 // Edit Client reuses the base fields plus active (deactivate/reactivate).
