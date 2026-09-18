@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { LogIn, LogOut, Timer } from "lucide-react";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ function formatElapsed(ms: number) {
 }
 
 export function ShiftCard(props: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [now, setNow] = useState<number | null>(null);
   const checkedIn = !!props.actualCheckIn && !props.actualCheckOut;
@@ -48,7 +50,7 @@ export function ShiftCard(props: Props) {
         return;
       }
       toast.success(`Checked in at ${formatClientTime(new Date(data.actualCheckIn))}`);
-      window.location.reload();
+      router.refresh();
     });
   }
 
@@ -61,7 +63,7 @@ export function ShiftCard(props: Props) {
         return;
       }
       toast.success("Shift completed. Total hours recorded.");
-      window.location.reload();
+      router.refresh();
     });
   }
 

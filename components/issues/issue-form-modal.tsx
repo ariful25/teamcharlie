@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
@@ -9,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
 
 export function IssueFormModal({ clients }: { clients: { id: string; name: string }[] }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
@@ -29,7 +31,7 @@ export function IssueFormModal({ clients }: { clients: { id: string; name: strin
     if (res.ok) {
       toast.success("Issue reported");
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } else {
       toast.error("Could not report issue");
     }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Download, FileSpreadsheet, Info, Pencil, Plus, RefreshCcw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, statusTone } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
+import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { MANUAL_KNOWLEDGE_STATUSES } from "@/lib/services/property-knowledge";
 
@@ -71,6 +73,7 @@ function PropertyFormModal({
   existing?: KnowledgeItem;
   defaultClientId?: string;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [clientId, setClientId] = useState(existing?.clientId ?? defaultClientId ?? clients[0]?.id ?? "");
@@ -124,7 +127,7 @@ function PropertyFormModal({
       await submitJson(existing ? `/api/knowledge-properties/${existing.id}` : "/api/knowledge-properties", existing ? "PATCH" : "POST", payload);
       toast.success("Property saved");
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
       setSubmitting(false);
@@ -133,17 +136,21 @@ function PropertyFormModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {existing ? (
-          <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Edit property">
-            <Pencil className="h-4 w-4" />
-          </button>
-        ) : (
+      {existing ? (
+        <IconTooltip label="Edit property">
+          <DialogTrigger asChild>
+            <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Edit property">
+              <Pencil className="h-4 w-4" />
+            </button>
+          </DialogTrigger>
+        </IconTooltip>
+      ) : (
+        <DialogTrigger asChild>
           <Button>
             <Plus className="h-4 w-4" /> Add Property
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      )}
       <DialogContent title={existing ? "Review Property Knowledge" : "Add Property"} className="max-w-3xl">
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
           {existing && (
@@ -237,6 +244,7 @@ function PropertyFormModal({
 }
 
 function BulkImportModal({ clients, defaultClientId }: { clients: ClientOption[]; defaultClientId?: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [clientId, setClientId] = useState(defaultClientId ?? clients[0]?.id ?? "");
@@ -260,7 +268,7 @@ function BulkImportModal({ clients, defaultClientId }: { clients: ClientOption[]
       if (result.invalidRows) parts.push(`${result.invalidRows} invalid row${result.invalidRows === 1 ? "" : "s"}`);
       toast.success(parts.join(", "));
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
       setSubmitting(false);
@@ -298,6 +306,7 @@ function BulkImportModal({ clients, defaultClientId }: { clients: ClientOption[]
 }
 
 function ExtractAllButton({ items }: { items: KnowledgeItem[] }) {
+  const router = useRouter();
   const [running, setRunning] = useState(false);
   const pendingItems = useMemo(() => items.filter((item) => item.status === "PENDING"), [items]);
 
@@ -328,7 +337,7 @@ function ExtractAllButton({ items }: { items: KnowledgeItem[] }) {
     } else {
       toast.warning(`Extracted ${ok}, ${failed} failed — review the Failed rows below.`);
     }
-    window.location.reload();
+    router.refresh();
   }
 
   return (
@@ -340,6 +349,7 @@ function ExtractAllButton({ items }: { items: KnowledgeItem[] }) {
 }
 
 function RowActions({ item, clients, canManage }: { item: KnowledgeItem; clients: ClientOption[]; canManage: boolean }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function runExtract() {
@@ -347,12 +357,12 @@ function RowActions({ item, clients, canManage }: { item: KnowledgeItem; clients
       try {
         await submitJson(`/api/knowledge-properties/${item.id}/extract`, "POST");
         toast.success("Extraction complete. Review the fields before export.");
-        window.location.reload();
+        router.refresh();
       } catch (err: any) {
         toast.error(err.message);
-        // Give the error toast a moment on screen before the reload (which
+        // Give the error toast a moment on screen before the refresh (which
         // reflects the new FAILED status in the table) clears it.
-        setTimeout(() => window.location.reload(), 1800);
+        setTimeout(() => router.refresh(), 1800);
       }
     });
   }
@@ -363,7 +373,7 @@ function RowActions({ item, clients, canManage }: { item: KnowledgeItem; clients
       try {
         await submitJson(`/api/knowledge-properties/${item.id}`, "DELETE");
         toast.success("Property removed");
-        window.location.reload();
+        router.refresh();
       } catch (err: any) {
         toast.error(err.message);
       }
@@ -374,19 +384,22 @@ function RowActions({ item, clients, canManage }: { item: KnowledgeItem; clients
 
   return (
     <div className="flex justify-end gap-1">
-      <button
-        disabled={pending || item.status === "EXTRACTING"}
-        onClick={runExtract}
-        className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label={pending ? "Extracting…" : "Extract Airbnb info"}
-        title={pending ? "Extracting…" : "Extract Airbnb info"}
-      >
-        <RefreshCcw className={pending ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-      </button>
+      <IconTooltip label={pending ? "Extracting…" : "Extract Airbnb info"}>
+        <button
+          disabled={pending || item.status === "EXTRACTING"}
+          onClick={runExtract}
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label={pending ? "Extracting…" : "Extract Airbnb info"}
+        >
+          <RefreshCcw className={pending ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+        </button>
+      </IconTooltip>
       <PropertyFormModal clients={clients} existing={item} />
-      <button disabled={pending} onClick={remove} className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger/10 hover:text-danger" aria-label="Delete property">
-        <Trash2 className="h-4 w-4" />
-      </button>
+      <IconTooltip label="Delete property">
+        <button disabled={pending} onClick={remove} className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger/10 hover:text-danger" aria-label="Delete property">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </IconTooltip>
     </div>
   );
 }

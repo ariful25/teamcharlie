@@ -34,6 +34,7 @@
     "@radix-ui/react-slot": "1.1.0",
     "@radix-ui/react-switch": "1.1.0",
     "@radix-ui/react-tabs": "1.1.0",
+    "@radix-ui/react-tooltip": "^1.2.16",
     "@react-three/drei": "9.122.0",
     "@react-three/fiber": "8.16.8",
     "animejs": "3.2.2",

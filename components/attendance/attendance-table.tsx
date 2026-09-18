@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge, statusTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, XCircle, RefreshCcw } from "lucide-react";
@@ -14,6 +15,7 @@ function fmtTime(iso: string | null) {
 }
 
 export function AttendanceTable({ rows, canEdit }: { rows: any[]; canEdit: boolean }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function retry(recordId: string, kind: "checkin" | "checkout") {
@@ -25,7 +27,7 @@ export function AttendanceTable({ rows, canEdit }: { rows: any[]; canEdit: boole
       });
       if (res.ok) {
         toast.success("Discord sync retried");
-        window.location.reload();
+        router.refresh();
       } else {
         toast.error("Retry failed");
       }

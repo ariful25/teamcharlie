@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Pencil, Power, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ async function submitJson(url: string, method: string, payload?: Record<string, 
 }
 
 function EditClientModal({ client }: { client: Client }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(client.status);
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +60,7 @@ function EditClientModal({ client }: { client: Client }) {
       });
       toast.success("Client updated");
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
       setSubmitting(false);
@@ -102,6 +104,7 @@ function EditClientModal({ client }: { client: Client }) {
 }
 
 function DeactivateButton({ client }: { client: Client }) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   async function toggle() {
@@ -113,7 +116,7 @@ function DeactivateButton({ client }: { client: Client }) {
     try {
       await submitJson(`/api/clients/${client.id}`, "PATCH", { active: !client.active });
       toast.success(`Client ${verb}d`);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
       setBusy(false);

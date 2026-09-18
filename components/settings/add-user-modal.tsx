@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { UserPlus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
@@ -15,6 +16,7 @@ const ROLE_OPTIONS = [
 ];
 
 export function AddUserModal({ shiftTypes }: { shiftTypes: { id: string; name: string }[] }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState("");
@@ -57,7 +59,7 @@ export function AddUserModal({ shiftTypes }: { shiftTypes: { id: string; name: s
       setEmail("");
       setRole("EMPLOYEE");
       setDefaultShiftTypeId("");
-      if (tempPassword) window.location.reload();
+      if (tempPassword) router.refresh();
     }
   }
 

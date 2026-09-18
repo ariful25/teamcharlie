@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { MobileTopbar } from "@/components/layout/mobile-topbar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const currentUser = await getCurrentUser();
@@ -39,21 +40,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar
-        user={{
-          name: user.name,
-          role: user.role,
-          avatarUrl: user.avatarUrl,
-        }}
-        checkedIn={checkedIn}
-        clients={clients}
-      />
-      <div className="flex-1 pb-20 md:pb-0 md:pl-64">
-        <MobileTopbar userName={user.name} />
-        <main className="mx-auto max-w-[1600px] px-4 py-6 md:px-8 md:py-8">{children}</main>
+    <TooltipProvider delayDuration={300}>
+      <div className="flex min-h-screen">
+        <Sidebar
+          user={{
+            name: user.name,
+            role: user.role,
+            avatarUrl: user.avatarUrl,
+          }}
+          checkedIn={checkedIn}
+          clients={clients}
+        />
+        <div className="flex-1 pb-20 md:pb-0 md:pl-64">
+          <MobileTopbar userName={user.name} />
+          <main className="mx-auto max-w-[1600px] px-4 py-6 md:px-8 md:py-8">{children}</main>
+        </div>
+        <MobileNav />
       </div>
-      <MobileNav />
-    </div>
+    </TooltipProvider>
   );
 }

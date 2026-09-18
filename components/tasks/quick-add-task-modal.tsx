@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
@@ -41,6 +42,7 @@ export function QuickAddTaskModal({
   employees: Option[];
   categories: Option[];
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -91,7 +93,7 @@ export function QuickAddTaskModal({
     if (res.ok) {
       toast.success("Task created");
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
       toast.error(data.error ?? "Could not create task");

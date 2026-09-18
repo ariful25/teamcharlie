@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, CircleDashed, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, Tone } from "@/components/ui/badge";
@@ -43,6 +44,7 @@ async function submitJson(url: string, method: string, payload?: Record<string, 
 }
 
 function ConfigureModal({ clientId, row }: { clientId: string; row: IntegrationRow }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<string>(row.record?.status ?? "NOT_CONNECTED");
   const [submitting, setSubmitting] = useState(false);
@@ -56,7 +58,7 @@ function ConfigureModal({ clientId, row }: { clientId: string; row: IntegrationR
       await submitJson(`/api/clients/${clientId}/integrations/${row.provider}`, "PATCH", { status, note });
       toast.success(`${row.label} updated`);
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
       setSubmitting(false);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ExternalLink, FileText, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { IconTooltip } from "@/components/ui/tooltip";
 
 type ClientFile = {
   id: string;
@@ -45,6 +47,7 @@ async function submitJson(url: string, method: string, payload?: Record<string, 
 }
 
 function AddFileModal({ clientId }: { clientId: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState("OTHER");
   const [source, setSource] = useState("URL");
@@ -64,7 +67,7 @@ function AddFileModal({ clientId }: { clientId: string }) {
       });
       toast.success("File added");
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
       setSubmitting(false);
@@ -106,26 +109,29 @@ function AddFileModal({ clientId }: { clientId: string }) {
 }
 
 function DeleteFileButton({ id }: { id: string }) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
-    <button
-      disabled={busy}
-      onClick={async () => {
-        if (!confirm("Remove this file link?")) return;
-        setBusy(true);
-        try {
-          await submitJson(`/api/client-files/${id}`, "DELETE");
-          window.location.reload();
-        } catch (err: any) {
-          toast.error(err.message);
-          setBusy(false);
-        }
-      }}
-      className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger/10 hover:text-danger"
-      aria-label="Delete file"
-    >
-      <Trash2 className="h-4 w-4" />
-    </button>
+    <IconTooltip label="Delete file">
+      <button
+        disabled={busy}
+        onClick={async () => {
+          if (!confirm("Remove this file link?")) return;
+          setBusy(true);
+          try {
+            await submitJson(`/api/client-files/${id}`, "DELETE");
+            router.refresh();
+          } catch (err: any) {
+            toast.error(err.message);
+            setBusy(false);
+          }
+        }}
+        className="rounded-lg p-1.5 text-muted-foreground hover:bg-danger/10 hover:text-danger"
+        aria-label="Delete file"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </IconTooltip>
   );
 }
 

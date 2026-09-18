@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IconTooltip } from "@/components/ui/tooltip";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -131,13 +132,15 @@ export function Sidebar({
               {user.role.replace("_", " ").toLowerCase()} · {checkedIn ? "Checked In" : "Checked Out"}
             </p>
           </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/login?signedOut=1" })}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-            title="Sign out"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
+          <IconTooltip label="Sign out">
+            <button
+              onClick={() => signOut({ callbackUrl: "/login?signedOut=1" })}
+              className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </IconTooltip>
         </div>
       </div>
     </aside>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/shared/form-field";
 
 export function EditAttendanceModal({ record }: { record: any }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -30,7 +32,7 @@ export function EditAttendanceModal({ record }: { record: any }) {
     if (res.ok) {
       toast.success("Attendance record updated");
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
       toast.error(data.error ?? "Could not update record");

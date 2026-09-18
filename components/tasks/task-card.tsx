@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Badge, statusTone, priorityTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -8,20 +9,28 @@ import { CheckCircle2, Clock, User2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function TaskCard({ task }: { task: any }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  // Local, optimistic copy of the status — this is what actually renders,
+  // so "Complete" flips the badge instantly instead of waiting on the
+  // round-trip. Rolled back to the server's last-known value on failure.
+  const [status, setStatus] = useState<string>(task.status);
 
-  function updateStatus(status: string) {
+  function updateStatus(nextStatus: string) {
+    const previousStatus = status;
+    setStatus(nextStatus);
     startTransition(async () => {
       const res = await fetch(`/api/tasks/${task.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: nextStatus }),
       });
       if (res.ok) {
-        toast.success(`Marked ${status.toLowerCase().replace("_", " ")}`);
-        window.location.reload();
+        toast.success(`Marked ${nextStatus.toLowerCase().replace("_", " ")}`);
+        router.refresh();
       } else {
-        toast.error("Could not update task");
+        setStatus(previousStatus);
+        toast.error("Could not update task — change reverted");
       }
     });
   }
@@ -49,8 +58,8 @@ export function TaskCard({ task }: { task: any }) {
         </div>
 
         <div className="mt-3 flex items-center justify-between">
-          <Badge tone={statusTone(task.status)}>{task.status.replace("_", " ")}</Badge>
-          {task.status !== "COMPLETED" && (
+          <Badge tone={statusTone(status)}>{status.replace("_", " ")}</Badge>
+          {status !== "COMPLETED" && (
             <button
               disabled={isPending}
               onClick={() => updateStatus("COMPLETED")}

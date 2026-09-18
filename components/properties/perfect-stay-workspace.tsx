@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, priorityTone, statusTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
 
 type Property = any;
@@ -51,28 +53,31 @@ async function submitJson(url: string, method: string, payload?: Record<string, 
 }
 
 function DeleteButton({ url, label }: { url: string; label: string }) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={async () => {
-        if (!confirm(`Delete ${label}?`)) return;
-        setBusy(true);
-        try {
-          await submitJson(url, "DELETE");
-          toast.success("Deleted");
-          window.location.reload();
-        } catch (err: any) {
-          toast.error(err.message);
-          setBusy(false);
-        }
-      }}
-      className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-      aria-label={`Delete ${label}`}
-    >
-      <Trash2 className="h-4 w-4" />
-    </button>
+    <IconTooltip label={`Delete ${label}`}>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          if (!confirm(`Delete ${label}?`)) return;
+          setBusy(true);
+          try {
+            await submitJson(url, "DELETE");
+            toast.success("Deleted");
+            router.refresh();
+          } catch (err: any) {
+            toast.error(err.message);
+            setBusy(false);
+          }
+        }}
+        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+        aria-label={`Delete ${label}`}
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </IconTooltip>
   );
 }
 
@@ -87,6 +92,7 @@ function FormModal({
   children: React.ReactNode;
   onSubmit: (form: FormData) => Promise<void>;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   return (
@@ -102,7 +108,7 @@ function FormModal({
               await onSubmit(new FormData(event.currentTarget));
               toast.success("Saved");
               setOpen(false);
-              window.location.reload();
+              router.refresh();
             } catch (err: any) {
               toast.error(err.message);
               setBusy(false);
@@ -119,9 +125,13 @@ function FormModal({
   );
 }
 
-function IconEdit() {
+function IconEdit({ label = "Edit" }: { label?: string }) {
   return (
-    <button type="button" className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary">
+    <button
+      type="button"
+      className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+      aria-label={label}
+    >
       <Pencil className="h-4 w-4" />
     </button>
   );
@@ -131,7 +141,7 @@ function PropertyModal({ clientId, existing }: { clientId: string; existing?: Pr
   return (
     <FormModal
       title={existing ? "Edit Property" : "Add Property"}
-      trigger={existing ? <IconEdit /> : <Button><Plus className="h-4 w-4" /> Add Property</Button>}
+      trigger={existing ? <IconEdit label="Edit property" /> : <Button><Plus className="h-4 w-4" /> Add Property</Button>}
       onSubmit={(form) =>
         submitJson(existing ? `/api/properties/${existing.id}` : "/api/properties", existing ? "PATCH" : "POST", {
           clientId,
@@ -168,7 +178,7 @@ function UnitModal({ properties, units, existing, propertyId }: { properties: Pr
   return (
     <FormModal
       title={existing ? "Edit Unit" : "Add Unit"}
-      trigger={existing ? <IconEdit /> : <Button variant="outline" size="sm"><Plus className="h-4 w-4" /> Unit</Button>}
+      trigger={existing ? <IconEdit label="Edit unit" /> : <Button variant="outline" size="sm"><Plus className="h-4 w-4" /> Unit</Button>}
       onSubmit={(form) =>
         submitJson(existing ? `/api/units/${existing.id}` : "/api/units", existing ? "PATCH" : "POST", {
           propertyId: textFromForm(form, "propertyId"),
@@ -229,7 +239,7 @@ function TenancyModal({ units, existing, unitId }: { units: Unit[]; existing?: T
   return (
     <FormModal
       title={existing ? "Edit Tenancy" : "Add Tenancy"}
-      trigger={existing ? <IconEdit /> : <Button variant="outline" size="sm"><Plus className="h-4 w-4" /> Tenancy</Button>}
+      trigger={existing ? <IconEdit label="Edit tenancy" /> : <Button variant="outline" size="sm"><Plus className="h-4 w-4" /> Tenancy</Button>}
       onSubmit={(form) =>
         submitJson(existing ? `/api/tenancies/${existing.id}` : "/api/tenancies", existing ? "PATCH" : "POST", {
           unitId: textFromForm(form, "unitId"),
@@ -287,7 +297,7 @@ function LeadModal({ clientId, units, existing }: { clientId: string; units: Uni
   return (
     <FormModal
       title={existing ? "Edit Lead" : "Add Lead"}
-      trigger={existing ? <IconEdit /> : <Button><Plus className="h-4 w-4" /> Add Lead</Button>}
+      trigger={existing ? <IconEdit label="Edit lead" /> : <Button><Plus className="h-4 w-4" /> Add Lead</Button>}
       onSubmit={(form) =>
         submitJson(existing ? `/api/leads/${existing.id}` : "/api/leads", existing ? "PATCH" : "POST", {
           clientId,

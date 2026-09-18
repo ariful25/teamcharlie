@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, CircleDashed, AlertCircle, Loader2, ExternalLink, RefreshCw, History } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, Tone } from "@/components/ui/badge";
@@ -110,6 +111,7 @@ export function ClientGoogleSheetPanel({
   propertiesSynced: number;
   canManage: boolean;
 }) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const status = googleSheet?.status ?? "NOT_CONNECTED";
   const meta = STATUS_META[status];
@@ -120,7 +122,7 @@ export function ClientGoogleSheetPanel({
     try {
       await submitJson(`/api/clients/${clientId}/google-sheet`, "POST");
       toast.success("Google Spreadsheet created");
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -133,7 +135,7 @@ export function ClientGoogleSheetPanel({
     try {
       const result = await submitJson(`/api/clients/${clientId}/google-sheet/sync`, "POST");
       toast.success(`Synced ${result.synced} propert${result.synced === 1 ? "y" : "ies"}${result.errors ? `, ${result.errors} error(s)` : ""}`);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
     } finally {

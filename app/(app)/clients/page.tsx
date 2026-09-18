@@ -1,3 +1,4 @@
+import { Building2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/session";
 import { permissions } from "@/lib/auth";
 import { ClientStatusCard } from "@/components/dashboard/client-status-card";
@@ -18,11 +19,22 @@ export default async function ClientsIndexPage() {
         </div>
         {canManageClients && <AddClientWizard />}
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {clientStats.map((c) => (
-          <ClientStatusCard key={c.id} {...c} />
-        ))}
-      </div>
+      {clientStats.length === 0 ? (
+        <div className="glass flex flex-col items-center gap-3 rounded-2xl p-12 text-center shadow-card">
+          <Building2 className="h-8 w-8 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-medium">No clients yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">Create your first client workspace to get started.</p>
+          </div>
+          {canManageClients && <AddClientWizard />}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {clientStats.map((c) => (
+            <ClientStatusCard key={c.id} {...c} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

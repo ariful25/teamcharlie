@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
@@ -10,6 +11,7 @@ import { Field, inputClass } from "@/components/shared/form-field";
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function ScheduleFormModal({ employees }: { employees: { id: string; name: string }[] }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -37,7 +39,7 @@ export function ScheduleFormModal({ employees }: { employees: { id: string; name
     if (res.ok) {
       toast.success("Schedule saved");
       setOpen(false);
-      window.location.reload();
+      router.refresh();
     } else {
       toast.error("Could not save schedule");
     }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Badge, statusTone, priorityTone } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { CheckCircle2, Clock3 } from "lucide-react";
@@ -20,9 +21,16 @@ export type OperationRow = {
 };
 
 export function TodaysOperations({ rows }: { rows: OperationRow[] }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  // Optimistic per-row status overrides, keyed by task id — `rows` itself
+  // only changes when the server re-renders (router.refresh()), so marking
+  // a task complete needs its own local state to update the badge/hide the
+  // button instantly instead of waiting on that round-trip.
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
 
-  async function markComplete(id: string) {
+  function markComplete(id: string) {
+    setOverrides((prev) => ({ ...prev, [id]: "COMPLETED" }));
     startTransition(async () => {
       const res = await fetch(`/api/tasks/${id}`, {
         method: "PATCH",
@@ -31,9 +39,14 @@ export function TodaysOperations({ rows }: { rows: OperationRow[] }) {
       });
       if (res.ok) {
         toast.success("Task marked complete");
-        window.location.reload();
+        router.refresh();
       } else {
-        toast.error("Could not update task");
+        setOverrides((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+        toast.error("Could not update task — change reverted");
       }
     });
   }
@@ -64,40 +77,43 @@ export function TodaysOperations({ rows }: { rows: OperationRow[] }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
-                    <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{row.time ?? "—"}</td>
-                    <td className="px-5 py-3 font-medium">{row.title}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{row.clientName ?? "—"}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{row.category ?? "—"}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{row.assignedTo ?? "Unassigned"}</td>
-                    <td className="px-5 py-3">
-                      <Badge tone={priorityTone(row.priority)}>{row.priority}</Badge>
-                    </td>
-                    <td className="px-5 py-3">
-                      <Badge tone={statusTone(row.status)}>
-                        {row.status === "OVERDUE" && row.overdueBy ? (
-                          <span className="flex items-center gap-1">
-                            <Clock3 className="h-3 w-3" /> {row.overdueBy} overdue
-                          </span>
-                        ) : (
-                          row.status.replace("_", " ")
+                {rows.map((row) => {
+                  const status = overrides[row.id] ?? row.status;
+                  return (
+                    <tr key={row.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
+                      <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{row.time ?? "—"}</td>
+                      <td className="px-5 py-3 font-medium">{row.title}</td>
+                      <td className="px-5 py-3 text-muted-foreground">{row.clientName ?? "—"}</td>
+                      <td className="px-5 py-3 text-muted-foreground">{row.category ?? "—"}</td>
+                      <td className="px-5 py-3 text-muted-foreground">{row.assignedTo ?? "Unassigned"}</td>
+                      <td className="px-5 py-3">
+                        <Badge tone={priorityTone(row.priority)}>{row.priority}</Badge>
+                      </td>
+                      <td className="px-5 py-3">
+                        <Badge tone={statusTone(status)}>
+                          {status === "OVERDUE" && row.overdueBy ? (
+                            <span className="flex items-center gap-1">
+                              <Clock3 className="h-3 w-3" /> {row.overdueBy} overdue
+                            </span>
+                          ) : (
+                            status.replace("_", " ")
+                          )}
+                        </Badge>
+                      </td>
+                      <td className="px-5 py-3">
+                        {status !== "COMPLETED" && (
+                          <button
+                            disabled={isPending}
+                            onClick={() => markComplete(row.id)}
+                            className="flex items-center gap-1 text-xs text-success hover:underline disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Complete
+                          </button>
                         )}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-3">
-                      {row.status !== "COMPLETED" && (
-                        <button
-                          disabled={isPending}
-                          onClick={() => markComplete(row.id)}
-                          className="flex items-center gap-1 text-xs text-success hover:underline disabled:opacity-50"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Complete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
