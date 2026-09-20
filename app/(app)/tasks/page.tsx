@@ -13,7 +13,7 @@ export default async function TasksPage() {
         <h1 className="font-display text-2xl font-semibold tracking-tight">Tasks</h1>
         <p className="mt-1 text-sm text-muted-foreground">Today&apos;s task instances across all clients.</p>
       </div>
-      <TasksBoard tasks={tasks} clients={clients} employees={employees} categories={categories} />
+      <TasksBoard tasks={tasks} clients={clients} employees={employees} categories={categories} currentUserId={currentUser.id} />
     </div>
   );
 }

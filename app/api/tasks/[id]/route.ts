@@ -8,10 +8,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const teamId = (session.user as any).teamId as string;
-  const existing = await prisma.task.findFirst({ where: { id: params.id, teamId } });
+  const body = await req.json();
+
+  // Restoring is the one operation allowed on an already-deleted task — it's
+  // how the "Recently Deleted" view undoes a soft delete. Everything else
+  // below only ever touches a currently-active task.
+  if (body.restore === true) {
+    const deleted = await prisma.task.findFirst({ where: { id: params.id, teamId, deletedAt: { not: null } } });
+    if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const task = await prisma.task.update({ where: { id: params.id }, data: { deletedAt: null, deletedBy: null } });
+    return NextResponse.json({ task });
+  }
+
+  const existing = await prisma.task.findFirst({ where: { id: params.id, teamId, deletedAt: null } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json();
   const userId = (session.user as any).id as string;
 
   if (body.assignedUserId !== undefined && body.assignedUserId !== null) {
@@ -46,9 +57,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const teamId = (session.user as any).teamId as string;
-  const existing = await prisma.task.findFirst({ where: { id: params.id, teamId } });
+  const userId = (session.user as any).id as string;
+  const existing = await prisma.task.findFirst({ where: { id: params.id, teamId, deletedAt: null } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await prisma.task.delete({ where: { id: params.id } });
+  // Soft delete — see the Task.deletedAt comment in schema.prisma. A task
+  // with an audit trail (completedAt/completedBy) must stay recoverable.
+  await prisma.task.update({ where: { id: params.id }, data: { deletedAt: new Date(), deletedBy: userId } });
   return NextResponse.json({ ok: true });
 }

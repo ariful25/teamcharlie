@@ -19,7 +19,7 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
   const dow = dayOfWeekInTz(referenceDate, TEAM_TIMEZONE);
 
   const templates = await prisma.task.findMany({
-    where: { teamId, isRecurringTemplate: true },
+    where: { teamId, isRecurringTemplate: true, deletedAt: null },
   });
 
   const dueTemplates = templates.filter((t) => {
@@ -35,7 +35,7 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
   // Skip templates whose own row already falls on today (freshly created today) or
   // that already have a generated instance for today (title/client/assignee match).
   const existingToday = await prisma.task.findMany({
-    where: { teamId, date: today },
+    where: { teamId, date: today, deletedAt: null },
     select: { title: true, clientId: true, assignedUserId: true },
   });
   const existingKey = (t: { title: string; clientId: string | null; assignedUserId: string | null }) =>
@@ -87,6 +87,7 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
       date: today,
       status: { in: ["UPCOMING", "IN_PROGRESS"] },
       dueTime: { not: null },
+      deletedAt: null,
     },
   });
 

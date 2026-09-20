@@ -51,7 +51,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           checkedIn={checkedIn}
           clients={clients}
         />
-        <div className="flex-1 pb-20 md:pb-0 md:pl-64">
+        {/* min-w-0 overrides a flex item's default min-width:auto — without
+            it, wide unwrapped content (e.g. the Tasks Kanban board) forces
+            this whole column wider instead of scrolling inside itself,
+            causing real page-level horizontal scroll on mobile. */}
+        <div className="min-w-0 flex-1 pb-20 md:pb-0 md:pl-64">
           <MobileTopbar userName={user.name} />
           <main className="mx-auto max-w-[1600px] px-4 py-6 md:px-8 md:py-8">{children}</main>
         </div>

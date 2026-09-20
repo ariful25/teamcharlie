@@ -15,10 +15,14 @@ export async function GET(req: NextRequest) {
   const clientId = searchParams.get("clientId");
   const assignedUserId = searchParams.get("assignedUserId");
   const category = searchParams.get("category");
+  // ?deleted=true powers a "Recently Deleted" view — everything else only
+  // ever sees non-deleted tasks.
+  const showDeleted = searchParams.get("deleted") === "true";
 
   const tasks = await prisma.task.findMany({
     where: {
       teamId,
+      deletedAt: showDeleted ? { not: null } : null,
       ...(status ? { status: status as any } : {}),
       ...(clientId ? { clientId } : {}),
       ...(assignedUserId ? { assignedUserId } : {}),
@@ -55,6 +59,7 @@ export async function POST(req: NextRequest) {
   }
 
   const isRecurring = data.repeatMode && data.repeatMode !== "NONE";
+  const teamUserId = (session.user as any).id as string;
 
   const task = await prisma.task.create({
     data: {
@@ -69,6 +74,11 @@ export async function POST(req: NextRequest) {
       dueTime: data.dueTime || null,
       priority: data.priority,
       status: data.status,
+      blockedReason: data.status === "BLOCKED" ? data.blockedReason || null : null,
+      // Match the PATCH route's rule: completion is always explicit and
+      // auditable, even when a task is created already-Completed rather
+      // than transitioned there later.
+      ...(data.status === "COMPLETED" ? { completedAt: new Date(), completedBy: teamUserId } : {}),
       teamId,
       // Recurrence lives directly on the Task row. If this task repeats, it becomes
       // its own template: lib/services/task-generation.ts spawns a fresh plain task

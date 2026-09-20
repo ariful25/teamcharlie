@@ -5,7 +5,7 @@ export async function getTasksPageData(teamId: string) {
   const today = startOfDayUTC(new Date());
   const [tasks, clients, employees, categories] = await Promise.all([
     prisma.task.findMany({
-      where: { teamId, date: today },
+      where: { teamId, date: today, deletedAt: null },
       include: { client: true, category: true, assignedUser: true },
       orderBy: { startTime: "asc" },
     }),

@@ -11,12 +11,12 @@ export async function getClientWorkspaceData(clientId: string, teamId: string) {
 
   const [tasks, recurringTasks, issues, properties, leads] = await Promise.all([
     prisma.task.findMany({
-      where: { clientId, teamId, date: today },
+      where: { clientId, teamId, date: today, deletedAt: null },
       include: { assignedUser: true, category: true },
       orderBy: { startTime: "asc" },
     }),
     prisma.task.findMany({
-      where: { clientId, teamId, isRecurringTemplate: true },
+      where: { clientId, teamId, isRecurringTemplate: true, deletedAt: null },
       include: { assignedUser: true, category: true },
     }),
     prisma.issue.findMany({

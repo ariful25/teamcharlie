@@ -31,6 +31,11 @@ export function DialogContent({
             <X className="h-4 w-4" />
           </DialogPrimitive.Close>
         </div>
+        {/* Radix requires a Description (or an explicit opt-out) for every
+            Content, or it warns in the console on every dialog in the app.
+            None of these dialogs need a *visible* description beyond their
+            title and form fields, so this is screen-reader-only. */}
+        <DialogPrimitive.Description className="sr-only">{title}</DialogPrimitive.Description>
         {children}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>

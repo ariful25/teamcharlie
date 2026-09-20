@@ -7,7 +7,7 @@ export async function getDashboardData(teamId: string) {
 
   const [tasks, clients, issues, attendanceRecords, employees] = await Promise.all([
     prisma.task.findMany({
-      where: { teamId, date: today },
+      where: { teamId, date: today, deletedAt: null },
       include: { client: true, category: true, assignedUser: true },
       orderBy: { startTime: "asc" },
     }),

@@ -435,6 +435,13 @@ model Task {
   teamId String
   team   Team   @relation(fields: [teamId], references: [id])
 
+  // Soft delete — a task with an audit trail (completedAt/completedBy) must
+  // not be destroyable without a trace. Every read query filters
+  // `deletedAt: null`; "deleting" a task sets this instead of removing the
+  // row, and it can be restored by clearing it again.
+  deletedAt DateTime?
+  deletedBy String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -443,6 +450,7 @@ model Task {
   @@index([assignedUserId])
   @@index([status])
   @@index([isRecurringTemplate])
+  @@index([teamId, deletedAt])
 }
 
 model Property {

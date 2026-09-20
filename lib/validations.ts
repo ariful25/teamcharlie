@@ -9,10 +9,11 @@ export const taskSchema = z.object({
   categoryId: z.string().optional().nullable(),
   assignedUserId: z.string().optional().nullable(),
   date: z.string(), // ISO date
-  startTime: z.string().optional(),
-  dueTime: z.string().optional(),
+  startTime: z.string().optional().nullable(),
+  dueTime: z.string().optional().nullable(),
   priority: z.enum(["NORMAL", "IMPORTANT", "URGENT"]),
   status: z.enum(["UPCOMING", "IN_PROGRESS", "COMPLETED", "OVERDUE", "BLOCKED"]),
+  blockedReason: z.string().optional().nullable(),
   notes: z.string().optional(),
   repeatMode: z.enum(["NONE", "DAILY", "WEEKLY", "CUSTOM"]).default("NONE"),
   repeatDays: z.array(z.number().min(0).max(6)).default([]),

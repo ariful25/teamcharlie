@@ -56,6 +56,7 @@ export function QuickAddTaskModal({
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState("NORMAL");
   const [status, setStatus] = useState("UPCOMING");
+  const [blockedReason, setBlockedReason] = useState("");
   const [notes, setNotes] = useState("");
   const [repeatMode, setRepeatMode] = useState("NONE");
   const [repeatDays, setRepeatDays] = useState<number[]>([]);
@@ -78,6 +79,7 @@ export function QuickAddTaskModal({
       dueTime: dueTime || null,
       priority,
       status,
+      blockedReason: status === "BLOCKED" ? blockedReason || null : null,
       notes,
       repeatMode,
       repeatDays,
@@ -178,6 +180,17 @@ export function QuickAddTaskModal({
           <Field label="Repeat">
             <Select value={repeatMode} onValueChange={setRepeatMode} options={REPEAT_OPTIONS} />
           </Field>
+
+          {status === "BLOCKED" && (
+            <Field label="Blocked Reason" className="col-span-2">
+              <input
+                value={blockedReason}
+                onChange={(e) => setBlockedReason(e.target.value)}
+                className={inputClass}
+                placeholder="e.g. Waiting on owner approval"
+              />
+            </Field>
+          )}
 
           {(repeatMode === "WEEKLY" || repeatMode === "CUSTOM") && (
             <div className="col-span-2 flex flex-wrap gap-2">
