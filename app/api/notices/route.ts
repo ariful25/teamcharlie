@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     data: {
       content: parsed.data.content,
       color: parsed.data.color,
+      checklist: parsed.data.checklist ?? undefined,
       authorId,
       teamId,
     },

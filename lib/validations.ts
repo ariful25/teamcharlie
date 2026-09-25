@@ -21,14 +21,37 @@ export const taskSchema = z.object({
 
 export const NOTICE_COLORS = ["YELLOW", "PINK", "BLUE", "PURPLE", "GREEN", "ORANGE"] as const;
 
-export const noticeSchema = z.object({
-  content: z.string().min(1, "Write something first").max(500, "Keep it under 500 characters"),
-  color: z.enum(NOTICE_COLORS).default("YELLOW"),
+export const noticeChecklistItemSchema = z.object({
+  id: z.string(),
+  text: z.string().min(1).max(200),
+  checked: z.boolean(),
 });
 
-export const noticeUpdateSchema = z.object({
-  pinned: z.boolean(),
-});
+// A note is either plain text (non-empty content, no checklist) or a
+// checklist (at least one item; content is then just an optional caption
+// shown above the list) — never both empty.
+export const noticeSchema = z
+  .object({
+    content: z.string().max(500, "Keep it under 500 characters").default(""),
+    color: z.enum(NOTICE_COLORS).default("YELLOW"),
+    checklist: z.array(noticeChecklistItemSchema).max(30, "Keep it under 30 items").optional(),
+  })
+  .refine((data) => data.content.trim().length > 0 || (data.checklist && data.checklist.length > 0), {
+    message: "Write something first",
+  });
+
+// Every field is independently optional — PATCH only ever sends the one
+// thing that changed (pin, archive, or a checklist item toggled), each
+// gated by its own permission check in app/api/notices/[id]/route.ts.
+export const noticeUpdateSchema = z
+  .object({
+    pinned: z.boolean().optional(),
+    archived: z.boolean().optional(),
+    checklist: z.array(noticeChecklistItemSchema).max(30).optional(),
+  })
+  .refine((data) => data.pinned !== undefined || data.archived !== undefined || data.checklist !== undefined, {
+    message: "No changes provided",
+  });
 
 export const attendanceEditSchema = z.object({
   recordId: z.string(),

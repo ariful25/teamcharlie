@@ -683,11 +683,25 @@ model AttendanceRecord {
 // see components/notices/notice-board.tsx.
 model Notice {
   id      String      @id @default(cuid())
+  // Empty string for a checklist note with no caption — see the `checklist`
+  // comment below. Never empty for a plain text note (enforced by
+  // noticeSchema in lib/validations.ts, not the DB).
   content String
   color   NoticeColor @default(YELLOW)
   // Pinned notices always sort first — for a genuine announcement over a
-  // casual sticky note. See lib/auth.ts's canManageNotices for who can pin.
+  // casual sticky note. See lib/auth.ts's canPinNotices for who can pin.
   pinned  Boolean     @default(false)
+  // Archived notices drop off the main board but aren't deleted — the
+  // Google-Keep-style "clean up without losing it" action. Distinct from
+  // delete, which is permanent.
+  archived Boolean    @default(false)
+  // Null for a plain text note. A JSON array of {id, text, checked} for a
+  // checklist note — Prisma has no native list-of-objects column, and a
+  // separate NoticeChecklistItem table would be overkill for a handful of
+  // items per note that are only ever replaced as a whole array (see the
+  // PATCH /api/notices/[id] comment on why toggling doesn't need row-level
+  // granularity).
+  checklist Json?
 
   authorId String
   author   User   @relation("NoticeAuthor", fields: [authorId], references: [id])
@@ -698,5 +712,5 @@ model Notice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([teamId, pinned, createdAt])
+  @@index([teamId, archived, pinned, createdAt])
 }
