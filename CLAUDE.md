@@ -1,7 +1,7 @@
 # Charlie HQ
 
 An operations platform for Team Charlie / STR Assistance — a short-term-rental
-management team. Modules: Tasks, Issues, Properties/Units/Tenancies, Leads,
+management team. Modules: Tasks, Notices, Properties/Units/Tenancies, Leads,
 Attendance/Shift Schedule, the Property Knowledge Base (Airbnb listing data,
 synced one-way to a per-client Google Sheet for NotebookLM), and per-client
 Google Sheets/Drive integration.

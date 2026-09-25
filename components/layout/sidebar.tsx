@@ -8,7 +8,7 @@ import {
   CalendarClock,
   ListChecks,
   Clock,
-  AlertTriangle,
+  StickyNote,
   Settings,
   Radar,
   LogOut,
@@ -23,7 +23,7 @@ const navItems = [
   { href: "/shift-schedule", label: "Shift Schedule", icon: CalendarClock },
   { href: "/tasks", label: "Tasks", icon: ListChecks },
   { href: "/attendance", label: "Attendance", icon: Clock },
-  { href: "/issues", label: "Issues", icon: AlertTriangle },
+  { href: "/notices", label: "Notices", icon: StickyNote },
   { href: "/knowledge-base", label: "Knowledge Base", icon: FileSpreadsheet },
 ];
 

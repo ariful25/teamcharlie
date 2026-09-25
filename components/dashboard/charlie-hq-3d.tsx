@@ -10,7 +10,6 @@ export type ClientNode = {
   name: string;
   completedTasks: number;
   totalTasks: number;
-  openIssues: number;
   followUps: number;
   color: string;
 };
@@ -69,7 +68,6 @@ function ClientOrb({
                 <p>
                   {node.completedTasks}/{node.totalTasks} tasks
                 </p>
-                <p>{node.openIssues} open issues</p>
                 <p>{node.followUps} follow-ups</p>
               </div>
             )}

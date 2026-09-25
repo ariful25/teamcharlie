@@ -1,8 +1,8 @@
 import { Skeleton, SkeletonCard, SkeletonTable } from "@/components/ui/skeleton";
 
-// Mirrors app/(app)/clients/[id]/page.tsx: header, three stacked task/
-// issue-style tables, then a two-column row of panel cards (Integrations,
-// Files, Google Knowledge Base).
+// Mirrors app/(app)/clients/[id]/page.tsx: header, two stacked task-style
+// tables, then a two-column row of panel cards (Integrations, Files,
+// Google Knowledge Base).
 export default function ClientWorkspaceLoading() {
   return (
     <div className="space-y-6">
@@ -16,7 +16,6 @@ export default function ClientWorkspaceLoading() {
 
       <SkeletonTable rows={3} columns={3} />
       <SkeletonTable rows={2} columns={3} />
-      <SkeletonTable rows={3} columns={2} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SkeletonCard lines={3} />

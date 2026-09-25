@@ -5,14 +5,13 @@ import { differenceInMinutes } from "date-fns";
 export async function getDashboardData(teamId: string) {
   const today = startOfDayUTC(new Date());
 
-  const [tasks, clients, issues, attendanceRecords, employees] = await Promise.all([
+  const [tasks, clients, attendanceRecords, employees] = await Promise.all([
     prisma.task.findMany({
       where: { teamId, date: today, deletedAt: null },
       include: { client: true, category: true, assignedUser: true },
       orderBy: { startTime: "asc" },
     }),
     prisma.client.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } }),
-    prisma.issue.findMany({ where: { teamId, status: { not: "RESOLVED" } } }),
     prisma.attendanceRecord.findMany({ where: { date: today }, include: { user: true } }),
     prisma.user.findMany({ where: { teamId, active: true } }),
   ]);
@@ -20,21 +19,18 @@ export async function getDashboardData(teamId: string) {
   const completed = tasks.filter((t) => t.status === "COMPLETED").length;
   const pending = tasks.filter((t) => t.status === "UPCOMING" || t.status === "IN_PROGRESS").length;
   const overdue = tasks.filter((t) => t.status === "OVERDUE").length;
-  const urgentIssues = issues.filter((i) => i.severity === "HIGH" || i.severity === "CRITICAL").length;
   const followUpTasks = tasks.filter((t) => t.category?.name === "Follow-up").length;
 
   const checkedInCount = attendanceRecords.filter((r) => r.actualCheckIn).length;
 
   const clientStats = clients.map((c) => {
     const clientTasks = tasks.filter((t) => t.clientId === c.id);
-    const clientIssues = issues.filter((i) => i.clientId === c.id);
     return {
       id: c.id,
       name: c.name,
       status: c.status,
       completedTasks: clientTasks.filter((t) => t.status === "COMPLETED").length,
       totalTasks: clientTasks.length,
-      openIssues: clientIssues.length,
       followUps: clientTasks.filter((t) => t.category?.name === "Follow-up").length,
     };
   });
@@ -79,7 +75,6 @@ export async function getDashboardData(teamId: string) {
       completed,
       pending,
       overdue,
-      urgentIssues,
       followUpTasks,
       employeesCheckedIn: checkedInCount,
       totalEmployees: employees.length,

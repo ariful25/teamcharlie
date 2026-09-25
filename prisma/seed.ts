@@ -482,58 +482,6 @@ async function main() {
     });
   }
 
-  const issueDefs = [
-    { id: "ps-issue-37th-2c-wifi", unitId: "ps-unit-37th-2c", title: "WiFi issue", status: "OPEN", severity: "MEDIUM", description: "Paid Beth to check on the wifi already, not yet fixed." },
-    { id: "ps-issue-37th-2d-wifi", unitId: "ps-unit-37th-2d", title: "WiFi issue", status: "OPEN", severity: "MEDIUM" },
-    { id: "ps-issue-anderson-wifi-extension", unitId: null, title: "Anderson - WiFi extension needs to be set up", status: "OPEN", severity: "MEDIUM", description: "Stephanie scheduled for May 27." },
-    { id: "ps-issue-anderson-bed", unitId: "ps-unit-anderson-2a", title: "Bed needs to be put back", status: "OPEN", severity: "MEDIUM", description: "Anderson 2A & 2D. Stephanie scheduled for May 27." },
-    { id: "ps-issue-anderson-smart-lock", unitId: null, title: "Anderson - Smart lock (Sitely) issue", status: "OPEN", severity: "MEDIUM", description: "Stephanie scheduled for May 27." },
-    { id: "ps-issue-31st-wasp", unitId: "ps-unit-31st-house", title: "Wasp issue", status: "RESOLVED", severity: "MEDIUM" },
-    { id: "ps-issue-louisiana-mattress", unitId: "ps-unit-mid-hamilton", title: "Mattress issue", status: "RESOLVED", severity: "MEDIUM", description: "No need to reply to guest." },
-    { id: "ps-issue-37th-pest-control", unitId: "ps-unit-37th-duplex", title: "Pest control, whole house", status: "RESOLVED", severity: "MEDIUM", description: "Completed 9/24 by Arrow Exterminator." },
-    { id: "ps-issue-37th-pest-control-round-2", unitId: "ps-unit-37th-duplex", title: "Pest control (round 2)", status: "RESOLVED", severity: "MEDIUM", description: "Completed 9/30 by Arrow Exterminator." },
-    { id: "ps-issue-37th-1b-drain", unitId: "ps-unit-37th-1b", title: "Clogged shower drain", status: "RESOLVED", severity: "MEDIUM", description: "$150, completed 9/26 by Beth." },
-    { id: "ps-issue-37th-router", unitId: "ps-unit-37th-duplex", title: "WiFi router/mesh replacement", status: "RESOLVED", severity: "MEDIUM", description: "$341.70, Comcast, completed 9/26." },
-    { id: "ps-issue-37th-1b-return-vent", unitId: "ps-unit-37th-1b", title: "Return vent needs replacing", status: "OPEN", severity: "MEDIUM", description: "Waiting for schedule." },
-    { id: "ps-issue-37th-hvac-filter", unitId: "ps-unit-37th-duplex", title: "HVAC filter change, all vents", status: "RESOLVED", severity: "MEDIUM", description: "$143.41, Climatech." },
-    { id: "ps-issue-37th-1b-roof", unitId: "ps-unit-37th-1b", title: "Roof leak", status: "RESOLVED", severity: "HIGH", description: "Roof changed 10/13 by Ishmael." },
-    { id: "ps-issue-37th-back-door-seal", unitId: "ps-unit-37th-duplex", title: "Seal openings/gaps to prevent pest entry", status: "RESOLVED", severity: "MEDIUM", description: "Ishmael." },
-    { id: "ps-issue-37th-sink-pipe", unitId: "ps-unit-37th-duplex", title: "Pipe under bathroom sink", status: "RESOLVED", severity: "MEDIUM", description: "Ishmael." },
-    { id: "ps-issue-37th-bath-window", unitId: "ps-unit-37th-duplex", title: "Bathroom window", status: "RESOLVED", severity: "MEDIUM", description: "Ishmael." },
-    { id: "ps-issue-louisiana-back-cabinet", unitId: "ps-unit-louisiana-back", title: "Kitchen cabinet lock", status: "RESOLVED", severity: "MEDIUM" },
-    { id: "ps-issue-louisiana-back-holders", unitId: "ps-unit-louisiana-back", title: "Loose tissue holder / towel holder", status: "RESOLVED", severity: "MEDIUM" },
-    { id: "ps-issue-louisiana-back-door-handle", unitId: "ps-unit-louisiana-back", title: "Loose front door handle", status: "RESOLVED", severity: "MEDIUM" },
-    { id: "ps-issue-redwood-dryer", unitId: "ps-unit-redwood-2b1b", title: "Dryer repair", status: "RESOLVED", severity: "MEDIUM" },
-    { id: "ps-issue-hospital-vrbo-sep-13", unitId: "ps-unit-hospital-house", title: "VRBO guest checking in Sep 13", status: "OPEN", severity: "LOW" },
-    { id: "ps-issue-hospital-photos", unitId: "ps-unit-hospital-house", title: "How many seats does the dining room need? / retake living room photos", status: "OPEN", severity: "LOW" },
-    { id: "ps-issue-37th-airbnb-appeal", unitId: "ps-unit-37th-duplex", title: "Airbnb appeal update", status: "OPEN", severity: "HIGH" },
-    { id: "ps-issue-37th-1st-tv-remote", unitId: "ps-unit-37th-1st", title: "Find the missing TV remote", status: "OPEN", severity: "MEDIUM" },
-  ];
-
-  for (const issue of issueDefs) {
-    await prisma.issue.upsert({
-      where: { id: issue.id },
-      update: {
-        title: issue.title,
-        description: issue.description ?? null,
-        severity: issue.severity as any,
-        status: issue.status as any,
-        unitId: issue.unitId,
-      },
-      create: {
-        id: issue.id,
-        title: issue.title,
-        description: issue.description ?? null,
-        severity: issue.severity as any,
-        status: issue.status as any,
-        clientId: perfectStay.id,
-        unitId: issue.unitId,
-        teamId: team.id,
-        reportedById: admin.id,
-      },
-    });
-  }
-
   const leadDefs = [
     ["Nikki Payne", "Facebook", "Sent a message"], ["Emily Alyssa", "Facebook", "Sent a message"], ["Mehmet Nege", "Facebook", "Waiting for response"], ["Gary Ingersoll", "Facebook", "Waiting for response"], ["Amber Carrillo", "Facebook", "Waiting for response"], ["Ivory Swaby", "Facebook", "Sent a message"], ["Linda T Lee", "Facebook", "Sent a message"], ["Ann Abdul", "Realtor.com", "Sent a text"], ["Lina Maria Garcia", "Facebook", "Sent a message"], ["Eledea Black", "Facebook", "Sent a message"], ["Asher Caleb", "Facebook", "Sent a message"], ["Suzanne Severance", "Facebook", "Sent a message"], ["Keertana Gupta", "Facebook", "Sent a message"], ["Stacey Samedi", "Facebook", "Sent a message"], ["Ian Oliver", "Facebook", "Sent a message"], ["Melissa Miller", "Facebook", "Sent a message", "Looking for a room for her daughter, a SCAD student"], ["Aria Wang", "Facebook", "Sent a message", "Looking for a room for a friend (Hnin, a traveling nurse)"], ["Mark Young", "Facebook", "Sent a message"], ["Ashley Dustin", "Facebook", "Reached out to us"], ["Melissa Sanchez", "Facebook", "Sent a message"], ["Parker Paige", "Facebook", "Sent a message"], ["West Nelson", "Facebook", "Sent a message"], ["MB Bowen", "Facebook", "Sent a message", "Looking for a room for her daughter, gave her our number"], ["Yasmin Reis", "Facebook", "Sent a message"], ["Tamara Sisterly Love Brown", "Facebook", "Sent a message"], ["Caitlin Wilson", "Facebook", "Sent a message"], ["Mason Kemp", "Facebook", "Sent a message"], ["Bradley Longo", "Facebook", "Sent a message"], ["Shakeyah Williams", "Facebook", "Sent a message"], ["Ann Yates", "Facebook", "Sent a message"], ["Sophia Giancola", "Facebook", "Sent a message"], ["Elsie Washburn", "Facebook", "Sent a message"], ["Deinara Sanches", "Facebook", "Sent a message"], ["Cait Sarah", "Facebook", "Sent a message"], ["Prasana Pandey", "Facebook", "Sent a message"], ["Tyler Boykin", "Facebook", "Sent a message", "Viewing scheduled June 15, 3:00-4:00 PM (Beth)"], ["Fernan Fernan", "Facebook", "Sent a message", "Interested in Redwood", "ps-unit-redwood-2b1b"], ["Chase Burkley", "Facebook", "Sent a message"], ["Sarah Warehime", "Facebook", "Sent a message"], ["Courtney Volpe", "Facebook", "Sent a message"], ["Libby Lutz", "Facebook", "Sent a message"], ["Sophie Wang", "Facebook", "Sent a message"], ["Ailyn Pv", "Facebook", "Sent a message"], ["Kylie Wang", "Facebook", "Sent a message"], ["Hafafizul 01", "Facebook", "Sent a message"], ["Mia Kuceba", "Facebook", "Sent a message"], ["Rayne Hawthorne", "Facebook", "Sent a message"], ["Hyosam Jeon", "Facebook", "Sent a message"], ["Vera Brown", "Facebook", "Sent a message"], ["Sabrina Mangone", "Facebook", "Sent a message"], ["Salma El", "Facebook", "Sent a message"], ["Hailey Avitabile", "Facebook", "Sent a message"], ["Samra Noori", "Facebook", "Sent a message", "Viewing completed via FaceTime (Beth)"], ["Anvesh Kiran Pidatala", "Facebook", "Sent a message"], ["Lexie Krivicich", "Facebook", "Sent a message"], ["Cade Velleman", "Facebook", "Sent a message"], ["Vivian Perez", "Facebook", "Sent a message"], ["Jayme Me'Leaha", "Facebook", "Sent a message"], ["Summer Ashto", "Facebook", "Sent a message"], ["Sterling Hirst", "Facebook", "Sent a message"], ["Déjanerra Mugford", "Facebook", "Sent a message", "Viewing completed"], ["Diana Hasty", "Facebook", "Sent a message"], ["Nyla Re", "Facebook", "Sent a message"], ["Chiara Marie", "Facebook", "Sent a message"], ["Yanna Allen", "Facebook", "Sent a message"], ["Mahinder Kaur", "Facebook", "Sent a message"], ["Shamyra Long", "Facebook", "Sent a message"], ["Kendrasol123@gmail.com", "Email", "Email sent"], ["Brandon Graddy", "Facebook", "Sent a message", "Interested in Anderson 1A (contacted Jun 15)", "ps-unit-anderson-1a"], ["Ty Sintrell", "Facebook", "Sent a message", "Interested in 37th 1A (contacted Jun 15)", "ps-unit-37th-1a"], ["James Jackson", "Facebook", "Sent a message", "Interested in Anderson 1A, looking to move in Sep 1 (contacted Jun 15)", "ps-unit-anderson-1a"], ["Heinitz Richard", "Facebook", "Sent a message", "Interested in Anderson 1A, looking to move in Sep 1 (contacted Jun 15)", "ps-unit-anderson-1a"], ["Emerson Brooks", "Facebook", "Sent a message", "Interested in 37th 2nd floor (contacted Jun 15)", "ps-unit-37th-2nd"], ["Kyle Burke", "Facebook", "Sent a message", "Interested in Sage (contacted Jun 15)", "ps-unit-sage"], ["Katy Gjovig", "Facebook", "Sent a message", "Interested in 37th 2D (contacted Jun 15)", "ps-unit-37th-2d"], ["Lydia Hough", "Facebook", "Sent a message (contacted Jun 16)"], ["Jeannie N Keith Pierce", "Facebook", "Sent a message (contacted Jun 16)"], ["James Degnan", "Facebook", "Sent a message (contacted Jun 16)"], ["Trevor Cheung", "Facebook", "Sent a message", "Viewing scheduled for 31st/Sage, expected move-in Aug 31, move-out Nov 30 (contacted Jun 16)", "ps-unit-sage"], ["Vickie Dixon", "Facebook", "Sent a message (contacted Jun 16)"], ["Christine Rufolo", "Facebook", "Sent a message (contacted Jun 20)"], ["Charlie Dobbertin", "Facebook", "Sent a message", "Interested in Golden Dusk (contacted Jun 20)", "ps-unit-golden-dusk"], ["Zenia Rangwala", "Facebook", "Sent a message (contacted Jun 20)"],
   ];
@@ -544,6 +492,27 @@ async function main() {
       where: { id: `ps-lead-${i + 1}` },
       update: { name, channel, status, notes: notes ?? null, interestedUnitId: interestedUnitId ?? null },
       create: { id: `ps-lead-${i + 1}`, clientId: perfectStay.id, name, channel, status, notes: notes ?? null, interestedUnitId: interestedUnitId ?? null },
+    });
+  }
+
+  const noticeDefs = [
+    { id: "notice-welcome", content: "Welcome to the Notice board! Pin up reminders, tips, or anything the team should see.", color: "YELLOW", pinned: true },
+    { id: "notice-wifi-password", content: "Guest WiFi password template is in the shared drive under Property Docs.", color: "BLUE", pinned: false },
+    { id: "notice-checkin-reminder", content: "Double-check smart lock codes before every check-in — a few guests got locked out last week.", color: "PINK", pinned: false },
+  ];
+
+  for (const notice of noticeDefs) {
+    await prisma.notice.upsert({
+      where: { id: notice.id },
+      update: { content: notice.content, color: notice.color as any, pinned: notice.pinned },
+      create: {
+        id: notice.id,
+        content: notice.content,
+        color: notice.color as any,
+        pinned: notice.pinned,
+        authorId: admin.id,
+        teamId: team.id,
+      },
     });
   }
 

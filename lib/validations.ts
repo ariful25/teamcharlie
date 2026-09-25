@@ -19,6 +19,17 @@ export const taskSchema = z.object({
   repeatDays: z.array(z.number().min(0).max(6)).default([]),
 });
 
+export const NOTICE_COLORS = ["YELLOW", "PINK", "BLUE", "PURPLE", "GREEN", "ORANGE"] as const;
+
+export const noticeSchema = z.object({
+  content: z.string().min(1, "Write something first").max(500, "Keep it under 500 characters"),
+  color: z.enum(NOTICE_COLORS).default("YELLOW"),
+});
+
+export const noticeUpdateSchema = z.object({
+  pinned: z.boolean(),
+});
+
 export const attendanceEditSchema = z.object({
   recordId: z.string(),
   actualCheckIn: z.string().datetime().optional().nullable(),

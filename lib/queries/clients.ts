@@ -6,10 +6,10 @@ export async function getClientWorkspaceData(clientId: string, teamId: string) {
 
   const client = await prisma.client.findFirst({ where: { id: clientId, teamId } });
   if (!client) {
-    return { client: null, tasks: [], recurringTasks: [], issues: [], properties: [], leads: [] };
+    return { client: null, tasks: [], recurringTasks: [], properties: [], leads: [] };
   }
 
-  const [tasks, recurringTasks, issues, properties, leads] = await Promise.all([
+  const [tasks, recurringTasks, properties, leads] = await Promise.all([
     prisma.task.findMany({
       where: { clientId, teamId, date: today, deletedAt: null },
       include: { assignedUser: true, category: true },
@@ -18,11 +18,6 @@ export async function getClientWorkspaceData(clientId: string, teamId: string) {
     prisma.task.findMany({
       where: { clientId, teamId, isRecurringTemplate: true, deletedAt: null },
       include: { assignedUser: true, category: true },
-    }),
-    prisma.issue.findMany({
-      where: { clientId, teamId },
-      include: { reportedBy: true, unit: { include: { property: true } } },
-      orderBy: { createdAt: "desc" },
     }),
     prisma.property.findMany({
       where: { clientId, active: true, client: { teamId } },
@@ -45,5 +40,5 @@ export async function getClientWorkspaceData(clientId: string, teamId: string) {
     }),
   ]);
 
-  return { client, tasks, recurringTasks, issues, properties, leads };
+  return { client, tasks, recurringTasks, properties, leads };
 }

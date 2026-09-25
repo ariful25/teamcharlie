@@ -17,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 // Handles both Edit Client (name/status/platforms/notes) and
 // Deactivate/Reactivate Client (active: false/true) — deactivating never
-// deletes anything. Historical tasks/issues/properties/files/knowledge
+// deletes anything. Historical tasks/properties/files/knowledge
 // items keep their clientId and stay in the database; the client just
 // disappears from active dropdowns (every list query already filters
 // `active: true`, e.g. app/api/clients GET, lib/queries/tasks.ts,

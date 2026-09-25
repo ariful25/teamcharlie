@@ -124,4 +124,8 @@ export const permissions = {
   // sheet itself is also shared read-only with non-admins — see
   // lib/google-sheets/spreadsheet.ts's shareWithTeam).
   canManageGoogleSheets: (role: AppRole) => role === "ADMIN",
+  // Anyone can post a sticky note — it's a team bulletin board, not a
+  // moderated feed. Pinning (keeping an announcement above the regular
+  // notes) is the one privileged action, same tier as shift scheduling.
+  canPinNotices: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
 };

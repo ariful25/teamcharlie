@@ -10,7 +10,6 @@ export function ClientStatusCard({
   status,
   completedTasks,
   totalTasks,
-  openIssues,
   followUps,
 }: {
   id: string;
@@ -18,7 +17,6 @@ export function ClientStatusCard({
   status: string;
   completedTasks: number;
   totalTasks: number;
-  openIssues: number;
   followUps: number;
 }) {
   return (
@@ -31,16 +29,12 @@ export function ClientStatusCard({
           <h3 className="text-sm font-semibold uppercase tracking-wide">{name}</h3>
           <Badge tone={statusTone(status)}>{status.charAt(0) + status.slice(1).toLowerCase().replace("_", " ")}</Badge>
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+        <div className="mt-4 grid grid-cols-2 gap-2 text-center">
           <div>
             <p className="text-lg font-semibold">
               {completedTasks}/{totalTasks}
             </p>
             <p className="text-[11px] text-muted-foreground">Tasks</p>
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-warning">{openIssues}</p>
-            <p className="text-[11px] text-muted-foreground">Open Issues</p>
           </div>
           <div>
             <p className="text-lg font-semibold text-info">{followUps}</p>

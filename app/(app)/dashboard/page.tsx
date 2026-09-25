@@ -82,12 +82,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
         <StatCard label="Today's Tasks" value={stats.todaysTasks} icon="list-checks" href="/tasks" tone="primary" />
         <StatCard label="Completed" value={stats.completed} icon="check-circle" href="/tasks?status=COMPLETED" tone="success" />
         <StatCard label="Pending" value={stats.pending} icon="clock" href="/tasks?status=UPCOMING" tone="info" />
         <StatCard label="Overdue" value={stats.overdue} icon="alert-octagon" href="/tasks?status=OVERDUE" tone="danger" />
-        <StatCard label="Urgent Issues" value={stats.urgentIssues} icon="alert-triangle" href="/issues" tone="warning" />
         <StatCard label="Client Follow-ups" value={stats.followUpTasks} icon="message-square" href="/tasks?category=Follow-up" tone="info" />
         <StatCard
           label="Employees Checked In"
@@ -133,7 +132,6 @@ export default async function DashboardPage() {
           name: c.name,
           completedTasks: c.completedTasks,
           totalTasks: c.totalTasks,
-          openIssues: c.openIssues,
           followUps: c.followUps,
           color: CLIENT_COLORS[c.name] ?? "#22d3ee",
         }))}

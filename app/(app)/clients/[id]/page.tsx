@@ -15,7 +15,7 @@ import { getClientIntegrationOverview } from "@/lib/services/integrations";
 
 export default async function ClientWorkspacePage({ params }: { params: { id: string } }) {
   const currentUser = await getCurrentUser();
-  const { client, tasks, recurringTasks, issues, properties, leads } = await getClientWorkspaceData(
+  const { client, tasks, recurringTasks, properties, leads } = await getClientWorkspaceData(
     params.id,
     currentUser.teamId
   );
@@ -39,7 +39,6 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
 
   const plainProperties = JSON.parse(JSON.stringify(properties));
   const plainLeads = JSON.parse(JSON.stringify(leads));
-  const plainIssues = JSON.parse(JSON.stringify(issues));
   const plainRecurringTasks = JSON.parse(JSON.stringify(recurringTasks));
   const plainFiles = JSON.parse(JSON.stringify(files));
   const plainIntegrations = JSON.parse(JSON.stringify(integrations));
@@ -78,7 +77,6 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
           client={client}
           properties={plainProperties}
           leads={plainLeads}
-          issues={plainIssues}
           recurringTasks={plainRecurringTasks}
           canManage={canManageProperties}
         />
@@ -128,27 +126,6 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
                       </p>
                     </div>
                     <Badge tone={priorityTone(r.priority)}>{r.priority}</Badge>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Issues</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 p-0 pb-2">
-              {issues.length === 0 ? (
-                <p className="px-5 pb-4 text-sm text-muted-foreground">No open issues 🎉</p>
-              ) : (
-                issues.map((i) => (
-                  <div key={i.id} className="flex items-center justify-between border-t border-border/60 px-5 py-3 text-sm first:border-0">
-                    <div>
-                      <p className="font-medium">{i.title}</p>
-                      <p className="text-xs text-muted-foreground">Reported by {i.reportedBy.name}</p>
-                    </div>
-                    <Badge tone={statusTone(i.status)}>{i.status.replace("_", " ")}</Badge>
                   </div>
                 ))
               )}

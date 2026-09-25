@@ -15,7 +15,6 @@ type Property = any;
 type Unit = any;
 type Tenancy = any;
 type Lead = any;
-type Issue = any;
 type Task = any;
 
 const listingLevels = ["WHOLE_PROPERTY", "WHOLE_HOUSE", "PRIVATE_ROOM", "DETACHED_UNIT"];
@@ -338,27 +337,18 @@ export function PerfectStayWorkspace({
   client,
   properties,
   leads,
-  issues,
   recurringTasks,
   canManage,
 }: {
   client: any;
   properties: Property[];
   leads: Lead[];
-  issues: Issue[];
   recurringTasks: Task[];
   canManage: boolean;
 }) {
   const [openProperties, setOpenProperties] = useState<string[]>(properties.map((p) => p.id));
   const [showAllLeads, setShowAllLeads] = useState(false);
   const allUnits = useMemo(() => properties.flatMap((p) => p.units), [properties]);
-  const issuesByProperty = useMemo(() => {
-    return issues.reduce<Record<string, Issue[]>>((groups, issue) => {
-      const key = issue.unit?.property?.internalCode ?? "General";
-      groups[key] = [...(groups[key] ?? []), issue];
-      return groups;
-    }, {});
-  }, [issues]);
   const now = new Date();
   const attention = allUnits.filter((unit) => {
     const latest = unit.tenancies?.[0];
@@ -533,47 +523,20 @@ export function PerfectStayWorkspace({
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>Maintenance</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            {Object.entries(issuesByProperty).map(([propertyName, propertyIssues]) => (
-              <div key={propertyName} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{propertyName}</p>
-                  <div className="flex gap-2">
-                    <Badge tone="danger">{propertyIssues.filter((issue) => issue.status !== "RESOLVED").length} open</Badge>
-                    <Badge tone="success">{propertyIssues.filter((issue) => issue.status === "RESOLVED").length} resolved</Badge>
-                  </div>
-                </div>
-                {propertyIssues.map((issue) => (
-                  <div key={issue.id} className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
-                    <div>
-                      <p className="font-medium">{issue.title}</p>
-                      <p className="text-xs text-muted-foreground">{issue.unit?.internalName ?? "General"}</p>
-                    </div>
-                    <Badge tone={statusTone(issue.status)}>{issue.status.replace(/_/g, " ")}</Badge>
-                  </div>
-                ))}
+      <Card>
+        <CardHeader><CardTitle>Recurring Tasks</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {recurringTasks.map((task) => (
+            <div key={task.id} className="flex items-center justify-between border-t border-border/60 py-2 text-sm first:border-0">
+              <div>
+                <p className="font-medium">{task.title}</p>
+                <p className="text-xs text-muted-foreground">{task.category?.name ?? "Uncategorized"} · {task.repeatMode}</p>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Recurring Tasks</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {recurringTasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between border-t border-border/60 py-2 text-sm first:border-0">
-                <div>
-                  <p className="font-medium">{task.title}</p>
-                  <p className="text-xs text-muted-foreground">{task.category?.name ?? "Uncategorized"} · {task.repeatMode}</p>
-                </div>
-                <Badge tone={priorityTone(task.priority)}>{task.priority}</Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+              <Badge tone={priorityTone(task.priority)}>{task.priority}</Badge>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
