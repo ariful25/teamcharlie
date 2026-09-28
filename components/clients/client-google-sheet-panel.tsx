@@ -79,7 +79,7 @@ function SyncLogModal({ clientId }: { clientId: string }) {
               <div key={log.id} className="rounded-xl border border-border px-3 py-2 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">{log.property?.internalName ?? log.action}</span>
-                  <span className="text-muted-foreground">{new Date(log.createdAt).toLocaleString()}</span>
+                  <span className="text-muted-foreground">{new Date(log.createdAt).toLocaleString("en-US")}</span>
                 </div>
                 {log.field ? (
                   <p className="mt-1 text-muted-foreground">
@@ -168,7 +168,7 @@ export function ClientGoogleSheetPanel({
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Last Sync</span>
-              <span>{googleSheet?.lastSyncedAt ? new Date(googleSheet.lastSyncedAt).toLocaleString() : "Never"}</span>
+              <span>{googleSheet?.lastSyncedAt ? new Date(googleSheet.lastSyncedAt).toLocaleString("en-US") : "Never"}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Properties Synced</span>

@@ -23,44 +23,51 @@ const TASK_GENERATION_THROTTLE_MS = 5 * 60 * 1000;
 
 export default async function DashboardPage() {
   const currentUser = await getCurrentUser();
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: currentUser.id } });
 
   const team = await prisma.team.findUniqueOrThrow({
-    where: { id: user.teamId },
+    where: { id: currentUser.teamId },
     select: { lastGeneratedAt: true },
   });
   const shouldRefreshTasks =
     !team.lastGeneratedAt || Date.now() - team.lastGeneratedAt.getTime() >= TASK_GENERATION_THROTTLE_MS;
 
   if (shouldRefreshTasks) {
-    await generateRecurringTaskInstances(user.teamId);
-    await refreshOverdueTasks(user.teamId);
-    await flagMissingCheckouts(user.teamId);
+    // Independent of each other — different tables, no shared state — so
+    // they run concurrently instead of one after another. This throttled
+    // maintenance work (only runs once per 5-minute window) was previously
+    // the single biggest contributor to a slow dashboard load: 3 sequential
+    // multi-query service calls on the critical render path.
+    await Promise.all([
+      generateRecurringTaskInstances(currentUser.teamId),
+      refreshOverdueTasks(currentUser.teamId),
+      flagMissingCheckouts(currentUser.teamId),
+    ]);
     await prisma.team.update({
-      where: { id: user.teamId },
+      where: { id: currentUser.teamId },
       data: { lastGeneratedAt: new Date() },
     });
   }
 
-  const { stats, clientStats, operationRows, attendanceRows } = await getDashboardData(user.teamId);
-
   const today = new Date();
-  const record = await prisma.attendanceRecord.findFirst({
-    where: {
-      userId: user.id,
-      OR: [
-        { actualCheckIn: { not: null }, actualCheckOut: null },
-        { date: new Date(today.toISOString().slice(0, 10)) },
-      ],
-    },
-    orderBy: { date: "desc" },
-  });
 
-  const [clients, employees, categories] = await Promise.all([
-    prisma.client.findMany({ where: { teamId: user.teamId, active: true } }),
-    prisma.user.findMany({ where: { teamId: user.teamId, active: true } }),
-    prisma.category.findMany(),
-  ]);
+  // Every read below is independent — one round trip instead of three.
+  const [{ stats, clientStats, operationRows, attendanceRows }, record, clients, employees, categories] =
+    await Promise.all([
+      getDashboardData(currentUser.teamId),
+      prisma.attendanceRecord.findFirst({
+        where: {
+          userId: currentUser.id,
+          OR: [
+            { actualCheckIn: { not: null }, actualCheckOut: null },
+            { date: new Date(today.toISOString().slice(0, 10)) },
+          ],
+        },
+        orderBy: { date: "desc" },
+      }),
+      prisma.client.findMany({ where: { teamId: currentUser.teamId, active: true } }),
+      prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true } }),
+      prisma.category.findMany(),
+    ]);
 
   return (
     <div className="space-y-6">

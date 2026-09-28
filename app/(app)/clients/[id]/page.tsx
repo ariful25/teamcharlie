@@ -15,10 +15,21 @@ import { getClientIntegrationOverview } from "@/lib/services/integrations";
 
 export default async function ClientWorkspacePage({ params }: { params: { id: string } }) {
   const currentUser = await getCurrentUser();
-  const { client, tasks, recurringTasks, properties, leads } = await getClientWorkspaceData(
-    params.id,
-    currentUser.teamId
-  );
+
+  // params.id is the same clientId getClientWorkspaceData scopes its lookup
+  // by, so this second batch doesn't need to wait on its result — both run
+  // as one round trip instead of two. If the client turns out not to exist
+  // for this team, these reads are simply discarded below by notFound();
+  // they're scoped by clientId, not team, so there's no cross-tenant data
+  // ever reaching the response either way.
+  const [{ client, tasks, recurringTasks, properties, leads }, integrations, files, googleSheet, propertiesSynced] =
+    await Promise.all([
+      getClientWorkspaceData(params.id, currentUser.teamId),
+      getClientIntegrationOverview(params.id),
+      prisma.clientFile.findMany({ where: { clientId: params.id }, orderBy: [{ category: "asc" }, { createdAt: "desc" }] }),
+      prisma.clientGoogleSheet.findUnique({ where: { clientId: params.id } }),
+      prisma.propertyKnowledgeItem.count({ where: { clientId: params.id, googleSheetSyncedAt: { not: null } } }),
+    ]);
   if (!client) notFound();
 
   const canManageClients = permissions.canManageClients(currentUser.role);
@@ -29,13 +40,6 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
   // A data-driven flag, not a client.name string check — renaming this
   // client (or any other) can never change which workspace it gets.
   const isPerfectStayWorkspace = client.workspaceTemplate === "PERFECT_STAY_LTR";
-
-  const [integrations, files, googleSheet, propertiesSynced] = await Promise.all([
-    getClientIntegrationOverview(client.id),
-    prisma.clientFile.findMany({ where: { clientId: client.id }, orderBy: [{ category: "asc" }, { createdAt: "desc" }] }),
-    prisma.clientGoogleSheet.findUnique({ where: { clientId: client.id } }),
-    prisma.propertyKnowledgeItem.count({ where: { clientId: client.id, googleSheetSyncedAt: { not: null } } }),
-  ]);
 
   const plainProperties = JSON.parse(JSON.stringify(properties));
   const plainLeads = JSON.parse(JSON.stringify(leads));

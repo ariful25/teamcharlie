@@ -20,9 +20,14 @@ type Task = any;
 const listingLevels = ["WHOLE_PROPERTY", "WHOLE_HOUSE", "PRIVATE_ROOM", "DETACHED_UNIT"];
 const tenancyStatuses = ["CURRENT", "UPCOMING", "VACANT", "AIRBNB_TRANSITION"];
 
+// Locale pinned to "en-US" explicitly (not the environment default) — with
+// `undefined`, Node's server-side locale can differ from the browser's,
+// producing different formatted text ("30 Sept 2026" vs "Sep 30, 2026") and
+// a hydration mismatch that forces React to re-render the whole page
+// client-side.
 function fmtDate(value?: string | null) {
   if (!value) return "Open";
-  return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 function dateInput(value?: string | null) {
@@ -31,7 +36,7 @@ function dateInput(value?: string | null) {
 
 function money(value?: string | number | null) {
   if (value == null || value === "") return null;
-  return `$${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  return `$${Number(value).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 }
 
 function textFromForm(form: FormData, key: string) {
