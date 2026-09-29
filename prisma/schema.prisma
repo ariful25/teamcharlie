@@ -413,6 +413,10 @@ model Task {
 
   title       String
   description String?
+  // Free-text notes captured at creation (see QuickAddTaskModal) — set once,
+  // not currently editable afterward. Shown in TaskDetailDialog when you
+  // click a task card; there's no other place in the UI that surfaces it.
+  notes       String?
 
   date      DateTime // calendar day (UTC midnight) this task instance belongs to
   startTime String?  // "HH:mm"

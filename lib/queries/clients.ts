@@ -11,7 +11,14 @@ export async function getClientWorkspaceData(clientId: string, teamId: string) {
 
   const [tasks, recurringTasks, properties, leads] = await Promise.all([
     prisma.task.findMany({
-      where: { clientId, teamId, date: today, deletedAt: null },
+      // Today's tasks, plus anything incomplete from an earlier day still
+      // hanging around overdue — same rule as the Tasks board and Dashboard.
+      where: {
+        clientId,
+        teamId,
+        deletedAt: null,
+        OR: [{ date: today }, { date: { lt: today }, status: { not: "COMPLETED" } }],
+      },
       include: { assignedUser: true, category: true },
       orderBy: { startTime: "asc" },
     }),

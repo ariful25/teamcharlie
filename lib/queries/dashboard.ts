@@ -5,9 +5,18 @@ import { differenceInMinutes } from "date-fns";
 export async function getDashboardData(teamId: string) {
   const today = startOfDayUTC(new Date());
 
-  const [tasks, clients, attendanceRecords, employees] = await Promise.all([
+  const [allTasks, clients, attendanceRecords, employees] = await Promise.all([
     prisma.task.findMany({
-      where: { teamId, date: today, deletedAt: null },
+      where: {
+        teamId,
+        deletedAt: null,
+        // Today's tasks, plus anything incomplete from an earlier day that's
+        // still hanging around overdue — see refreshOverdueTasks. Split back
+        // into `tasks` (today only) below so "Today's Tasks" etc. keep their
+        // existing meaning; only the Overdue stat and the operations table
+        // need the carried-over ones.
+        OR: [{ date: today }, { date: { lt: today }, status: { not: "COMPLETED" } }],
+      },
       include: { client: true, category: true, assignedUser: true },
       orderBy: { startTime: "asc" },
     }),
@@ -16,9 +25,13 @@ export async function getDashboardData(teamId: string) {
     prisma.user.findMany({ where: { teamId, active: true } }),
   ]);
 
+  const tasks = allTasks.filter((t) => t.date.getTime() === today.getTime());
+
   const completed = tasks.filter((t) => t.status === "COMPLETED").length;
   const pending = tasks.filter((t) => t.status === "UPCOMING" || t.status === "IN_PROGRESS").length;
-  const overdue = tasks.filter((t) => t.status === "OVERDUE").length;
+  // Full set, not just today's — a task overdue since three days ago should
+  // still count here instead of disappearing once its original day passes.
+  const overdue = allTasks.filter((t) => t.status === "OVERDUE").length;
   const followUpTasks = tasks.filter((t) => t.category?.name === "Follow-up").length;
 
   const checkedInCount = attendanceRecords.filter((r) => r.actualCheckIn).length;
@@ -35,10 +48,15 @@ export async function getDashboardData(teamId: string) {
     };
   });
 
-  const operationRows = tasks.map((t) => {
+  // Full set, not just today's — a carried-over overdue task needs to show
+  // up here too, or it'd be marked OVERDUE but invisible on the dashboard.
+  const operationRows = allTasks.map((t) => {
     let overdueBy: string | null = null;
     if (t.status === "OVERDUE" && t.dueTime) {
-      const due = combineDateAndTime(today, t.dueTime);
+      // t's own date, not today's — a task overdue since 3 days ago must be
+      // compared against when it was actually due, not today's date, or
+      // "overdue by" would understate it (or go negative).
+      const due = combineDateAndTime(t.date, t.dueTime);
       const mins = differenceInMinutes(new Date(), due);
       overdueBy = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins} minutes`;
     }

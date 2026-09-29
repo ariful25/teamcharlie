@@ -5,7 +5,15 @@ export async function getTasksPageData(teamId: string) {
   const today = startOfDayUTC(new Date());
   const [tasks, clients, employees, categories] = await Promise.all([
     prisma.task.findMany({
-      where: { teamId, date: today, deletedAt: null },
+      where: {
+        teamId,
+        deletedAt: null,
+        // Today's tasks (any status), plus anything from an earlier day
+        // that's still not COMPLETED — incomplete work stays on the board
+        // until someone actually deals with it, instead of silently
+        // dropping off the moment its original day ends.
+        OR: [{ date: today }, { date: { lt: today }, status: { not: "COMPLETED" } }],
+      },
       include: { client: true, category: true, assignedUser: true },
       orderBy: { startTime: "asc" },
     }),

@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     data: {
       title: data.title,
       description: data.description,
+      notes: data.notes || null,
       clientId: data.clientId || null,
       propertyName: data.propertyName || null,
       categoryId: data.categoryId || null,

@@ -20,6 +20,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { TaskDetailDialog } from "./task-detail-dialog";
 
 // OVERDUE is computed by lib/services/task-generation.ts (a due time that's
 // passed), never manually chosen — see QuickAddTaskModal's STATUS_OPTIONS,
@@ -67,21 +68,30 @@ function TaskCardMini({ task, dragging }: { task: any; dragging?: boolean }) {
 function DraggableCard({ task, onDelete }: { task: any; onDelete: (id: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
+  const [detailOpen, setDetailOpen] = useState(false);
 
   return (
     <div ref={setNodeRef} style={style} className="group relative">
-      <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing">
+      {/* PointerSensor's activationConstraint (6px) already tells drag apart
+          from a plain click — a click that doesn't move the pointer still
+          fires this normally, so it's safe to open the detail dialog here
+          without fighting the drag gesture. */}
+      <div {...listeners} {...attributes} onClick={() => setDetailOpen(true)} className="cursor-grab active:cursor-grabbing">
         <TaskCardMini task={task} dragging={isDragging} />
       </div>
       <IconTooltip label="Delete task">
         <button
-          onClick={() => onDelete(task.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(task.id);
+          }}
           aria-label="Delete task"
           className="absolute right-2 top-2 rounded-lg bg-card/80 p-1 text-muted-foreground opacity-0 transition hover:bg-danger/10 hover:text-danger group-hover:opacity-100"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </IconTooltip>
+      <TaskDetailDialog task={task} open={detailOpen} onOpenChange={setDetailOpen} />
     </div>
   );
 }

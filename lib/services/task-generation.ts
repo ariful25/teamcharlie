@@ -75,8 +75,13 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
 }
 
 /**
- * Marks any UPCOMING/IN_PROGRESS task whose dueTime has passed today as OVERDUE.
- * Safe & idempotent — call on dashboard load or via a scheduled job.
+ * Marks any UPCOMING/IN_PROGRESS task whose dueTime has passed as OVERDUE —
+ * not just today's. A task that was never dealt with keeps getting swept up
+ * by this on every later day too (it stays UPCOMING/IN_PROGRESS until
+ * someone actually completes it), by design: incomplete work should stay
+ * visible and overdue forever rather than quietly stop being checked once
+ * its original day ends. Safe & idempotent — call on dashboard load or via
+ * a scheduled job.
  */
 export async function refreshOverdueTasks(teamId: string, referenceDate: Date = new Date()) {
   const today = startOfDayUTC(referenceDate);
@@ -84,7 +89,7 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
   const candidates = await prisma.task.findMany({
     where: {
       teamId,
-      date: today,
+      date: { lte: today },
       status: { in: ["UPCOMING", "IN_PROGRESS"] },
       dueTime: { not: null },
       deletedAt: null,
@@ -94,7 +99,9 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
   const overdueIds: string[] = [];
   for (const t of candidates) {
     if (!t.dueTime) continue;
-    const due = combineDateAndTime(today, t.dueTime);
+    // Each task's own date, not the reference day — a task from three days
+    // ago is compared against its own due time on its own day, not today's.
+    const due = combineDateAndTime(t.date, t.dueTime);
     if (due.getTime() < referenceDate.getTime()) {
       overdueIds.push(t.id);
     }
