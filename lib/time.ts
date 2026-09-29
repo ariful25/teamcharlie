@@ -44,6 +44,15 @@ export function formatClientDate(date: Date, tz: string = CLIENT_TEAM_TIMEZONE) 
   return formatInTimeZone(date, tz, "MMM d, yyyy");
 }
 
+/** "yyyy-MM-dd" for `date` in the team's timezone — the same calendar-day key
+ *  startOfDayUTC uses server-side, so a client component can find "today"'s
+ *  index in a `days` array (each already a UTC-midnight-of-team-tz-day ISO
+ *  string) by comparing this against `d.slice(0, 10)`, regardless of what
+ *  timezone the browser itself is running in. */
+export function clientDateKey(date: Date = new Date(), tz: string = CLIENT_TEAM_TIMEZONE) {
+  return formatInTimeZone(date, tz, "yyyy-MM-dd");
+}
+
 export function formatLongDate(date: Date) {
   return format(date, "d MMMM yyyy");
 }

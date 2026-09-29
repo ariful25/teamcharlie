@@ -8,7 +8,7 @@ import { ShiftGrid } from "./shift-grid";
 import { AddEmployeeForm } from "./add-employee-form";
 import { ShiftRingWrapper } from "./shift-ring-wrapper";
 import { Button } from "@/components/ui/button";
-import { formatClientLongDate, formatClientShortDate, formatClientWeekday } from "@/lib/time";
+import { clientDateKey, formatClientLongDate, formatClientShortDate, formatClientWeekday } from "@/lib/time";
 import type { DayCellAssignment } from "./day-cell";
 
 type Roster = {
@@ -25,6 +25,15 @@ type Roster = {
   hasAnyAssignments: boolean;
 };
 
+// Finds "today"'s position in a Mon..Sun `days` array by comparing calendar-day
+// keys in the team's timezone (see clientDateKey) — not array index 0, and not a
+// naive browser-local comparison, both of which can point at the wrong day.
+function todayIndexInWeek(days: string[]) {
+  const todayKey = clientDateKey();
+  const idx = days.findIndex((d) => d.slice(0, 10) === todayKey);
+  return idx >= 0 ? idx : 0;
+}
+
 export function ShiftScheduleBoard({
   initialRoster,
   canEdit,
@@ -34,19 +43,25 @@ export function ShiftScheduleBoard({
 }) {
   const [roster, setRoster] = useState<Roster>(initialRoster);
   const [anchorDate, setAnchorDate] = useState(new Date(initialRoster.weekStart));
-  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  // Defaults to *today's* column, not Monday — this was the actual bug behind
+  // the board always opening on Monday regardless of what day it really was.
+  const [selectedDayIndex, setSelectedDayIndex] = useState(() => todayIndexInWeek(initialRoster.days));
   const [loading, setLoading] = useState(false);
 
+  // Callers decide what happens to the day selection after a refetch — a
+  // week-navigation and a same-week refresh (after an edit, or Copy Last
+  // Week) want different results, so this no longer force-resets it itself.
   const fetchRoster = useCallback(async (date: Date) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/shift-schedule?date=${date.toISOString()}`);
       if (res.ok) {
-        const data = await res.json();
+        const data: Roster = await res.json();
         setRoster(data);
-        setSelectedDayIndex(0);
+        return data;
       } else {
         toast.error("Could not load that week");
+        return null;
       }
     } finally {
       setLoading(false);
@@ -54,15 +69,19 @@ export function ShiftScheduleBoard({
   }, []);
 
   function goToWeek(offsetDays: number) {
+    // Jumping a week keeps the same weekday position selected (e.g. viewing
+    // Tuesday and clicking "next" lands on next week's Tuesday) instead of
+    // snapping back to Monday.
     const next = new Date(anchorDate.getTime() + offsetDays * 24 * 60 * 60 * 1000);
     setAnchorDate(next);
     fetchRoster(next);
   }
 
-  function goToday() {
+  async function goToday() {
     const now = new Date();
     setAnchorDate(now);
-    fetchRoster(now);
+    const data = await fetchRoster(now);
+    if (data) setSelectedDayIndex(todayIndexInWeek(data.days));
   }
 
   async function handleCopyPreviousWeek() {
