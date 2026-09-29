@@ -8,6 +8,7 @@ import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { clientDateKey } from "@/lib/time";
 
 type Option = { id: string; name: string };
 
@@ -51,7 +52,12 @@ export function QuickAddTaskModal({
   const [propertyName, setPropertyName] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [assignedUserId, setAssignedUserId] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  // clientDateKey formats "today" in the team's timezone (Asia/Dhaka), not
+  // the browser's — a raw new Date().toISOString().slice(0, 10) takes the
+  // UTC calendar day, which is the wrong date for part of the day whenever
+  // local time and UTC disagree on what day it is (e.g. any time between
+  // local midnight and 6am in Asia/Dhaka, UTC+6).
+  const [date, setDate] = useState(() => clientDateKey());
   const [startTime, setStartTime] = useState("");
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState("NORMAL");

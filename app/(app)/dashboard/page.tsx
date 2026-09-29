@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/session";
 import { generateRecurringTaskInstances, refreshOverdueTasks } from "@/lib/services/task-generation";
 import { flagMissingCheckouts } from "@/lib/services/attendance";
 import { getDashboardData } from "@/lib/queries/dashboard";
-import { formatDateLong, formatTime, greeting } from "@/lib/time";
+import { formatDateLong, formatTime, greeting, startOfDayUTC } from "@/lib/time";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ClientStatusCard } from "@/components/dashboard/client-status-card";
 import { TodaysOperations } from "@/components/dashboard/todays-operations";
@@ -59,7 +59,14 @@ export default async function DashboardPage() {
           userId: currentUser.id,
           OR: [
             { actualCheckIn: { not: null }, actualCheckOut: null },
-            { date: new Date(today.toISOString().slice(0, 10)) },
+            // startOfDayUTC converts to the team's timezone first, then
+            // takes the calendar day — a raw `today.toISOString().slice(0, 10)`
+            // takes the UTC calendar day instead, which is a different date
+            // for part of the day in Asia/Dhaka (UTC+6). That mismatch made
+            // this query keep matching yesterday's already-completed
+            // AttendanceRecord for several hours after local midnight,
+            // instead of finding (or being ready to create) today's.
+            { date: startOfDayUTC(today) },
           ],
         },
         orderBy: { date: "desc" },
