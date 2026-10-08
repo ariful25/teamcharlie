@@ -2,24 +2,27 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, LayoutGrid, List as ListIcon } from "lucide-react";
+import Link from "next/link";
+import { Search, LayoutGrid, List as ListIcon, History } from "lucide-react";
 import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { TaskCard } from "./task-card";
 import { TasksKanban } from "./tasks-kanban";
 import { QuickAddTaskModal } from "./quick-add-task-modal";
-import { TasksRestorePanel } from "./tasks-restore-panel";
 
 export function TasksBoard({
   tasks,
   clients,
   employees,
   categories,
+  shiftTypes,
   currentUserId,
 }: {
   tasks: any[];
   clients: any[];
   employees: any[];
   categories: any[];
+  shiftTypes: any[];
   currentUserId: string;
 }) {
   const searchParams = useSearchParams();
@@ -118,11 +121,16 @@ export function TasksBoard({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <TasksRestorePanel />
+          <Link href="/tasks/history">
+            <Button variant="outline" className="h-10">
+              <History className="h-4 w-4" /> History
+            </Button>
+          </Link>
           <QuickAddTaskModal
             clients={clients.map((c) => ({ id: c.id, name: c.name }))}
             employees={employees.map((e) => ({ id: e.id, name: e.name }))}
             categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+            shiftTypes={shiftTypes.map((s) => ({ id: s.id, name: s.name }))}
           />
         </div>
       </div>

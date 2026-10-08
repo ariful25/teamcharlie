@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   const today = new Date();
 
   // Every read below is independent — one round trip instead of three.
-  const [{ stats, clientStats, operationRows, attendanceRows }, record, clients, employees, categories] =
+  const [{ stats, clientStats, operationRows, attendanceRows }, record, clients, employees, categories, shiftTypes] =
     await Promise.all([
       getDashboardData(currentUser.teamId),
       prisma.attendanceRecord.findFirst({
@@ -74,6 +74,7 @@ export default async function DashboardPage() {
       prisma.client.findMany({ where: { teamId: currentUser.teamId, active: true } }),
       prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true } }),
       prisma.category.findMany(),
+      prisma.shiftType.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { startTime: "asc" } }),
     ]);
 
   return (
@@ -92,6 +93,7 @@ export default async function DashboardPage() {
           clients={clients.map((c) => ({ id: c.id, name: c.name }))}
           employees={employees.map((e) => ({ id: e.id, name: e.name }))}
           categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+          shiftTypes={shiftTypes.map((s) => ({ id: s.id, name: s.name }))}
         />
       </div>
 

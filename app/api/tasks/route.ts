@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       ...(assignedUserId ? { assignedUserId } : {}),
       ...(category ? { category: { name: category } } : {}),
     },
-    include: { client: true, category: true, assignedUser: true },
+    include: { client: true, category: true, assignedUser: true, shiftType: true },
     orderBy: [{ date: "desc" }, { startTime: "asc" }],
   });
 
@@ -57,6 +57,10 @@ export async function POST(req: NextRequest) {
     const assignee = await prisma.user.findFirst({ where: { id: data.assignedUserId, teamId } });
     if (!assignee) return NextResponse.json({ error: "Invalid assignedUserId" }, { status: 400 });
   }
+  if (data.shiftTypeId) {
+    const shiftType = await prisma.shiftType.findFirst({ where: { id: data.shiftTypeId, teamId } });
+    if (!shiftType) return NextResponse.json({ error: "Invalid shiftTypeId" }, { status: 400 });
+  }
 
   const isRecurring = data.repeatMode && data.repeatMode !== "NONE";
   const teamUserId = (session.user as any).id as string;
@@ -70,6 +74,7 @@ export async function POST(req: NextRequest) {
       propertyName: data.propertyName || null,
       categoryId: data.categoryId || null,
       assignedUserId: data.assignedUserId || null,
+      shiftTypeId: data.shiftTypeId || null,
       date: new Date(`${data.date}T00:00:00.000Z`),
       startTime: data.startTime || null,
       dueTime: data.dueTime || null,

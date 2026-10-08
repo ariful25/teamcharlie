@@ -10,6 +10,10 @@ export async function getDashboardData(teamId: string) {
       where: {
         teamId,
         deletedAt: null,
+        // Templates are the recurrence rule, not a to-do item themselves —
+        // excluded so they don't get caught by the "carried over" branch
+        // and sit on the dashboard forever (they never reach COMPLETED).
+        isRecurringTemplate: false,
         // Today's tasks, plus anything incomplete from an earlier day that's
         // still hanging around overdue — see refreshOverdueTasks. Split back
         // into `tasks` (today only) below so "Today's Tasks" etc. keep their
@@ -17,7 +21,7 @@ export async function getDashboardData(teamId: string) {
         // need the carried-over ones.
         OR: [{ date: today }, { date: { lt: today }, status: { not: "COMPLETED" } }],
       },
-      include: { client: true, category: true, assignedUser: true },
+      include: { client: true, category: true, assignedUser: true, shiftType: true },
       orderBy: { startTime: "asc" },
     }),
     prisma.client.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } }),

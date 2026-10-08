@@ -411,6 +411,14 @@ model Task {
   assignedUserId String?
   assignedUser   User?   @relation("TaskAssignee", fields: [assignedUserId], references: [id])
 
+  // Ties a recurring template to a shift role (Morning/Evening/...) instead
+  // of one fixed person — whoever's actually scheduled on ShiftAssignment
+  // for that shift on the day an instance is generated gets assignedUserId
+  // set automatically (see generateRecurringTaskInstances). Null means a
+  // normal task: a fixed assignee (or none), same as before this existed.
+  shiftTypeId String?
+  shiftType   ShiftType? @relation(fields: [shiftTypeId], references: [id])
+
   title       String
   description String?
   // Free-text notes captured at creation (see QuickAddTaskModal) — set once,
@@ -618,6 +626,7 @@ model ShiftType {
   active    Boolean  @default(true)
 
   assignments      ShiftAssignment[]
+  tasks            Task[]
   defaultForUsers  User[]            @relation("UserDefaultShift")
 
   createdAt DateTime @default(now())

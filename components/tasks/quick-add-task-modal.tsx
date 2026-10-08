@@ -38,10 +38,12 @@ export function QuickAddTaskModal({
   clients,
   employees,
   categories,
+  shiftTypes,
 }: {
   clients: Option[];
   employees: Option[];
   categories: Option[];
+  shiftTypes: Option[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -52,6 +54,7 @@ export function QuickAddTaskModal({
   const [propertyName, setPropertyName] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [assignedUserId, setAssignedUserId] = useState("");
+  const [shiftTypeId, setShiftTypeId] = useState("");
   // clientDateKey formats "today" in the team's timezone (Asia/Dhaka), not
   // the browser's — a raw new Date().toISOString().slice(0, 10) takes the
   // UTC calendar day, which is the wrong date for part of the day whenever
@@ -80,6 +83,7 @@ export function QuickAddTaskModal({
       propertyName: propertyName || null,
       categoryId: categoryId || null,
       assignedUserId: assignedUserId || null,
+      shiftTypeId: shiftTypeId || null,
       date,
       startTime: startTime || null,
       dueTime: dueTime || null,
@@ -154,14 +158,36 @@ export function QuickAddTaskModal({
             />
           </Field>
 
-          <Field label="Assigned Employee">
-            <Select
-              value={assignedUserId}
-              onValueChange={setAssignedUserId}
-              placeholder="Unassigned"
-              options={[{ value: "", label: "Unassigned" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
-            />
-          </Field>
+          {shiftTypeId ? (
+            <Field label="Assigned Employee">
+              <p className="flex h-10 items-center rounded-xl border border-dashed border-border bg-muted/20 px-3 text-xs text-muted-foreground">
+                Assigned automatically — whoever&apos;s on the {shiftTypes.find((s) => s.id === shiftTypeId)?.name} shift
+              </p>
+            </Field>
+          ) : (
+            <Field label="Assigned Employee">
+              <Select
+                value={assignedUserId}
+                onValueChange={setAssignedUserId}
+                placeholder="Unassigned"
+                options={[{ value: "", label: "Unassigned" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
+              />
+            </Field>
+          )}
+
+          {repeatMode !== "NONE" && (
+            <Field label="Shift (optional)">
+              <Select
+                value={shiftTypeId}
+                onValueChange={setShiftTypeId}
+                placeholder="No shift — use Assigned Employee"
+                options={[
+                  { value: "", label: "No shift — use Assigned Employee" },
+                  ...shiftTypes.map((s) => ({ value: s.id, label: s.name })),
+                ]}
+              />
+            </Field>
+          )}
 
           <Field label="Date">
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className={inputClass} />
@@ -184,7 +210,17 @@ export function QuickAddTaskModal({
           </Field>
 
           <Field label="Repeat">
-            <Select value={repeatMode} onValueChange={setRepeatMode} options={REPEAT_OPTIONS} />
+            <Select
+              value={repeatMode}
+              onValueChange={(next) => {
+                setRepeatMode(next);
+                // Shift-based assignment only makes sense for a recurring
+                // task — clear it if Repeat goes back to "Does not repeat"
+                // so a stale, now-hidden value can't sneak into submission.
+                if (next === "NONE") setShiftTypeId("");
+              }}
+              options={REPEAT_OPTIONS}
+            />
           </Field>
 
           {status === "BLOCKED" && (

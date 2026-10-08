@@ -8,6 +8,10 @@ export const taskSchema = z.object({
   propertyName: z.string().optional().nullable(),
   categoryId: z.string().optional().nullable(),
   assignedUserId: z.string().optional().nullable(),
+  // Set on a recurring template to auto-assign each day's generated instance
+  // to whoever's actually scheduled WORKING that shift (see
+  // generateRecurringTaskInstances) instead of a fixed assignedUserId.
+  shiftTypeId: z.string().optional().nullable(),
   date: z.string(), // ISO date
   startTime: z.string().optional().nullable(),
   dueTime: z.string().optional().nullable(),

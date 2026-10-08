@@ -13,18 +13,22 @@ export async function getClientWorkspaceData(clientId: string, teamId: string) {
     prisma.task.findMany({
       // Today's tasks, plus anything incomplete from an earlier day still
       // hanging around overdue — same rule as the Tasks board and Dashboard.
+      // Templates are excluded (they're listed separately below as
+      // recurringTasks) since they never reach COMPLETED and would
+      // otherwise sit here forever.
       where: {
         clientId,
         teamId,
         deletedAt: null,
+        isRecurringTemplate: false,
         OR: [{ date: today }, { date: { lt: today }, status: { not: "COMPLETED" } }],
       },
-      include: { assignedUser: true, category: true },
+      include: { assignedUser: true, category: true, shiftType: true },
       orderBy: { startTime: "asc" },
     }),
     prisma.task.findMany({
       where: { clientId, teamId, isRecurringTemplate: true, deletedAt: null },
-      include: { assignedUser: true, category: true },
+      include: { assignedUser: true, category: true, shiftType: true },
     }),
     prisma.property.findMany({
       where: { clientId, active: true, client: { teamId } },

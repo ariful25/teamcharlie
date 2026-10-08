@@ -42,9 +42,36 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
     `${t.title}::${t.clientId ?? ""}::${t.assignedUserId ?? ""}`;
   const existingKeys = new Set(existingToday.map(existingKey));
 
+  // A shift-linked template (t.shiftTypeId set) doesn't use its own fixed
+  // assignedUserId — instead, whoever's actually scheduled WORKING that
+  // shift today gets the generated instance. Resolved once per shift type,
+  // not per template, since several templates can share one shift.
+  const shiftTypeIds = Array.from(new Set(dueTemplates.filter((t) => t.shiftTypeId).map((t) => t.shiftTypeId!)));
+  const shiftAssigneeByShiftTypeId = new Map<string, string | null>();
+  if (shiftTypeIds.length > 0) {
+    const assignments = await prisma.shiftAssignment.findMany({
+      where: { shiftTypeId: { in: shiftTypeIds }, date: today, status: "WORKING", user: { teamId } },
+      select: { shiftTypeId: true, userId: true },
+    });
+    const userIdsByShift = new Map<string, string[]>();
+    for (const a of assignments) {
+      if (!a.shiftTypeId) continue;
+      userIdsByShift.set(a.shiftTypeId, [...(userIdsByShift.get(a.shiftTypeId) ?? []), a.userId]);
+    }
+    for (const shiftTypeId of shiftTypeIds) {
+      const userIds = userIdsByShift.get(shiftTypeId) ?? [];
+      // Exactly one person scheduled WORKING that shift today -> assign to
+      // them. Nobody scheduled, or more than one (shared shift) -> leave
+      // unassigned rather than guess; the team picks it up from the board.
+      shiftAssigneeByShiftTypeId.set(shiftTypeId, userIds.length === 1 ? userIds[0] : null);
+    }
+  }
+  const resolveAssignee = (t: (typeof dueTemplates)[number]) =>
+    t.shiftTypeId ? shiftAssigneeByShiftTypeId.get(t.shiftTypeId) ?? null : t.assignedUserId;
+
   const toCreate = dueTemplates.filter((t) => {
     if (t.date.getTime() === today.getTime()) return false; // the template row itself is today's instance
-    return !existingKeys.has(existingKey(t));
+    return !existingKeys.has(existingKey({ ...t, assignedUserId: resolveAssignee(t) }));
   });
 
   if (toCreate.length === 0) return { created: 0 };
@@ -56,9 +83,11 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
           clientId: t.clientId,
           propertyName: t.propertyName,
           categoryId: t.categoryId,
-          assignedUserId: t.assignedUserId,
+          assignedUserId: resolveAssignee(t),
+          shiftTypeId: t.shiftTypeId,
           title: t.title,
           description: t.description,
+          notes: t.notes,
           date: today,
           startTime: t.startTime,
           dueTime: t.dueTime,
@@ -93,6 +122,9 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
       status: { in: ["UPCOMING", "IN_PROGRESS"] },
       dueTime: { not: null },
       deletedAt: null,
+      // A template is the recurrence rule, not a to-do item — it never gets
+      // completed, so leaving it in here would flip it to OVERDUE forever.
+      isRecurringTemplate: false,
     },
   });
 

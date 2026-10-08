@@ -47,7 +47,10 @@ export function TaskDetailDialog({
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Assigned</p>
-              <p className="mt-0.5">{task.assignedUser?.name ?? "Unassigned"}</p>
+              <p className="mt-0.5">
+                {task.assignedUser?.name ?? "Unassigned"}
+                {task.shiftType ? <span className="text-muted-foreground"> · {task.shiftType.name} shift</span> : null}
+              </p>
             </div>
           </div>
 
