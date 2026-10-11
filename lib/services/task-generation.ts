@@ -35,19 +35,15 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
 
   if (dueTemplates.length === 0) return { created: 0 };
 
-  // Skip templates that already have a generated instance for today
-  // (title/client/assignee match). Deliberately excludes template rows
-  // themselves — a template with an unassigned/null-resolving shift would
-  // otherwise collide on this same key (both have assignedUserId: null) and
-  // get mistaken for "already generated," silently never producing a real
-  // instance on its first day.
+  // Skip templates that already have a generated instance for today —
+  // matched by the real recurringTemplateId link, not a fuzzy title/client/
+  // assignee guess (which breaks the moment either is edited, or collides
+  // when a shift-linked template resolves to no assignee).
   const existingToday = await prisma.task.findMany({
-    where: { teamId, date: today, deletedAt: null, isRecurringTemplate: false },
-    select: { title: true, clientId: true, assignedUserId: true },
+    where: { teamId, date: today, deletedAt: null, isRecurringTemplate: false, recurringTemplateId: { not: null } },
+    select: { recurringTemplateId: true },
   });
-  const existingKey = (t: { title: string; clientId: string | null; assignedUserId: string | null }) =>
-    `${t.title}::${t.clientId ?? ""}::${t.assignedUserId ?? ""}`;
-  const existingKeys = new Set(existingToday.map(existingKey));
+  const existingTemplateIds = new Set(existingToday.map((t) => t.recurringTemplateId));
 
   // A shift-linked template (t.shiftTypeId set) doesn't use its own fixed
   // assignedUserId — instead, whoever's actually scheduled WORKING that
@@ -80,37 +76,39 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
   // created, not "already generated today." Every due template gets a real
   // instance today, including the day it was created, unless one already
   // exists (the dedup check above).
-  const toCreate = dueTemplates.filter(
-    (t) => !existingKeys.has(existingKey({ ...t, assignedUserId: resolveAssignee(t) }))
-  );
+  const toCreate = dueTemplates.filter((t) => !existingTemplateIds.has(t.id));
 
   if (toCreate.length === 0) return { created: 0 };
 
-  await prisma.$transaction(
-    toCreate.map((t) =>
-      prisma.task.create({
-        data: {
-          clientId: t.clientId,
-          propertyName: t.propertyName,
-          categoryId: t.categoryId,
-          assignedUserId: resolveAssignee(t),
-          shiftTypeId: t.shiftTypeId,
-          title: t.title,
-          description: t.description,
-          notes: t.notes,
-          date: today,
-          startTime: t.startTime,
-          dueTime: t.dueTime,
-          priority: t.priority,
-          status: "UPCOMING",
-          teamId,
-          isRecurringTemplate: false,
-        },
-      })
-    )
-  );
+  // createMany + skipDuplicates (backed by the @@unique([recurringTemplateId,
+  // date]) constraint on Task) rather than a $transaction of individual
+  // creates — the dashboard's generation throttle is check-then-act, not
+  // atomic, so two near-simultaneous requests can both pass the dedup check
+  // above before either's rows commit. skipDuplicates makes that race land
+  // on "only one instance survives" instead of a duplicated day's checklist.
+  const result = await prisma.task.createMany({
+    data: toCreate.map((t) => ({
+      clientId: t.clientId,
+      propertyName: t.propertyName,
+      categoryId: t.categoryId,
+      assignedUserId: resolveAssignee(t),
+      shiftTypeId: t.shiftTypeId,
+      recurringTemplateId: t.id,
+      title: t.title,
+      description: t.description,
+      notes: t.notes,
+      date: today,
+      startTime: t.startTime,
+      dueTime: t.dueTime,
+      priority: t.priority,
+      status: "UPCOMING",
+      teamId,
+      isRecurringTemplate: false,
+    })),
+    skipDuplicates: true,
+  });
 
-  return { created: toCreate.length };
+  return { created: result.count };
 }
 
 /**

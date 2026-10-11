@@ -419,11 +419,19 @@ model Task {
   shiftTypeId String?
   shiftType   ShiftType? @relation(fields: [shiftTypeId], references: [id])
 
+  // Set on a generated instance, pointing back at the recurring template it
+  // came from — lets editing an instance offer "also apply to future
+  // occurrences" without guessing which template it matches (the old
+  // approach fuzzy-matched on title/client/assignee, which breaks the
+  // moment either is edited). Null on a one-off task, and on the template
+  // row itself (a template is never another template's instance).
+  recurringTemplateId String?
+  recurringTemplate   Task?   @relation("TaskRecurrence", fields: [recurringTemplateId], references: [id])
+  recurringInstances  Task[]  @relation("TaskRecurrence")
+
   title       String
   description String?
-  // Free-text notes captured at creation (see QuickAddTaskModal) — set once,
-  // not currently editable afterward. Shown in TaskDetailDialog when you
-  // click a task card; there's no other place in the UI that surfaces it.
+  // Free-text notes, editable via TaskDetailDialog's edit mode.
   notes       String?
 
   date      DateTime // calendar day (UTC midnight) this task instance belongs to
@@ -461,6 +469,12 @@ model Task {
   @@index([status])
   @@index([isRecurringTemplate])
   @@index([teamId, deletedAt])
+  @@index([recurringTemplateId])
+  // Belt-and-suspenders against the generator ever creating two instances of
+  // the same template on the same day (e.g. a throttle race between two
+  // concurrent requests) — Postgres treats NULL as distinct from NULL, so
+  // this only constrains actual generated instances, never one-off tasks.
+  @@unique([recurringTemplateId, date])
 }
 
 model Property {

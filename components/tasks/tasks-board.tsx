@@ -140,11 +140,22 @@ export function TasksBoard({
           No tasks match these filters.
         </div>
       ) : view === "board" ? (
-        <TasksKanban tasks={filtered} />
+        <TasksKanban
+          tasks={filtered}
+          clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+          employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+          categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((t) => (
-            <TaskCard key={t.id} task={t} />
+            <TaskCard
+              key={t.id}
+              task={t}
+              clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+              employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+              categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+            />
           ))}
         </div>
       )}

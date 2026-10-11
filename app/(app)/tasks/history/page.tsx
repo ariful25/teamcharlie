@@ -12,7 +12,7 @@ export default async function TaskHistoryPage({
 
   const status = (searchParams.status as "ALL" | "COMPLETED" | "DELETED") ?? "ALL";
 
-  const [tasks, clients, employees] = await Promise.all([
+  const [tasks, clients, employees, categories] = await Promise.all([
     getTaskHistory(currentUser.teamId, {
       status,
       clientId: searchParams.clientId,
@@ -22,6 +22,7 @@ export default async function TaskHistoryPage({
     }),
     prisma.client.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { name: "asc" } }),
+    prisma.category.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const plainTasks = JSON.parse(JSON.stringify(tasks));
@@ -38,6 +39,7 @@ export default async function TaskHistoryPage({
         tasks={plainTasks}
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}
         employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+        categories={categories.map((c) => ({ id: c.id, name: c.name }))}
         filters={{ status, clientId: searchParams.clientId ?? "", assignedUserId: searchParams.assignedUserId ?? "", from: searchParams.from ?? "", to: searchParams.to ?? "" }}
       />
     </div>

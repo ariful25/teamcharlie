@@ -25,7 +25,7 @@ const STATUS_TABS: { value: Filters["status"]; label: string }[] = [
   { value: "DELETED", label: "Deleted" },
 ];
 
-function HistoryRow({ task }: { task: any }) {
+function HistoryRow({ task, clients, employees, categories }: { task: any; clients: Option[]; employees: Option[]; categories: Option[] }) {
   const router = useRouter();
   const [detailOpen, setDetailOpen] = useState(false);
   const [restored, setRestored] = useState(false);
@@ -78,7 +78,14 @@ function HistoryRow({ task }: { task: any }) {
           )}
         </div>
       </div>
-      <TaskDetailDialog task={task} open={detailOpen} onOpenChange={setDetailOpen} />
+      <TaskDetailDialog
+        task={task}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        clients={clients}
+        employees={employees}
+        categories={categories}
+      />
     </>
   );
 }
@@ -87,11 +94,13 @@ export function TaskHistoryView({
   tasks,
   clients,
   employees,
+  categories,
   filters,
 }: {
   tasks: any[];
   clients: Option[];
   employees: Option[];
+  categories: Option[];
   filters: Filters;
 }) {
   const router = useRouter();
@@ -155,7 +164,9 @@ export function TaskHistoryView({
         {tasks.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">Nothing matches these filters.</p>
         ) : (
-          tasks.map((task) => <HistoryRow key={task.id} task={task} />)
+          tasks.map((task) => (
+            <HistoryRow key={task.id} task={task} clients={clients} employees={employees} categories={categories} />
+          ))
         )}
       </div>
       {tasks.length === 300 && (

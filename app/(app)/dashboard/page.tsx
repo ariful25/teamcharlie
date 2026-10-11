@@ -24,14 +24,22 @@ const TASK_GENERATION_THROTTLE_MS = 5 * 60 * 1000;
 export default async function DashboardPage() {
   const currentUser = await getCurrentUser();
 
-  const team = await prisma.team.findUniqueOrThrow({
-    where: { id: currentUser.teamId },
-    select: { lastGeneratedAt: true },
+  // Claim the throttle slot atomically: the UPDATE's WHERE clause is
+  // re-checked against the committed row once any concurrent UPDATE on the
+  // same row releases its lock (Postgres "first updater wins"), so of two
+  // near-simultaneous dashboard loads at most one sees count === 1. A plain
+  // read-then-write here let both requests see a stale lastGeneratedAt and
+  // both run generation, which is exactly what produced a duplicated day's
+  // worth of recurring tasks in testing.
+  const claimed = await prisma.team.updateMany({
+    where: {
+      id: currentUser.teamId,
+      OR: [{ lastGeneratedAt: null }, { lastGeneratedAt: { lt: new Date(Date.now() - TASK_GENERATION_THROTTLE_MS) } }],
+    },
+    data: { lastGeneratedAt: new Date() },
   });
-  const shouldRefreshTasks =
-    !team.lastGeneratedAt || Date.now() - team.lastGeneratedAt.getTime() >= TASK_GENERATION_THROTTLE_MS;
 
-  if (shouldRefreshTasks) {
+  if (claimed.count === 1) {
     // Independent of each other — different tables, no shared state — so
     // they run concurrently instead of one after another. This throttled
     // maintenance work (only runs once per 5-minute window) was previously
@@ -42,10 +50,6 @@ export default async function DashboardPage() {
       refreshOverdueTasks(currentUser.teamId),
       flagMissingCheckouts(currentUser.teamId),
     ]);
-    await prisma.team.update({
-      where: { id: currentUser.teamId },
-      data: { lastGeneratedAt: new Date() },
-    });
   }
 
   const today = new Date();

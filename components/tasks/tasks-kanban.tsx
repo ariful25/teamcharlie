@@ -22,6 +22,8 @@ import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { TaskDetailDialog } from "./task-detail-dialog";
 
+type Option = { id: string; name: string };
+
 // OVERDUE is computed by lib/services/task-generation.ts (a due time that's
 // passed), never manually chosen — see QuickAddTaskModal's STATUS_OPTIONS,
 // which excludes it for the same reason. It stays a real column here so
@@ -65,7 +67,19 @@ function TaskCardMini({ task, dragging }: { task: any; dragging?: boolean }) {
   );
 }
 
-function DraggableCard({ task, onDelete }: { task: any; onDelete: (id: string) => void }) {
+function DraggableCard({
+  task,
+  onDelete,
+  clients,
+  employees,
+  categories,
+}: {
+  task: any;
+  onDelete: (id: string) => void;
+  clients: Option[];
+  employees: Option[];
+  categories: Option[];
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
   const [detailOpen, setDetailOpen] = useState(false);
@@ -91,12 +105,37 @@ function DraggableCard({ task, onDelete }: { task: any; onDelete: (id: string) =
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </IconTooltip>
-      <TaskDetailDialog task={task} open={detailOpen} onOpenChange={setDetailOpen} />
+      <TaskDetailDialog
+        task={task}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        clients={clients}
+        employees={employees}
+        categories={categories}
+      />
     </div>
   );
 }
 
-function Column({ status, label, droppable, tasks, onDelete }: { status: string; label: string; droppable: boolean; tasks: any[]; onDelete: (id: string) => void }) {
+function Column({
+  status,
+  label,
+  droppable,
+  tasks,
+  onDelete,
+  clients,
+  employees,
+  categories,
+}: {
+  status: string;
+  label: string;
+  droppable: boolean;
+  tasks: any[];
+  onDelete: (id: string) => void;
+  clients: Option[];
+  employees: Option[];
+  categories: Option[];
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: status, disabled: !droppable });
 
   return (
@@ -113,7 +152,7 @@ function Column({ status, label, droppable, tasks, onDelete }: { status: string;
       >
         {tasks.length === 0 && <p className="p-3 text-center text-xs text-muted-foreground">Nothing here</p>}
         {tasks.map((t) => (
-          <DraggableCard key={t.id} task={t} onDelete={onDelete} />
+          <DraggableCard key={t.id} task={t} onDelete={onDelete} clients={clients} employees={employees} categories={categories} />
         ))}
       </div>
     </div>
@@ -158,7 +197,17 @@ function BlockedReasonDialog({
   );
 }
 
-export function TasksKanban({ tasks }: { tasks: any[] }) {
+export function TasksKanban({
+  tasks,
+  clients = [],
+  employees = [],
+  categories = [],
+}: {
+  tasks: any[];
+  clients?: Option[];
+  employees?: Option[];
+  categories?: Option[];
+}) {
   const router = useRouter();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -242,7 +291,15 @@ export function TasksKanban({ tasks }: { tasks: any[] }) {
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-2">
           {COLUMNS.map((col) => (
-            <Column key={col.status} {...col} tasks={byStatus(col.status)} onDelete={handleDelete} />
+            <Column
+              key={col.status}
+              {...col}
+              tasks={byStatus(col.status)}
+              onDelete={handleDelete}
+              clients={clients}
+              employees={employees}
+              categories={categories}
+            />
           ))}
         </div>
         <DragOverlay>{draggingTask ? <TaskCardMini task={draggingTask} /> : null}</DragOverlay>

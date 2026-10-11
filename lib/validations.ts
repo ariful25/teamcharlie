@@ -23,6 +23,24 @@ export const taskSchema = z.object({
   repeatDays: z.array(z.number().min(0).max(6)).default([]),
 });
 
+// Editing an existing task — every field optional since a PATCH only ever
+// sends what actually changed. `applyToSeries: true` additionally pushes the
+// content fields (not date/status/assignedUserId — see the PATCH route) onto
+// the recurring template, so future generated days pick up the fix too.
+export const taskEditSchema = z.object({
+  title: z.string().min(2, "Task name is required").optional(),
+  clientId: z.string().optional().nullable(),
+  propertyName: z.string().optional().nullable(),
+  categoryId: z.string().optional().nullable(),
+  assignedUserId: z.string().optional().nullable(),
+  date: z.string().optional(), // ISO date
+  startTime: z.string().optional().nullable(),
+  dueTime: z.string().optional().nullable(),
+  priority: z.enum(["NORMAL", "IMPORTANT", "URGENT"]).optional(),
+  notes: z.string().optional().nullable(),
+  applyToSeries: z.boolean().optional(),
+});
+
 export const NOTICE_COLORS = ["YELLOW", "PINK", "BLUE", "PURPLE", "GREEN", "ORANGE"] as const;
 
 export const noticeChecklistItemSchema = z.object({

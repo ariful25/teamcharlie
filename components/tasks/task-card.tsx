@@ -10,7 +10,19 @@ import { toast } from "sonner";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { TaskDetailDialog } from "./task-detail-dialog";
 
-export function TaskCard({ task }: { task: any }) {
+type Option = { id: string; name: string };
+
+export function TaskCard({
+  task,
+  clients = [],
+  employees = [],
+  categories = [],
+}: {
+  task: any;
+  clients?: Option[];
+  employees?: Option[];
+  categories?: Option[];
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   // Local, optimistic copy of the status — this is what actually renders,
@@ -112,7 +124,14 @@ export function TaskCard({ task }: { task: any }) {
           )}
         </div>
       </Card>
-      <TaskDetailDialog task={task} open={detailOpen} onOpenChange={setDetailOpen} />
+      <TaskDetailDialog
+        task={task}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        clients={clients}
+        employees={employees}
+        categories={categories}
+      />
     </motion.div>
   );
 }
