@@ -3,7 +3,10 @@ import { startOfDayUTC, dayOfWeekInTz, TEAM_TIMEZONE, combineDateAndTime } from 
 
 /**
  * Recurring tasks are folded directly into the Task model (no separate Routine/
- * template entity — see Task.isRecurringTemplate / repeatMode / repeatDays).
+ * template entity — see Task.isRecurringTemplate / repeatMode / repeatDays). A
+ * template is purely the recurrence rule; it's never itself shown as a task to
+ * do (see the isRecurringTemplate: false filters throughout lib/queries/) —
+ * every visible task, including the very first day, is a generated instance.
  *
  * This generates today's Task instances from every task marked as a recurring
  * template whose repeat schedule includes today. Idempotent: safe to call multiple
@@ -32,10 +35,14 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
 
   if (dueTemplates.length === 0) return { created: 0 };
 
-  // Skip templates whose own row already falls on today (freshly created today) or
-  // that already have a generated instance for today (title/client/assignee match).
+  // Skip templates that already have a generated instance for today
+  // (title/client/assignee match). Deliberately excludes template rows
+  // themselves — a template with an unassigned/null-resolving shift would
+  // otherwise collide on this same key (both have assignedUserId: null) and
+  // get mistaken for "already generated," silently never producing a real
+  // instance on its first day.
   const existingToday = await prisma.task.findMany({
-    where: { teamId, date: today, deletedAt: null },
+    where: { teamId, date: today, deletedAt: null, isRecurringTemplate: false },
     select: { title: true, clientId: true, assignedUserId: true },
   });
   const existingKey = (t: { title: string; clientId: string | null; assignedUserId: string | null }) =>
@@ -69,10 +76,13 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
   const resolveAssignee = (t: (typeof dueTemplates)[number]) =>
     t.shiftTypeId ? shiftAssigneeByShiftTypeId.get(t.shiftTypeId) ?? null : t.assignedUserId;
 
-  const toCreate = dueTemplates.filter((t) => {
-    if (t.date.getTime() === today.getTime()) return false; // the template row itself is today's instance
-    return !existingKeys.has(existingKey({ ...t, assignedUserId: resolveAssignee(t) }));
-  });
+  // No date check here — a template's own `date` is just when it was
+  // created, not "already generated today." Every due template gets a real
+  // instance today, including the day it was created, unless one already
+  // exists (the dedup check above).
+  const toCreate = dueTemplates.filter(
+    (t) => !existingKeys.has(existingKey({ ...t, assignedUserId: resolveAssignee(t) }))
+  );
 
   if (toCreate.length === 0) return { created: 0 };
 
