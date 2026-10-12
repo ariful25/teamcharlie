@@ -93,7 +93,9 @@ export async function checkIn(userId: string) {
   return final;
 }
 
-export async function checkOut(userId: string) {
+type ChecklistAnswer = { id: string; label: string; checked: boolean };
+
+export async function checkOut(userId: string, checklist?: ChecklistAnswer[]) {
   const now = new Date();
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { team: true } });
   const openRecord = await prisma.attendanceRecord.findFirst({
@@ -103,6 +105,20 @@ export async function checkOut(userId: string) {
 
   if (!openRecord?.actualCheckIn) {
     throw new Error("NOT_CHECKED_IN");
+  }
+
+  // Re-verify server-side rather than trusting the browser's "all checked"
+  // gate — a currently-active item missing or unchecked in what was
+  // submitted means the client's checklist UI was bypassed.
+  const activeItems = await prisma.checklistItem.findMany({
+    where: { teamId: user.teamId, type: "CHECKOUT", active: true },
+  });
+  if (activeItems.length > 0) {
+    const answered = new Map((checklist ?? []).map((a) => [a.id, a.checked]));
+    const allConfirmed = activeItems.every((item) => answered.get(item.id) === true);
+    if (!allConfirmed) {
+      throw new Error("CHECKLIST_INCOMPLETE");
+    }
   }
 
   if (now.getTime() - openRecord.actualCheckIn.getTime() > OPEN_CHECK_IN_WINDOW_MS) {
@@ -121,6 +137,7 @@ export async function checkOut(userId: string) {
       actualCheckOut: now,
       totalMinutes,
       status: "CHECKED_OUT",
+      checkoutChecklist: checklist && checklist.length > 0 ? checklist : undefined,
     },
   });
   if (result.count === 0) {

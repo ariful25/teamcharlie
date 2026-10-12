@@ -58,6 +58,12 @@ enum RepeatMode {
   CUSTOM
 }
 
+// Only CHECKOUT exists today, but kept as an enum (not a hardcoded string)
+// since a check-in or shift-handover checklist is an obvious next step.
+enum ChecklistType {
+  CHECKOUT
+}
+
 enum AttendanceStatus {
   ON_TIME
   LATE
@@ -194,6 +200,7 @@ model Team {
   notices   Notice[]
   shiftTypes ShiftType[]
   settings  TeamSettings?
+  checklistItems ChecklistItem[]
   lastGeneratedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -211,6 +218,27 @@ model TeamSettings {
   updatedAt DateTime @updatedAt
 }
 
+// A team-editable set of prompts shown before an employee can confirm a
+// checkout (see components/dashboard/checkout-checklist-dialog.tsx). Items
+// are freely added/edited/deleted; what was actually shown and checked at
+// a given checkout is snapshotted onto AttendanceRecord.checkoutChecklist
+// (Json) rather than referenced live, so editing the list later never
+// rewrites history.
+model ChecklistItem {
+  id     String        @id @default(cuid())
+  teamId String
+  team   Team          @relation(fields: [teamId], references: [id])
+  type   ChecklistType @default(CHECKOUT)
+  label  String
+  order  Int           @default(0)
+  active Boolean       @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teamId, type, active])
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String
@@ -221,6 +249,12 @@ model User {
   teamId        String
   team          Team     @relation(fields: [teamId], references: [id])
   active        Boolean  @default(true)
+
+  // Their Discord user ID (an 18-ish digit snowflake, not a username) — set
+  // in Settings so the bot can @mention the right person in task/digest
+  // messages. Null until an admin fills it in; notifications fall back to
+  // plain name text when it's missing.
+  discordUserId String?
 
   defaultShiftTypeId String?
   defaultShiftType   ShiftType? @relation("UserDefaultShift", fields: [defaultShiftTypeId], references: [id])
@@ -687,6 +721,12 @@ model AttendanceRecord {
   lateMinutes  Int?
 
   status AttendanceStatus @default(MISSING_CHECK_IN)
+
+  // Snapshot of the active ChecklistItem labels and their checked state at
+  // the moment of this checkout — e.g. [{"id":"...","label":"...","checked":true}].
+  // Deliberately not a relation: editing or deleting a ChecklistItem later
+  // must never rewrite what was actually shown/confirmed on a past checkout.
+  checkoutChecklist Json?
 
   discordCheckInSynced  Boolean @default(false)
   discordCheckOutSynced Boolean @default(false)

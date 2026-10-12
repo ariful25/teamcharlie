@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { taskEditSchema } from "@/lib/validations";
+import { sendTaskEdited, sendTaskDeleted, sendTaskStatusChanged } from "@/lib/discord-bot";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -59,7 +60,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (data.priority !== undefined) instanceData.priority = data.priority;
     if (data.notes !== undefined) instanceData.notes = data.notes || null;
 
-    const task = await prisma.task.update({ where: { id: params.id }, data: instanceData });
+    const task = await prisma.task.update({
+      where: { id: params.id },
+      data: instanceData,
+      include: { client: true, assignedUser: true },
+    });
+    await sendTaskEdited(task, session.user.name ?? "Someone");
 
     // "Also apply to future occurrences" pushes only the content fields —
     // never date, status, or assignedUserId, which are instance-specific (a
@@ -111,7 +117,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const task = await prisma.task.update({
     where: { id: params.id },
     data: updateData,
+    include: { client: true, assignedUser: true },
   });
+
+  // A status change gets its own templated message (In Progress/Completed/
+  // Blocked); any other lightweight field change (priority, reassignment)
+  // falls back to the generic "updated" message. Never both for one PATCH.
+  const actorName = session.user.name ?? "Someone";
+  if (body.status && ["IN_PROGRESS", "COMPLETED", "BLOCKED"].includes(body.status)) {
+    await sendTaskStatusChanged(task, body.status, actorName);
+  } else if (Object.keys(updateData).length > 0) {
+    await sendTaskEdited(task, actorName);
+  }
 
   return NextResponse.json({ task });
 }
@@ -127,6 +144,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   // Soft delete — see the Task.deletedAt comment in schema.prisma. A task
   // with an audit trail (completedAt/completedBy) must stay recoverable.
-  await prisma.task.update({ where: { id: params.id }, data: { deletedAt: new Date(), deletedBy: userId } });
+  const task = await prisma.task.update({
+    where: { id: params.id },
+    data: { deletedAt: new Date(), deletedBy: userId },
+    include: { client: true, assignedUser: true },
+  });
+  await sendTaskDeleted(task, session.user.name ?? "Someone");
   return NextResponse.json({ ok: true });
 }

@@ -103,6 +103,8 @@ export type AppRole = "ADMIN" | "TEAM_LEAD" | "EMPLOYEE";
 // and easy to extend for future teams/modules.
 export const permissions = {
   canManageShiftSchedule: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
+  // Same tier as shift types — operational config, not a secret.
+  canManageChecklists: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageClients: (role: AppRole) => role === "ADMIN",
   canEditAttendance: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageProperties: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",

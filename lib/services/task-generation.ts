@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC, dayOfWeekInTz, TEAM_TIMEZONE, combineDateAndTime } from "@/lib/time";
+import { sendTasksOverdue } from "@/lib/discord-bot";
 
 /**
  * Recurring tasks are folded directly into the Task model (no separate Routine/
@@ -134,25 +135,30 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
       // completed, so leaving it in here would flip it to OVERDUE forever.
       isRecurringTemplate: false,
     },
+    include: { client: true, assignedUser: true },
   });
 
-  const overdueIds: string[] = [];
+  const newlyOverdue: typeof candidates = [];
   for (const t of candidates) {
     if (!t.dueTime) continue;
     // Each task's own date, not the reference day — a task from three days
     // ago is compared against its own due time on its own day, not today's.
     const due = combineDateAndTime(t.date, t.dueTime);
     if (due.getTime() < referenceDate.getTime()) {
-      overdueIds.push(t.id);
+      newlyOverdue.push(t);
     }
   }
 
-  if (overdueIds.length > 0) {
+  if (newlyOverdue.length > 0) {
     await prisma.task.updateMany({
-      where: { id: { in: overdueIds } },
+      where: { id: { in: newlyOverdue.map((t) => t.id) } },
       data: { status: "OVERDUE" },
     });
+    // Best-effort — this sweep runs off a throttled background job, not a
+    // user action, so there's no "actor" to attribute and no request to
+    // fail if Discord is unreachable.
+    await sendTasksOverdue(newlyOverdue);
   }
 
-  return { markedOverdue: overdueIds.length };
+  return { markedOverdue: newlyOverdue.length };
 }

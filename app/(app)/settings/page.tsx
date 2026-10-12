@@ -6,15 +6,21 @@ import { DiscordSettingsPanel } from "@/components/settings/discord-settings-pan
 import { ShiftTypesPanel } from "@/components/settings/shift-types-panel";
 import { AddUserModal } from "@/components/settings/add-user-modal";
 import { UsersManagementTable } from "@/components/settings/users-management-table";
+import { CheckoutChecklistPanel } from "@/components/settings/checkout-checklist-panel";
 
 export default async function SettingsPage() {
   const currentUser = await getCurrentUser();
   const canManageUsers = permissions.canManageUsers(currentUser.role);
+  const canManageChecklists = permissions.canManageChecklists(currentUser.role);
 
-  const [team, users, shiftTypes] = await Promise.all([
+  const [team, users, shiftTypes, checklistItems] = await Promise.all([
     prisma.team.findUnique({ where: { id: currentUser.teamId } }),
     prisma.user.findMany({ where: { teamId: currentUser.teamId }, orderBy: { name: "asc" } }),
     prisma.shiftType.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { startTime: "asc" } }),
+    prisma.checklistItem.findMany({
+      where: { teamId: currentUser.teamId, type: "CHECKOUT" },
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    }),
   ]);
 
   const checkinConfigured = !!process.env.DISCORD_CHECKIN_WEBHOOK_URL;
@@ -51,6 +57,20 @@ export default async function SettingsPage() {
           <DiscordSettingsPanel checkinConfigured={checkinConfigured} checkoutConfigured={checkoutConfigured} />
         </CardContent>
       </Card>
+
+      {canManageChecklists && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Checkout Checklist</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Shown to every employee before they can confirm checkout. Add, edit, or remove items any time.
+            </p>
+            <CheckoutChecklistPanel items={checklistItems.map((c) => ({ id: c.id, label: c.label }))} />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

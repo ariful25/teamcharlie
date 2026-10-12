@@ -15,6 +15,7 @@ const ROLE_OPTIONS = [
 export function UsersManagementTable({ users, currentUserId }: { users: any[]; currentUserId: string }) {
   const [rows, setRows] = useState(users);
   const [isPending, startTransition] = useTransition();
+  const [discordDrafts, setDiscordDrafts] = useState<Record<string, string>>({});
 
   function updateRole(id: string, role: string) {
     startTransition(async () => {
@@ -28,6 +29,24 @@ export function UsersManagementTable({ users, currentUserId }: { users: any[]; c
         toast.success("Role updated");
       } else {
         toast.error("Could not update role");
+      }
+    });
+  }
+
+  function saveDiscordId(id: string) {
+    const draft = (discordDrafts[id] ?? "").trim();
+    startTransition(async () => {
+      const res = await fetch(`/api/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ discordUserId: draft || null }),
+      });
+      if (res.ok) {
+        setRows((prev) => prev.map((u) => (u.id === id ? { ...u, discordUserId: draft || null } : u)));
+        toast.success("Discord ID saved");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Could not save Discord ID");
       }
     });
   }
@@ -65,6 +84,17 @@ export function UsersManagementTable({ users, currentUserId }: { users: any[]; c
           </div>
           <div className="flex items-center gap-2">
             {!u.active && <Badge tone="neutral">Deactivated</Badge>}
+            <input
+              value={discordDrafts[u.id] ?? u.discordUserId ?? ""}
+              onChange={(e) => setDiscordDrafts((prev) => ({ ...prev, [u.id]: e.target.value }))}
+              onBlur={() => {
+                const draft = discordDrafts[u.id];
+                if (draft !== undefined && draft.trim() !== (u.discordUserId ?? "")) saveDiscordId(u.id);
+              }}
+              placeholder="Discord user ID"
+              title="Discord user ID — used to @mention them in task/digest notifications"
+              className="w-[150px] rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-xs outline-none focus:border-primary/50"
+            />
             <Select
               className="w-[140px]"
               value={u.role}

@@ -55,7 +55,7 @@ export default async function DashboardPage() {
   const today = new Date();
 
   // Every read below is independent — one round trip instead of three.
-  const [{ stats, clientStats, operationRows, attendanceRows }, record, clients, employees, categories, shiftTypes] =
+  const [{ stats, clientStats, operationRows, attendanceRows }, record, clients, employees, categories, shiftTypes, checkoutChecklistItems] =
     await Promise.all([
       getDashboardData(currentUser.teamId),
       prisma.attendanceRecord.findFirst({
@@ -79,6 +79,10 @@ export default async function DashboardPage() {
       prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true } }),
       prisma.category.findMany(),
       prisma.shiftType.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { startTime: "asc" } }),
+      prisma.checklistItem.findMany({
+        where: { teamId: currentUser.teamId, type: "CHECKOUT", active: true },
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      }),
     ]);
 
   return (
@@ -141,6 +145,7 @@ export default async function DashboardPage() {
             scheduledCheckOut={record?.scheduledCheckOut ?? null}
             actualCheckIn={record?.actualCheckIn?.toISOString() ?? null}
             actualCheckOut={record?.actualCheckOut?.toISOString() ?? null}
+            checklistItems={checkoutChecklistItems.map((c) => ({ id: c.id, label: c.label }))}
           />
           <AttendanceWidget rows={attendanceRows} />
         </div>

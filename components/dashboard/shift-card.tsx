@@ -7,6 +7,9 @@ import { LogIn, LogOut, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { formatClientTime } from "@/lib/time";
+import { CheckoutChecklistDialog } from "@/components/dashboard/checkout-checklist-dialog";
+
+type ChecklistItem = { id: string; label: string };
 
 type Props = {
   scheduledCheckIn: string | null;
@@ -15,6 +18,7 @@ type Props = {
   actualCheckOut: string | null; // ISO
   discordCheckInSynced?: boolean;
   discordCheckOutSynced?: boolean;
+  checklistItems?: ChecklistItem[];
 };
 
 function formatElapsed(ms: number) {
@@ -31,8 +35,10 @@ export function ShiftCard(props: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [now, setNow] = useState<number | null>(null);
+  const [checklistOpen, setChecklistOpen] = useState(false);
   const checkedIn = !!props.actualCheckIn && !props.actualCheckOut;
   const completed = !!props.actualCheckIn && !!props.actualCheckOut;
+  const checklistItems = props.checklistItems ?? [];
 
   useEffect(() => {
     setNow(Date.now());
@@ -54,14 +60,27 @@ export function ShiftCard(props: Props) {
     });
   }
 
-  async function handleCheckOut() {
+  function handleCheckOut() {
+    if (checklistItems.length > 0) {
+      setChecklistOpen(true);
+      return;
+    }
+    submitCheckOut([]);
+  }
+
+  function submitCheckOut(checklist: { id: string; label: string; checked: boolean }[]) {
     startTransition(async () => {
-      const res = await fetch("/api/attendance/checkout", { method: "POST" });
+      const res = await fetch("/api/attendance/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ checklist }),
+      });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Could not check out");
         return;
       }
+      setChecklistOpen(false);
       toast.success("Shift completed. Total hours recorded.");
       router.refresh();
     });
@@ -143,6 +162,14 @@ export function ShiftCard(props: Props) {
           </div>
         </div>
       )}
+
+      <CheckoutChecklistDialog
+        open={checklistOpen}
+        onOpenChange={setChecklistOpen}
+        items={checklistItems}
+        onConfirm={submitCheckOut}
+        submitting={isPending}
+      />
     </motion.div>
   );
 }

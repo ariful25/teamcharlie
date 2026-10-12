@@ -171,6 +171,16 @@ export const clientFileSchema = z.object({
   url: z.string().url("Enter a valid URL"),
 });
 
+export const checklistItemSchema = z.object({
+  label: z.string().min(1, "Checklist item text is required"),
+});
+
+export const checklistItemUpdateSchema = z.object({
+  label: z.string().min(1, "Checklist item text is required").optional(),
+  active: z.boolean().optional(),
+  order: z.number().int().optional(),
+});
+
 export const shiftTypeSchema = z.object({
   name: z.string().min(1, "Shift name is required"),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Use HH:mm"),
@@ -204,6 +214,9 @@ export const updateUserSchema = z.object({
   role: z.enum(["ADMIN", "TEAM_LEAD", "EMPLOYEE"]).optional(),
   active: z.boolean().optional(),
   defaultShiftTypeId: z.string().optional().nullable(),
+  // A Discord snowflake (numeric string), not a username — see the schema
+  // comment on User.discordUserId for why. Caller sends null (not "") to clear it.
+  discordUserId: z.string().regex(/^\d+$/, "Discord user ID is numeric, e.g. 123456789012345678").optional().nullable(),
 });
 
 const optionalText = z.string().optional().nullable();
