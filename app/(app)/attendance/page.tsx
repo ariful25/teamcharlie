@@ -6,7 +6,7 @@ import { AttendanceTable } from "@/components/attendance/attendance-table";
 import { MonthlySummary } from "@/components/attendance/monthly-summary";
 import { MonthSelector } from "@/components/attendance/month-selector";
 import { Button } from "@/components/ui/button";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, ShieldCheck } from "lucide-react";
 
 export default async function AttendancePage({
   searchParams,
@@ -41,11 +41,18 @@ export default async function AttendancePage({
           </p>
         </div>
         {canEdit && (
-          <Link href="/shift-schedule">
-            <Button variant="secondary" size="md">
-              <CalendarClock className="h-4 w-4" /> Manage Shift Schedule
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/attendance/admin">
+              <Button variant="secondary" size="md">
+                <ShieldCheck className="h-4 w-4" /> Team Attendance (Admin)
+              </Button>
+            </Link>
+            <Link href="/shift-schedule">
+              <Button variant="secondary" size="md">
+                <CalendarClock className="h-4 w-4" /> Manage Shift Schedule
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 

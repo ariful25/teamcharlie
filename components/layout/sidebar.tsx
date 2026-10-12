@@ -14,9 +14,11 @@ import {
   LogOut,
   Circle,
   FileSpreadsheet,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconTooltip } from "@/components/ui/tooltip";
+import { permissions } from "@/lib/auth";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -69,6 +71,21 @@ export function Sidebar({
             </Link>
           );
         })}
+
+        {permissions.canEditAttendance(user.role as "ADMIN" | "TEAM_LEAD" | "EMPLOYEE") && (
+          <Link
+            href="/attendance/admin"
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+              pathname?.startsWith("/attendance/admin")
+                ? "bg-primary/15 text-primary glow-border"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            )}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Team Attendance
+          </Link>
+        )}
 
         <div className="pt-4">
           <Link

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC } from "@/lib/time";
+import { getOrCreateTodayRecord } from "@/lib/services/attendance";
 
 export async function getTodayAttendance(teamId: string) {
   const today = startOfDayUTC(new Date());
@@ -37,6 +38,46 @@ export async function getMonthlyAttendance(teamId: string, year: number, month: 
       lateDays,
       missingCheckouts,
     };
+  });
+}
+
+// Powers the admin-only team overview (app/(app)/attendance/admin) — unlike
+// getTodayAttendance, this also lazily creates today's record for anyone
+// scheduled WORKING who hasn't touched check-in at all, so an admin always
+// has a real AttendanceRecord row to act on via EditAttendanceModal instead
+// of hitting "nothing to edit" for someone who simply never checked in.
+export async function getAdminAttendanceOverview(teamId: string) {
+  const today = startOfDayUTC(new Date());
+  const employees = await prisma.user.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } });
+  const employeeIds = employees.map((e) => e.id);
+
+  const assignments = await prisma.shiftAssignment.findMany({
+    where: { date: today, userId: { in: employeeIds } },
+    include: { shiftType: true },
+  });
+  const scheduledIds = new Set(assignments.filter((a) => a.status === "WORKING").map((a) => a.userId));
+
+  let records = await prisma.attendanceRecord.findMany({ where: { date: today, userId: { in: employeeIds } } });
+  const missingRecordIds = employeeIds.filter((id) => scheduledIds.has(id) && !records.some((r) => r.userId === id));
+  if (missingRecordIds.length > 0) {
+    await Promise.all(missingRecordIds.map((id) => getOrCreateTodayRecord(id, new Date())));
+    records = await prisma.attendanceRecord.findMany({ where: { date: today, userId: { in: employeeIds } } });
+  }
+
+  return employees.map((emp) => {
+    const assignment = assignments.find((a) => a.userId === emp.id) ?? null;
+    const record = records.find((r) => r.userId === emp.id) ?? null;
+    const scheduled = assignment?.status === "WORKING";
+    const presence: "WORKING" | "NOT_WORKING" = record?.actualCheckIn && !record?.actualCheckOut ? "WORKING" : "NOT_WORKING";
+
+    let exception: "MISSING_CHECK_IN" | "MISSING_CHECK_OUT" | null = null;
+    if (scheduled && !record?.actualCheckIn) {
+      exception = "MISSING_CHECK_IN";
+    } else if (record?.status === "MISSING_CHECK_OUT") {
+      exception = "MISSING_CHECK_OUT";
+    }
+
+    return { employee: emp, assignment, record, scheduled, presence, exception };
   });
 }
 
