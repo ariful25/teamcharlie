@@ -16,6 +16,7 @@ export function UsersManagementTable({ users, currentUserId }: { users: any[]; c
   const [rows, setRows] = useState(users);
   const [isPending, startTransition] = useTransition();
   const [discordDrafts, setDiscordDrafts] = useState<Record<string, string>>({});
+  const [slackDrafts, setSlackDrafts] = useState<Record<string, string>>({});
 
   function updateRole(id: string, role: string) {
     startTransition(async () => {
@@ -33,20 +34,19 @@ export function UsersManagementTable({ users, currentUserId }: { users: any[]; c
     });
   }
 
-  function saveDiscordId(id: string) {
-    const draft = (discordDrafts[id] ?? "").trim();
+  function saveChatId(id: string, field: "discordUserId" | "slackUserId", draft: string, label: string) {
     startTransition(async () => {
       const res = await fetch(`/api/users/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ discordUserId: draft || null }),
+        body: JSON.stringify({ [field]: draft || null }),
       });
       if (res.ok) {
-        setRows((prev) => prev.map((u) => (u.id === id ? { ...u, discordUserId: draft || null } : u)));
-        toast.success("Discord ID saved");
+        setRows((prev) => prev.map((u) => (u.id === id ? { ...u, [field]: draft || null } : u)));
+        toast.success(`${label} ID saved`);
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Could not save Discord ID");
+        toast.error(data.error ?? `Could not save ${label} ID`);
       }
     });
   }
@@ -89,11 +89,26 @@ export function UsersManagementTable({ users, currentUserId }: { users: any[]; c
               onChange={(e) => setDiscordDrafts((prev) => ({ ...prev, [u.id]: e.target.value }))}
               onBlur={() => {
                 const draft = discordDrafts[u.id];
-                if (draft !== undefined && draft.trim() !== (u.discordUserId ?? "")) saveDiscordId(u.id);
+                if (draft !== undefined && draft.trim() !== (u.discordUserId ?? "")) {
+                  saveChatId(u.id, "discordUserId", draft.trim(), "Discord");
+                }
               }}
               placeholder="Discord user ID"
               title="Discord user ID — used to @mention them in task/digest notifications"
               className="w-[150px] rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-xs outline-none focus:border-primary/50"
+            />
+            <input
+              value={slackDrafts[u.id] ?? u.slackUserId ?? ""}
+              onChange={(e) => setSlackDrafts((prev) => ({ ...prev, [u.id]: e.target.value }))}
+              onBlur={() => {
+                const draft = slackDrafts[u.id];
+                if (draft !== undefined && draft.trim() !== (u.slackUserId ?? "")) {
+                  saveChatId(u.id, "slackUserId", draft.trim(), "Slack");
+                }
+              }}
+              placeholder="Slack user ID"
+              title="Slack user ID — used to @mention them in task/digest notifications"
+              className="w-[140px] rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-xs outline-none focus:border-primary/50"
             />
             <Select
               className="w-[140px]"

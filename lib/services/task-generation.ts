@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC, dayOfWeekInTz, TEAM_TIMEZONE, combineDateAndTime } from "@/lib/time";
-import { sendTasksOverdue } from "@/lib/discord-bot";
+import { notifyTasksOverdue } from "@/lib/notifications";
 
 /**
  * Recurring tasks are folded directly into the Task model (no separate Routine/
@@ -157,7 +157,7 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
     // Best-effort — this sweep runs off a throttled background job, not a
     // user action, so there's no "actor" to attribute and no request to
     // fail if Discord is unreachable.
-    await sendTasksOverdue(newlyOverdue);
+    await notifyTasksOverdue(newlyOverdue);
   }
 
   return { markedOverdue: newlyOverdue.length };

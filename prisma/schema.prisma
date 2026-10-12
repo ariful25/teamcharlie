@@ -255,6 +255,9 @@ model User {
   // messages. Null until an admin fills it in; notifications fall back to
   // plain name text when it's missing.
   discordUserId String?
+  // Same idea for Slack — a Slack member ID (e.g. "U0123456789"), not a
+  // username/handle.
+  slackUserId String?
 
   defaultShiftTypeId String?
   defaultShiftType   ShiftType? @relation("UserDefaultShift", fields: [defaultShiftTypeId], references: [id])
@@ -732,6 +735,11 @@ model AttendanceRecord {
   discordCheckOutSynced Boolean @default(false)
   discordCheckInError   String?
   discordCheckOutError  String?
+
+  slackCheckInSynced  Boolean @default(false)
+  slackCheckOutSynced Boolean @default(false)
+  slackCheckInError   String?
+  slackCheckOutError  String?
 
   editedBy     String?
   editedAt     DateTime?

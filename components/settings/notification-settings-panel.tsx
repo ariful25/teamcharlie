@@ -3,21 +3,27 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from "lucide-react";
 
-export function DiscordSettingsPanel({
+// Shared by the Discord and Slack integration cards on Settings — same
+// shape (check-in/check-out connection status + test buttons), just a
+// different test endpoint and help text per platform.
+export function NotificationSettingsPanel({
+  testEndpoint,
   checkinConfigured,
   checkoutConfigured,
+  helpText,
 }: {
+  testEndpoint: string;
   checkinConfigured: boolean;
   checkoutConfigured: boolean;
+  helpText: React.ReactNode;
 }) {
   const [testing, setTesting] = useState<string | null>(null);
 
   async function test(kind: "checkin" | "checkout") {
     setTesting(kind);
-    const res = await fetch("/api/settings/discord-test", {
+    const res = await fetch(testEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ kind }),
@@ -77,11 +83,7 @@ export function DiscordSettingsPanel({
         </Button>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Webhook URLs are configured via server environment variables (
-        <code>DISCORD_CHECKIN_WEBHOOK_URL</code>, <code>DISCORD_CHECKOUT_WEBHOOK_URL</code>) and are never
-        displayed here once set, for security.
-      </p>
+      <p className="text-xs text-muted-foreground">{helpText}</p>
     </div>
   );
 }

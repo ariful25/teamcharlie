@@ -109,7 +109,9 @@ export const permissions = {
   canEditAttendance: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageProperties: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageKnowledgeBase: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
-  canManageDiscordSettings: (role: AppRole) => role === "ADMIN",
+  // Gates both the Discord and Slack settings panels/test-notification
+  // routes — same tier, kept as one key since they're managed together.
+  canManageNotificationSettings: (role: AppRole) => role === "ADMIN",
   canViewAllAttendance: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canAssignTasks: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageUsers: (role: AppRole) => role === "ADMIN",

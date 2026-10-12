@@ -2,7 +2,7 @@ import { permissions } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { DiscordSettingsPanel } from "@/components/settings/discord-settings-panel";
+import { NotificationSettingsPanel } from "@/components/settings/notification-settings-panel";
 import { ShiftTypesPanel } from "@/components/settings/shift-types-panel";
 import { AddUserModal } from "@/components/settings/add-user-modal";
 import { UsersManagementTable } from "@/components/settings/users-management-table";
@@ -23,8 +23,10 @@ export default async function SettingsPage() {
     }),
   ]);
 
-  const checkinConfigured = !!process.env.DISCORD_CHECKIN_WEBHOOK_URL;
-  const checkoutConfigured = !!process.env.DISCORD_CHECKOUT_WEBHOOK_URL;
+  const discordCheckinConfigured = !!process.env.DISCORD_CHECKIN_WEBHOOK_URL;
+  const discordCheckoutConfigured = !!process.env.DISCORD_CHECKOUT_WEBHOOK_URL;
+  const slackCheckinConfigured = !!(process.env.SLACK_BOT_TOKEN && (process.env.SLACK_CHECKIN_CHANNEL_ID || process.env.SLACK_TASK_CHANNEL_ID));
+  const slackCheckoutConfigured = !!(process.env.SLACK_BOT_TOKEN && (process.env.SLACK_CHECKOUT_CHANNEL_ID || process.env.SLACK_TASK_CHANNEL_ID));
 
   return (
     <div className="space-y-6">
@@ -54,7 +56,37 @@ export default async function SettingsPage() {
           <CardTitle>Discord Integration</CardTitle>
         </CardHeader>
         <CardContent>
-          <DiscordSettingsPanel checkinConfigured={checkinConfigured} checkoutConfigured={checkoutConfigured} />
+          <NotificationSettingsPanel
+            testEndpoint="/api/settings/discord-test"
+            checkinConfigured={discordCheckinConfigured}
+            checkoutConfigured={discordCheckoutConfigured}
+            helpText={
+              <>
+                Webhook URLs are configured via server environment variables (<code>DISCORD_CHECKIN_WEBHOOK_URL</code>,{" "}
+                <code>DISCORD_CHECKOUT_WEBHOOK_URL</code>) and are never displayed here once set, for security.
+              </>
+            }
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Slack Integration</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <NotificationSettingsPanel
+            testEndpoint="/api/settings/slack-test"
+            checkinConfigured={slackCheckinConfigured}
+            checkoutConfigured={slackCheckoutConfigured}
+            helpText={
+              <>
+                Configured via server environment variables (<code>SLACK_BOT_TOKEN</code>,{" "}
+                <code>SLACK_CHECKIN_CHANNEL_ID</code>, <code>SLACK_CHECKOUT_CHANNEL_ID</code>) and never displayed
+                here once set, for security.
+              </>
+            }
+          />
         </CardContent>
       </Card>
 

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC, combineDateAndTime, minutesLate } from "@/lib/time";
-import { sendCheckInNotification, sendCheckOutNotification } from "@/lib/discord";
+import { notifyCheckIn, notifyCheckOut } from "@/lib/notifications";
+import * as discord from "@/lib/discord";
+import * as slack from "@/lib/slack-bot";
 
 const OPEN_CHECK_IN_WINDOW_MS = 20 * 60 * 60 * 1000;
 
@@ -70,9 +72,9 @@ export async function checkIn(userId: string) {
     throw new Error("ALREADY_CHECKED_IN");
   }
 
-  // 1. DB write already committed above. 2. Attempt Discord — never let a
-  // Discord outage roll back or block the attendance record.
-  const discordResult = await sendCheckInNotification({
+  // 1. DB write already committed above. 2. Attempt Discord + Slack —
+  // never let either outage roll back or block the attendance record.
+  const { discord: discordResult, slack: slackResult } = await notifyCheckIn({
     employeeName: user.name,
     teamName: user.team.name,
     date: record.date,
@@ -87,6 +89,8 @@ export async function checkIn(userId: string) {
     data: {
       discordCheckInSynced: discordResult.ok,
       discordCheckInError: discordResult.ok ? null : discordResult.error,
+      slackCheckInSynced: slackResult.ok,
+      slackCheckInError: slackResult.ok ? null : slackResult.error,
     },
   });
 
@@ -144,7 +148,7 @@ export async function checkOut(userId: string, checklist?: ChecklistAnswer[]) {
     throw new Error("ALREADY_CHECKED_OUT");
   }
 
-  const discordResult = await sendCheckOutNotification({
+  const { discord: discordResult, slack: slackResult } = await notifyCheckOut({
     employeeName: user.name,
     teamName: user.team.name,
     date: openRecord.date,
@@ -158,6 +162,8 @@ export async function checkOut(userId: string, checklist?: ChecklistAnswer[]) {
     data: {
       discordCheckOutSynced: discordResult.ok,
       discordCheckOutError: discordResult.ok ? null : discordResult.error,
+      slackCheckOutSynced: slackResult.ok,
+      slackCheckOutError: slackResult.ok ? null : slackResult.error,
     },
   });
 
@@ -185,15 +191,19 @@ export async function flagMissingCheckouts(teamId: string) {
   return { flagged: stale.length };
 }
 
-export async function retryDiscordSync(recordId: string, kind: "checkin" | "checkout") {
+// Retries exactly the one channel that failed — unlike checkIn/checkOut
+// above, this never fans out to both via lib/notifications.ts, since the
+// other channel may already be synced and shouldn't get a duplicate post.
+export async function retryNotificationSync(recordId: string, kind: "checkin" | "checkout", channel: "discord" | "slack") {
   const record = await prisma.attendanceRecord.findUniqueOrThrow({
     where: { id: recordId },
     include: { user: { include: { team: true } } },
   });
+  const sender = channel === "discord" ? discord : slack;
 
   if (kind === "checkin") {
     if (!record.actualCheckIn) throw new Error("NO_CHECK_IN_RECORDED");
-    const result = await sendCheckInNotification({
+    const result = await sender.sendCheckInNotification({
       employeeName: record.user.name,
       teamName: record.user.team.name,
       date: record.date,
@@ -202,13 +212,14 @@ export async function retryDiscordSync(recordId: string, kind: "checkin" | "chec
       isLate: (record.lateMinutes ?? 0) > 0,
       lateMinutes: record.lateMinutes ?? 0,
     });
-    return prisma.attendanceRecord.update({
-      where: { id: recordId },
-      data: { discordCheckInSynced: result.ok, discordCheckInError: result.ok ? null : result.error },
-    });
+    const data =
+      channel === "discord"
+        ? { discordCheckInSynced: result.ok, discordCheckInError: result.ok ? null : result.error }
+        : { slackCheckInSynced: result.ok, slackCheckInError: result.ok ? null : result.error };
+    return prisma.attendanceRecord.update({ where: { id: recordId }, data });
   } else {
     if (!record.actualCheckOut) throw new Error("NO_CHECK_OUT_RECORDED");
-    const result = await sendCheckOutNotification({
+    const result = await sender.sendCheckOutNotification({
       employeeName: record.user.name,
       teamName: record.user.team.name,
       date: record.date,
@@ -216,9 +227,10 @@ export async function retryDiscordSync(recordId: string, kind: "checkin" | "chec
       actualCheckOut: record.actualCheckOut,
       totalMinutes: record.totalMinutes,
     });
-    return prisma.attendanceRecord.update({
-      where: { id: recordId },
-      data: { discordCheckOutSynced: result.ok, discordCheckOutError: result.ok ? null : result.error },
-    });
+    const data =
+      channel === "discord"
+        ? { discordCheckOutSynced: result.ok, discordCheckOutError: result.ok ? null : result.error }
+        : { slackCheckOutSynced: result.ok, slackCheckOutError: result.ok ? null : result.error };
+    return prisma.attendanceRecord.update({ where: { id: recordId }, data });
   }
 }

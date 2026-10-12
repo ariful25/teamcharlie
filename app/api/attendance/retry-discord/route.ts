@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
-import { retryDiscordSync } from "@/lib/services/attendance";
+import { retryNotificationSync } from "@/lib/services/attendance";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,13 +12,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { recordId, kind } = await req.json();
-  if (!recordId || !["checkin", "checkout"].includes(kind)) {
+  // `channel` defaults to "discord" so the pre-existing retry button (which
+  // only ever sent {recordId, kind}) keeps working unchanged.
+  const { recordId, kind, channel = "discord" } = await req.json();
+  if (!recordId || !["checkin", "checkout"].includes(kind) || !["discord", "slack"].includes(channel)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
   try {
-    const record = await retryDiscordSync(recordId, kind);
+    const record = await retryNotificationSync(recordId, kind, channel);
     return NextResponse.json(record);
   } catch (err: any) {
     return NextResponse.json({ error: err.message ?? "Retry failed" }, { status: 500 });

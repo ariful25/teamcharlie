@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { taskEditSchema } from "@/lib/validations";
-import { sendTaskEdited, sendTaskDeleted, sendTaskStatusChanged } from "@/lib/discord-bot";
+import { notifyTaskEdited, notifyTaskDeleted, notifyTaskStatusChanged } from "@/lib/notifications";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -65,7 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       data: instanceData,
       include: { client: true, assignedUser: true },
     });
-    await sendTaskEdited(task, session.user.name ?? "Someone");
+    await notifyTaskEdited(task, session.user.name ?? "Someone");
 
     // "Also apply to future occurrences" pushes only the content fields —
     // never date, status, or assignedUserId, which are instance-specific (a
@@ -125,9 +125,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // falls back to the generic "updated" message. Never both for one PATCH.
   const actorName = session.user.name ?? "Someone";
   if (body.status && ["IN_PROGRESS", "COMPLETED", "BLOCKED"].includes(body.status)) {
-    await sendTaskStatusChanged(task, body.status, actorName);
+    await notifyTaskStatusChanged(task, body.status, actorName);
   } else if (Object.keys(updateData).length > 0) {
-    await sendTaskEdited(task, actorName);
+    await notifyTaskEdited(task, actorName);
   }
 
   return NextResponse.json({ task });
@@ -149,6 +149,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     data: { deletedAt: new Date(), deletedBy: userId },
     include: { client: true, assignedUser: true },
   });
-  await sendTaskDeleted(task, session.user.name ?? "Someone");
+  await notifyTaskDeleted(task, session.user.name ?? "Someone");
   return NextResponse.json({ ok: true });
 }

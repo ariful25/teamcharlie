@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC } from "@/lib/time";
 import { generateRecurringTaskInstances, refreshOverdueTasks } from "@/lib/services/task-generation";
-import { sendDailyDigest } from "@/lib/discord-bot";
+import { notifyDailyDigest } from "@/lib/notifications";
 
 // Vercel Cron (see vercel.json) hits this once a day at the team's local
 // midnight. It automatically sends `Authorization: Bearer ${CRON_SECRET}`
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     for (const [, userTasks] of byAssignee) {
       const assignee = userTasks[0].assignedUser;
       if (!assignee) continue;
-      await sendDailyDigest(assignee, userTasks);
+      await notifyDailyDigest(assignee, userTasks);
       digestsSent++;
     }
   }

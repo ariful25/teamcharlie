@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { taskSchema } from "@/lib/validations";
-import { sendTaskCreated } from "@/lib/discord-bot";
+import { notifyTaskCreated } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -99,8 +99,9 @@ export async function POST(req: NextRequest) {
 
   // Fire-and-forget-ish: awaited so it completes before the serverless
   // function exits, but failures never block the task from being created
-  // (sendTaskCreated is a best-effort no-op when the bot isn't configured).
-  await sendTaskCreated(task, session.user.name ?? "Someone");
+  // (notifyTaskCreated is a best-effort no-op on any channel that isn't
+  // configured).
+  await notifyTaskCreated(task, session.user.name ?? "Someone");
 
   return NextResponse.json({ task });
 }

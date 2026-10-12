@@ -217,6 +217,9 @@ export const updateUserSchema = z.object({
   // A Discord snowflake (numeric string), not a username — see the schema
   // comment on User.discordUserId for why. Caller sends null (not "") to clear it.
   discordUserId: z.string().regex(/^\d+$/, "Discord user ID is numeric, e.g. 123456789012345678").optional().nullable(),
+  // A Slack member ID, e.g. "U0123456789" — not a username/handle. Caller
+  // sends null (not "") to clear it.
+  slackUserId: z.string().regex(/^U[A-Z0-9]+$/i, "Slack user ID looks like U0123456789").optional().nullable(),
 });
 
 const optionalText = z.string().optional().nullable();

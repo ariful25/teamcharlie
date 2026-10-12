@@ -18,15 +18,15 @@ export function AttendanceTable({ rows, canEdit }: { rows: any[]; canEdit: boole
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  function retry(recordId: string, kind: "checkin" | "checkout") {
+  function retry(recordId: string, kind: "checkin" | "checkout", channel: "discord" | "slack") {
     startTransition(async () => {
       const res = await fetch("/api/attendance/retry-discord", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recordId, kind }),
+        body: JSON.stringify({ recordId, kind, channel }),
       });
       if (res.ok) {
-        toast.success("Discord sync retried");
+        toast.success(`${channel === "discord" ? "Discord" : "Slack"} sync retried`);
         router.refresh();
       } else {
         toast.error("Retry failed");
@@ -47,6 +47,7 @@ export function AttendanceTable({ rows, canEdit }: { rows: any[]; canEdit: boole
             <th className="px-5 py-2 font-medium">Hours Worked</th>
             <th className="px-5 py-2 font-medium">Status</th>
             <th className="px-5 py-2 font-medium">Discord</th>
+            <th className="px-5 py-2 font-medium">Slack</th>
           </tr>
         </thead>
         <tbody>
@@ -81,7 +82,30 @@ export function AttendanceTable({ rows, canEdit }: { rows: any[]; canEdit: boole
                         ) : (
                           <button
                             disabled={isPending}
-                            onClick={() => retry(record.id, "checkin")}
+                            onClick={() => retry(record.id, "checkin", "discord")}
+                            className="flex items-center gap-1 text-warning hover:underline"
+                          >
+                            <XCircle className="h-3.5 w-3.5" /> Retry <RefreshCcw className="h-3 w-3" />
+                          </button>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </td>
+              <td className="px-5 py-3">
+                {!record ? (
+                  "—"
+                ) : (
+                  <div className="flex items-center gap-2 text-xs">
+                    {record.actualCheckIn && (
+                      <span className="flex items-center gap-1">
+                        {record.slackCheckInSynced ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                        ) : (
+                          <button
+                            disabled={isPending}
+                            onClick={() => retry(record.id, "checkin", "slack")}
                             className="flex items-center gap-1 text-warning hover:underline"
                           >
                             <XCircle className="h-3.5 w-3.5" /> Retry <RefreshCcw className="h-3 w-3" />

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { propertyKnowledgeItemsToCsv } from "@/lib/services/property-knowledge-export";
-import { sendKnowledgeExportNotification } from "@/lib/discord";
+import { notifyKnowledgeExport } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
   // when — never blocks or fails the download itself if Discord isn't
   // configured or is unreachable.
   const client = clientId ? items[0]?.client ?? (await prisma.client.findUnique({ where: { id: clientId } })) : null;
-  await sendKnowledgeExportNotification({
+  await notifyKnowledgeExport({
     actorName: session.user.name ?? "Unknown user",
     teamName: (session.user as any).teamSlug ? String((session.user as any).teamSlug).replace(/^\w/, (c: string) => c.toUpperCase()) : "Charlie",
     clientName: client?.name ?? null,
