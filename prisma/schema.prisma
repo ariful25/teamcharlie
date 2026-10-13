@@ -56,6 +56,8 @@ enum RepeatMode {
   DAILY
   WEEKLY
   CUSTOM
+  MONTHLY
+  YEARLY
 }
 
 // Only CHECKOUT exists today, but kept as an enum (not a hardcoded string)
@@ -486,6 +488,11 @@ model Task {
   isRecurringTemplate Boolean    @default(false)
   repeatMode          RepeatMode @default(NONE)
   repeatDays          Int[]      @default([]) // 0=Sunday .. 6=Saturday, used for WEEKLY/CUSTOM
+  // Day of month (1-31) for MONTHLY, clamped to the actual length of each
+  // generated month (e.g. 31 clamps to Feb 28/29) — null falls back to the
+  // day-of-month of this template's own `date`. YEARLY instead reuses
+  // `date`'s month+day directly, so it needs no field of its own.
+  repeatDayOfMonth    Int?
 
   teamId String
   team   Team   @relation(fields: [teamId], references: [id])

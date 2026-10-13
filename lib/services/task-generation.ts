@@ -31,6 +31,17 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
     if (t.repeatMode === "WEEKLY" || t.repeatMode === "CUSTOM") {
       return t.repeatDays.includes(dow);
     }
+    if (t.repeatMode === "MONTHLY") {
+      // Clamp to the real length of today's month so a template set for the
+      // 31st still fires on the last day of a shorter month (e.g. Feb 28/29)
+      // instead of silently never firing that month.
+      const daysInMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0)).getUTCDate();
+      const target = Math.min(t.repeatDayOfMonth ?? t.date.getUTCDate(), daysInMonth);
+      return today.getUTCDate() === target;
+    }
+    if (t.repeatMode === "YEARLY") {
+      return today.getUTCMonth() === t.date.getUTCMonth() && today.getUTCDate() === t.date.getUTCDate();
+    }
     return false; // NONE — shouldn't happen for a template, but guard anyway
   });
 

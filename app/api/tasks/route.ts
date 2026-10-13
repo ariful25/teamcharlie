@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
       isRecurringTemplate: !!isRecurring,
       repeatMode: data.repeatMode ?? "NONE",
       repeatDays: data.repeatDays ?? [],
+      repeatDayOfMonth: data.repeatDayOfMonth ?? null,
     },
     include: { client: true, assignedUser: true },
   });

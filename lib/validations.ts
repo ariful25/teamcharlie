@@ -19,8 +19,11 @@ export const taskSchema = z.object({
   status: z.enum(["UPCOMING", "IN_PROGRESS", "COMPLETED", "OVERDUE", "BLOCKED"]),
   blockedReason: z.string().optional().nullable(),
   notes: z.string().optional(),
-  repeatMode: z.enum(["NONE", "DAILY", "WEEKLY", "CUSTOM"]).default("NONE"),
+  repeatMode: z.enum(["NONE", "DAILY", "WEEKLY", "CUSTOM", "MONTHLY", "YEARLY"]).default("NONE"),
   repeatDays: z.array(z.number().min(0).max(6)).default([]),
+  // Only meaningful for MONTHLY — null falls back to the day-of-month of
+  // `date` (see generateRecurringTaskInstances).
+  repeatDayOfMonth: z.number().min(1).max(31).optional().nullable(),
 });
 
 // Editing an existing task — every field optional since a PATCH only ever

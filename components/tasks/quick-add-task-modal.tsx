@@ -33,6 +33,13 @@ const REPEAT_OPTIONS = [
   { value: "DAILY", label: "Daily" },
   { value: "WEEKLY", label: "Weekly" },
   { value: "CUSTOM", label: "Custom" },
+  { value: "MONTHLY", label: "Monthly" },
+  { value: "YEARLY", label: "Yearly" },
+];
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 export function QuickAddTaskModal({
@@ -70,6 +77,10 @@ export function QuickAddTaskModal({
   const [notes, setNotes] = useState("");
   const [repeatMode, setRepeatMode] = useState("NONE");
   const [repeatDays, setRepeatDays] = useState<number[]>([]);
+  // Only used for MONTHLY — defaults to the day-of-month of the selected
+  // Date field whenever Monthly is picked, so the common case ("repeat on
+  // whatever day I set this task for") needs no extra input.
+  const [repeatDayOfMonth, setRepeatDayOfMonth] = useState<number>(() => Number(date.slice(8, 10)));
 
   function toggleDay(d: number) {
     setRepeatDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
@@ -94,6 +105,7 @@ export function QuickAddTaskModal({
       notes,
       repeatMode,
       repeatDays,
+      repeatDayOfMonth: repeatMode === "MONTHLY" ? repeatDayOfMonth : null,
     };
 
     const res = await fetch("/api/tasks", {
@@ -219,6 +231,7 @@ export function QuickAddTaskModal({
                 // task — clear it if Repeat goes back to "Does not repeat"
                 // so a stale, now-hidden value can't sneak into submission.
                 if (next === "NONE") setShiftTypeId("");
+                if (next === "MONTHLY") setRepeatDayOfMonth(Number(date.slice(8, 10)));
               }}
               options={REPEAT_OPTIONS}
             />
@@ -252,6 +265,37 @@ export function QuickAddTaskModal({
                 </button>
               ))}
             </div>
+          )}
+
+          {repeatMode === "MONTHLY" && (
+            <Field label="Day of month" className="col-span-2">
+              <input
+                type="number"
+                min={1}
+                max={31}
+                value={repeatDayOfMonth}
+                onChange={(e) => setRepeatDayOfMonth(Math.min(31, Math.max(1, Number(e.target.value) || 1)))}
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Repeats on the {repeatDayOfMonth}
+                {repeatDayOfMonth === 1 || repeatDayOfMonth === 21 || repeatDayOfMonth === 31
+                  ? "st"
+                  : repeatDayOfMonth === 2 || repeatDayOfMonth === 22
+                    ? "nd"
+                    : repeatDayOfMonth === 3 || repeatDayOfMonth === 23
+                      ? "rd"
+                      : "th"}{" "}
+                of every month. On shorter months it falls on the last day instead.
+              </p>
+            </Field>
+          )}
+
+          {repeatMode === "YEARLY" && (
+            <p className="col-span-2 text-xs text-muted-foreground">
+              Repeats every {MONTH_NAMES[Number(date.slice(5, 7)) - 1]} {Number(date.slice(8, 10))}, based on the Date
+              field above.
+            </p>
           )}
 
           <Field label="Notes" className="col-span-2">
