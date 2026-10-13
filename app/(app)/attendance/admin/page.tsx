@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { permissions } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
-import { getAdminAttendanceOverview } from "@/lib/queries/attendance";
+import { getAdminAttendanceOverview, getUnresolvedAttendance } from "@/lib/queries/attendance";
 import { AdminAttendanceOverview } from "@/components/attendance/admin-attendance-overview";
 
 export default async function AdminAttendancePage() {
@@ -12,7 +12,10 @@ export default async function AdminAttendancePage() {
     redirect("/attendance");
   }
 
-  const rows = await getAdminAttendanceOverview(currentUser.teamId);
+  const [rows, unresolved] = await Promise.all([
+    getAdminAttendanceOverview(currentUser.teamId),
+    getUnresolvedAttendance(currentUser.teamId),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -27,7 +30,7 @@ export default async function AdminAttendancePage() {
         </p>
       </div>
 
-      <AdminAttendanceOverview rows={rows} />
+      <AdminAttendanceOverview rows={rows} unresolved={unresolved} />
     </div>
   );
 }

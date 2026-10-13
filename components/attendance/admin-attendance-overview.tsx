@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge, statusTone } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EditAttendanceModal } from "@/components/attendance/edit-attendance-modal";
-import { formatClientTime } from "@/lib/time";
+import { formatClientDate, formatClientTime } from "@/lib/time";
 
 type Row = {
   employee: { id: string; name: string };
@@ -15,6 +17,14 @@ type Row = {
   exception: "MISSING_CHECK_IN" | "MISSING_CHECK_OUT" | null;
 };
 
+type UnresolvedRecord = {
+  id: string;
+  date: string | Date;
+  actualCheckIn: string | Date | null;
+  status: string;
+  user: { id: string; name: string };
+};
+
 type Filter = "ALL" | "WORKING" | "MISSING_CHECK_IN" | "MISSING_CHECK_OUT";
 
 function fmtTime(iso: string | Date | null) {
@@ -22,8 +32,15 @@ function fmtTime(iso: string | Date | null) {
   return formatClientTime(new Date(iso));
 }
 
-export function AdminAttendanceOverview({ rows }: { rows: Row[] }) {
+export function AdminAttendanceOverview({ rows, unresolved = [] }: { rows: Row[]; unresolved?: UnresolvedRecord[] }) {
   const [filter, setFilter] = useState<Filter>("ALL");
+
+  // Today's still-open sessions are normal ("Working Now"), not a problem —
+  // only a check-in with no checkout from a *previous* day is something an
+  // admin actually needs to go correct. getAdminAttendanceOverview's own
+  // "today" rows already surface anything stuck today once it goes stale.
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const stalePastDays = unresolved.filter((r) => new Date(r.date).toISOString().slice(0, 10) !== todayKey);
 
   const counts = useMemo(
     () => ({
@@ -48,6 +65,40 @@ export function AdminAttendanceOverview({ rows }: { rows: Row[] }) {
 
   return (
     <div className="space-y-4">
+      {stalePastDays.length > 0 && (
+        <Card className="glow-border space-y-3 p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-danger">
+              Unresolved from previous days ({stalePastDays.length})
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              These checked in but never checked out, and it&apos;s not today anymore — the table below
+              only shows today, so these need a direct correction on the employee&apos;s history page.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {stalePastDays.map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/20 px-3 py-2"
+              >
+                <div className="text-sm">
+                  <span className="font-medium">{r.user.name}</span>{" "}
+                  <span className="text-muted-foreground">
+                    — checked in {formatClientDate(new Date(r.date))} at {fmtTime(r.actualCheckIn)}, never checked out
+                  </span>
+                </div>
+                <Link href={`/attendance/${r.user.id}`}>
+                  <Button variant="secondary" size="sm">
+                    Fix on history page
+                  </Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {tiles.map((t) => (
           <button
@@ -94,7 +145,11 @@ export function AdminAttendanceOverview({ rows }: { rows: Row[] }) {
             ) : (
               filtered.map((row) => (
                 <tr key={row.employee.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
-                  <td className="px-5 py-3 font-medium">{row.employee.name}</td>
+                  <td className="px-5 py-3 font-medium">
+                    <Link href={`/attendance/${row.employee.id}`} className="hover:underline">
+                      {row.employee.name}
+                    </Link>
+                  </td>
                   <td className="px-5 py-3 text-muted-foreground">
                     {row.scheduled ? row.assignment?.shiftType?.name ?? "Scheduled" : "Off today"}
                   </td>

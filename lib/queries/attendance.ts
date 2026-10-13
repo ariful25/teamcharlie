@@ -88,3 +88,17 @@ export async function getAttendanceHistory(userId: string) {
     take: 90,
   });
 }
+
+// The admin overview's "today only" rows miss a missing-checkout that went
+// stale on a *previous* day — getAdminAttendanceOverview only ever queries
+// today's date, so once a day passes, a stuck record silently drops off
+// that view entirely even though nobody ever corrected it. This surfaces
+// every still-open record team-wide, any date, so an admin isn't limited to
+// whatever happened today — oldest (most overdue) first.
+export async function getUnresolvedAttendance(teamId: string) {
+  return prisma.attendanceRecord.findMany({
+    where: { user: { teamId }, actualCheckIn: { not: null }, actualCheckOut: null },
+    include: { user: { select: { id: true, name: true } } },
+    orderBy: { date: "asc" },
+  });
+}
