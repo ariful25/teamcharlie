@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { TimePicker } from "@/components/ui/time-picker";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -65,10 +66,10 @@ export function ScheduleFormModal({ employees }: { employees: { id: string; name
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Scheduled Check-in">
-              <input type="time" name="scheduledCheckIn" required defaultValue="07:00" className={inputClass} />
+              <TimePicker name="scheduledCheckIn" defaultValue="07:00" />
             </Field>
             <Field label="Scheduled Check-out">
-              <input type="time" name="scheduledCheckOut" required defaultValue="18:00" className={inputClass} />
+              <TimePicker name="scheduledCheckOut" defaultValue="18:00" />
             </Field>
           </div>
           <Field label="Repeat Days">

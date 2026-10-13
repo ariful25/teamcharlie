@@ -6,6 +6,7 @@ import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { TimePicker } from "@/components/ui/time-picker";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS = [
@@ -141,10 +142,10 @@ export function DayCell({
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Custom Start (optional)">
-                  <input type="time" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className={inputClass} />
+                  <TimePicker value={customStart} onValueChange={setCustomStart} />
                 </Field>
                 <Field label="Custom End (optional)">
-                  <input type="time" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className={inputClass} />
+                  <TimePicker value={customEnd} onValueChange={setCustomEnd} />
                 </Field>
               </div>
             </>

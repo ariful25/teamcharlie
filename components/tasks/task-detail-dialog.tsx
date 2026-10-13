@@ -9,6 +9,7 @@ import { Badge, statusTone, priorityTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { TimePicker } from "@/components/ui/time-picker";
 import { formatClientLongDate } from "@/lib/time";
 
 type Option = { id: string; name: string };
@@ -128,11 +129,11 @@ function EditForm({
       </Field>
 
       <Field label="Start Time">
-        <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} />
+        <TimePicker value={startTime} onValueChange={setStartTime} />
       </Field>
 
       <Field label="Due Time">
-        <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} className={inputClass} />
+        <TimePicker value={dueTime} onValueChange={setDueTime} />
       </Field>
 
       <Field label="Notes" className="col-span-2">

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { TimePicker } from "@/components/ui/time-picker";
 
 export function EditAttendanceModal({ record }: { record: any }) {
   const router = useRouter();
@@ -50,19 +51,15 @@ export function EditAttendanceModal({ record }: { record: any }) {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Actual Check-in">
-              <input
-                type="time"
+              <TimePicker
                 name="actualCheckIn"
                 defaultValue={record.actualCheckIn ? new Date(record.actualCheckIn).toTimeString().slice(0, 5) : ""}
-                className={inputClass}
               />
             </Field>
             <Field label="Actual Check-out">
-              <input
-                type="time"
+              <TimePicker
                 name="actualCheckOut"
                 defaultValue={record.actualCheckOut ? new Date(record.actualCheckOut).toTimeString().slice(0, 5) : ""}
-                className={inputClass}
               />
             </Field>
           </div>

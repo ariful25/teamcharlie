@@ -8,6 +8,7 @@ import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { TimePicker } from "@/components/ui/time-picker";
 import { clientDateKey } from "@/lib/time";
 
 type Option = { id: string; name: string };
@@ -198,11 +199,11 @@ export function QuickAddTaskModal({
           </Field>
 
           <Field label="Start Time">
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} />
+            <TimePicker value={startTime} onValueChange={setStartTime} />
           </Field>
 
           <Field label="Due Time">
-            <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} className={inputClass} />
+            <TimePicker value={dueTime} onValueChange={setDueTime} />
           </Field>
 
           <Field label="Status">

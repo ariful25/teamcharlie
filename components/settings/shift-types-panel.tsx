@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { TimePicker } from "@/components/ui/time-picker";
 
 export function ShiftTypesPanel({ shiftTypes: initial }: { shiftTypes: any[] }) {
   const [shiftTypes, setShiftTypes] = useState(initial);
@@ -78,10 +79,10 @@ export function ShiftTypesPanel({ shiftTypes: initial }: { shiftTypes: any[] }) 
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Start Time">
-                <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required className={inputClass} />
+                <TimePicker value={startTime} onValueChange={setStartTime} />
               </Field>
               <Field label="End Time">
-                <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required className={inputClass} />
+                <TimePicker value={endTime} onValueChange={setEndTime} />
               </Field>
             </div>
             <Field label="Color">
