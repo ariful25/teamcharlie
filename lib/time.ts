@@ -1,4 +1,4 @@
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { formatInTimeZone, toZonedTime, fromZonedTime } from "date-fns-tz";
 import { format, differenceInMinutes } from "date-fns";
 
 // All timestamps are stored in UTC in the database. This module is the ONLY
@@ -66,40 +66,28 @@ export function formatDateLong(date: Date, tz: string = TEAM_TIMEZONE) {
 }
 
 /** Parses "HH:mm" into a Date object for a given calendar day, in the team timezone,
- *  then returns the equivalent UTC Date for storage/comparison. */
+ *  then returns the equivalent UTC Date for storage/comparison.
+ *
+ *  Uses `fromZonedTime` (not `toZonedTime` + `setHours`) deliberately: the
+ *  previous implementation read/wrote the intermediate Date's hours via
+ *  Date.prototype.getHours/setHours, which are resolved against the host
+ *  process's own local timezone (`process.env.TZ`) — on Vercel that's UTC,
+ *  so it happened to work in production, but it silently gave wrong results
+ *  (off by the process/team tz offset difference) anywhere else, including
+ *  local development.
+ *
+ *  `fromZonedTime(date, tz)` itself reads `date` via its *local* getters
+ *  (getFullYear/getMonth/.../getHours — see date-fns-tz's own source and
+ *  docs example `fromZonedTime(new Date(2014, 5, 25, 10, 0, 0), ...)`), not
+ *  UTC getters, and treats those numbers as the wall clock in `tz`. The
+ *  plain `Date` constructor always makes local getters equal exactly the
+ *  arguments passed, independent of process timezone, so building the
+ *  wall-clock Date that way — not via `Date.UTC(...)` — is what actually
+ *  makes this conversion process-tz-independent. */
 export function combineDateAndTime(day: Date, hhmm: string, tz: string = TEAM_TIMEZONE): Date {
   const [h, m] = hhmm.split(":").map(Number);
-  const zoned = toZonedTime(day, tz);
-  zoned.setHours(h, m, 0, 0);
-  // toZonedTime gives a Date whose local getters reflect tz; construct UTC equivalent
-  const utcMillis = zoned.getTime() - getTzOffsetMillis(zoned, tz);
-  return new Date(utcMillis);
-}
-
-function getTzOffsetMillis(date: Date, tz: string) {
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const parts = dtf.formatToParts(date).reduce((acc: any, p) => {
-    acc[p.type] = p.value;
-    return acc;
-  }, {});
-  const asUTC = Date.UTC(
-    parts.year,
-    parts.month - 1,
-    parts.day,
-    parts.hour === "24" ? 0 : parts.hour,
-    parts.minute,
-    parts.second
-  );
-  return asUTC - date.getTime();
+  const wallClock = new Date(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), h, m, 0, 0);
+  return fromZonedTime(wallClock, tz);
 }
 
 export function minutesLate(scheduled: Date, actual: Date) {
