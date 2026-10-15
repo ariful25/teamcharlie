@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge, statusTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EditAttendanceModal } from "@/components/attendance/edit-attendance-modal";
-import { formatClientDate, formatClientTime } from "@/lib/time";
+import { formatClientDate, formatClientTime, clientDateKey } from "@/lib/time";
 
 type Row = {
   employee: { id: string; name: string };
@@ -39,8 +39,12 @@ export function AdminAttendanceOverview({ rows, unresolved = [] }: { rows: Row[]
   // only a check-in with no checkout from a *previous* day is something an
   // admin actually needs to go correct. getAdminAttendanceOverview's own
   // "today" rows already surface anything stuck today once it goes stale.
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const stalePastDays = unresolved.filter((r) => new Date(r.date).toISOString().slice(0, 10) !== todayKey);
+  // clientDateKey (not a raw toISOString slice) because that takes the UTC
+  // calendar day, which is a different date from Dhaka's for several hours
+  // every evening (Dhaka is UTC+6) — a raw comparison would misclassify a
+  // genuinely-today record as "stale from a previous day" during that window.
+  const todayKey = clientDateKey();
+  const stalePastDays = unresolved.filter((r) => clientDateKey(new Date(r.date)) !== todayKey);
 
   const counts = useMemo(
     () => ({

@@ -44,6 +44,18 @@ export function formatClientDate(date: Date, tz: string = CLIENT_TEAM_TIMEZONE) 
   return formatInTimeZone(date, tz, "MMM d, yyyy");
 }
 
+export function formatClientDateTime(date: Date, tz: string = CLIENT_TEAM_TIMEZONE) {
+  return formatInTimeZone(date, tz, "MMM d, yyyy, h:mm a");
+}
+
+/** "HH:mm" (24h) in the team's timezone — for pre-filling a <input type="time">-
+ *  shaped control (including TimePicker) from a stored instant, so what the
+ *  editor shows and what combineDateAndTime will parse back round-trip
+ *  through the same timezone instead of the viewer's own browser timezone. */
+export function formatClientTime24(date: Date, tz: string = CLIENT_TEAM_TIMEZONE) {
+  return formatInTimeZone(date, tz, "HH:mm");
+}
+
 /** "yyyy-MM-dd" for `date` in the team's timezone — the same calendar-day key
  *  startOfDayUTC uses server-side, so a client component can find "today"'s
  *  index in a `days` array (each already a UTC-midnight-of-team-tz-day ISO

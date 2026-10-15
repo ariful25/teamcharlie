@@ -8,7 +8,7 @@ import { MonthSelector } from "@/components/attendance/month-selector";
 import { WeekSelector } from "@/components/attendance/week-selector";
 import { Button } from "@/components/ui/button";
 import { CalendarClock, ShieldCheck } from "lucide-react";
-import { startOfWeekMonday } from "@/lib/time";
+import { startOfWeekMonday, startOfDayUTC } from "@/lib/time";
 
 export default async function AttendancePage({
   searchParams,
@@ -18,8 +18,15 @@ export default async function AttendancePage({
   const currentUser = await getCurrentUser();
 
   const now = new Date();
-  const year = searchParams.year ? Number(searchParams.year) : now.getFullYear();
-  const month = searchParams.month ? Number(searchParams.month) : now.getMonth();
+  // now.getFullYear()/getMonth() read the *server process's* local calendar
+  // day (UTC on Vercel) — wrong for ~6 hours every day, since Dhaka is UTC+6
+  // and is already on the next day (and, month-end, the next month) while
+  // the server still thinks it's the previous one. startOfDayUTC converts
+  // `now` to Dhaka's calendar day first, so reading UTC getters off *that*
+  // is safe regardless of what timezone the server process itself runs in.
+  const todayInTeamTz = startOfDayUTC(now);
+  const year = searchParams.year ? Number(searchParams.year) : todayInTeamTz.getUTCFullYear();
+  const month = searchParams.month ? Number(searchParams.month) : todayInTeamTz.getUTCMonth();
   const weekStartParam = searchParams.weekStart ? new Date(`${searchParams.weekStart}T00:00:00.000Z`) : now;
 
   const [todayRows, monthlyRows, weekly] = await Promise.all([

@@ -8,6 +8,7 @@ import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { TimePicker } from "@/components/ui/time-picker";
+import { combineDateAndTime, formatClientTime24, CLIENT_TEAM_TIMEZONE } from "@/lib/time";
 
 export function EditAttendanceModal({ record }: { record: any }) {
   const router = useRouter();
@@ -18,10 +19,17 @@ export function EditAttendanceModal({ record }: { record: any }) {
     e.preventDefault();
     setSubmitting(true);
     const form = new FormData(e.currentTarget);
+    const recordDate = new Date(record.date);
+    // `new Date(\`...T${hhmm}:00\`)` (no timezone suffix) parses as the
+    // *viewer's own browser* local time, not the team's — an admin whose
+    // laptop isn't set to Dhaka time would silently save the wrong instant.
+    // combineDateAndTime always converts via CLIENT_TEAM_TIMEZONE instead.
+    const checkInStr = form.get("actualCheckIn") as string;
+    const checkOutStr = form.get("actualCheckOut") as string;
     const payload = {
       recordId: record.id,
-      actualCheckIn: form.get("actualCheckIn") ? new Date(`${record.date.toISOString().slice(0, 10)}T${form.get("actualCheckIn")}:00`).toISOString() : null,
-      actualCheckOut: form.get("actualCheckOut") ? new Date(`${record.date.toISOString().slice(0, 10)}T${form.get("actualCheckOut")}:00`).toISOString() : null,
+      actualCheckIn: checkInStr ? combineDateAndTime(recordDate, checkInStr, CLIENT_TEAM_TIMEZONE).toISOString() : null,
+      actualCheckOut: checkOutStr ? combineDateAndTime(recordDate, checkOutStr, CLIENT_TEAM_TIMEZONE).toISOString() : null,
       reason: form.get("reason"),
     };
     const res = await fetch("/api/attendance/edit", {
@@ -53,13 +61,13 @@ export function EditAttendanceModal({ record }: { record: any }) {
             <Field label="Actual Check-in">
               <TimePicker
                 name="actualCheckIn"
-                defaultValue={record.actualCheckIn ? new Date(record.actualCheckIn).toTimeString().slice(0, 5) : ""}
+                defaultValue={record.actualCheckIn ? formatClientTime24(new Date(record.actualCheckIn)) : ""}
               />
             </Field>
             <Field label="Actual Check-out">
               <TimePicker
                 name="actualCheckOut"
-                defaultValue={record.actualCheckOut ? new Date(record.actualCheckOut).toTimeString().slice(0, 5) : ""}
+                defaultValue={record.actualCheckOut ? formatClientTime24(new Date(record.actualCheckOut)) : ""}
               />
             </Field>
           </div>
