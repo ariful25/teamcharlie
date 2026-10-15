@@ -12,20 +12,24 @@ import { cn } from "@/lib/utils";
 const STATUS_OPTIONS = [
   { value: "WORKING", label: "Working", dotColor: "#34d399" },
   { value: "WEEKEND", label: "Weekend", dotColor: "#f59e0b" },
-  { value: "LEAVE", label: "Leave", dotColor: "#f87171" },
+  { value: "PAID_LEAVE", label: "Paid Leave", dotColor: "#f87171" },
+  { value: "UNPAID_LEAVE", label: "Unpaid Leave", dotColor: "#fb923c" },
+  { value: "SICK_LEAVE", label: "Sick Leave", dotColor: "#c084fc" },
 ];
 
 const STATUS_CLASS: Record<string, string> = {
   WORKING: "bg-success/15 text-success border-success/30 hover:bg-success/25",
   WEEKEND: "bg-warning/15 text-warning border-warning/30 hover:bg-warning/25",
-  LEAVE: "bg-danger/15 text-danger border-danger/30 hover:bg-danger/25",
+  PAID_LEAVE: "bg-danger/15 text-danger border-danger/30 hover:bg-danger/25",
+  UNPAID_LEAVE: "bg-orange-500/15 text-orange-400 border-orange-500/30 hover:bg-orange-500/25",
+  SICK_LEAVE: "bg-purple-500/15 text-purple-400 border-purple-500/30 hover:bg-purple-500/25",
 };
 
 export type DayCellAssignment = {
   id: string | null;
   userId: string;
   date: string; // ISO
-  status: "WORKING" | "WEEKEND" | "LEAVE";
+  status: "WORKING" | "WEEKEND" | "PAID_LEAVE" | "UNPAID_LEAVE" | "SICK_LEAVE";
   shiftTypeId: string | null;
   customStart: string | null;
   customEnd: string | null;
@@ -66,9 +70,10 @@ export function DayCell({
   }, [assignment, defaultShiftTypeId]);
 
   const label = assignment
-    ? assignment.status === "WORKING"
-      ? "Working"
-      : assignment.status.charAt(0) + assignment.status.slice(1).toLowerCase()
+    ? assignment.status
+        .split("_")
+        .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+        .join(" ")
     : "—";
 
   async function handleSave() {

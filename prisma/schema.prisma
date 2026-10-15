@@ -90,7 +90,9 @@ enum NoticeColor {
 enum ShiftDayStatus {
   WORKING
   WEEKEND
-  LEAVE
+  PAID_LEAVE
+  UNPAID_LEAVE
+  SICK_LEAVE
 }
 
 enum UnitListingLevel {

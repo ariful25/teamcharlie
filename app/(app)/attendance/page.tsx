@@ -1,27 +1,31 @@
 import Link from "next/link";
 import { permissions } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
-import { getTodayAttendance, getMonthlyAttendance } from "@/lib/queries/attendance";
+import { getTodayAttendance, getMonthlyAttendance, getWeeklyAttendance } from "@/lib/queries/attendance";
 import { AttendanceTable } from "@/components/attendance/attendance-table";
 import { MonthlySummary } from "@/components/attendance/monthly-summary";
 import { MonthSelector } from "@/components/attendance/month-selector";
+import { WeekSelector } from "@/components/attendance/week-selector";
 import { Button } from "@/components/ui/button";
 import { CalendarClock, ShieldCheck } from "lucide-react";
+import { startOfWeekMonday } from "@/lib/time";
 
 export default async function AttendancePage({
   searchParams,
 }: {
-  searchParams: { year?: string; month?: string };
+  searchParams: { year?: string; month?: string; weekStart?: string };
 }) {
   const currentUser = await getCurrentUser();
 
   const now = new Date();
   const year = searchParams.year ? Number(searchParams.year) : now.getFullYear();
   const month = searchParams.month ? Number(searchParams.month) : now.getMonth();
+  const weekStartParam = searchParams.weekStart ? new Date(`${searchParams.weekStart}T00:00:00.000Z`) : now;
 
-  const [todayRows, monthlyRows] = await Promise.all([
+  const [todayRows, monthlyRows, weekly] = await Promise.all([
     getTodayAttendance(currentUser.teamId),
     getMonthlyAttendance(currentUser.teamId, year, month),
+    getWeeklyAttendance(currentUser.teamId, weekStartParam),
   ]);
 
   const canEdit = permissions.canEditAttendance(currentUser.role);
@@ -61,6 +65,16 @@ export default async function AttendancePage({
           Today
         </h2>
         <AttendanceTable rows={todayRows} canEdit={canEdit} />
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Weekly Working Hours
+          </h2>
+          <WeekSelector weekStart={startOfWeekMonday(weekStartParam)} />
+        </div>
+        <MonthlySummary rows={weekly.rows} emptyLabel="No attendance records for this week." />
       </div>
 
       <div>

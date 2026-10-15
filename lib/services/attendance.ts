@@ -8,9 +8,10 @@ const OPEN_CHECK_IN_WINDOW_MS = 20 * 60 * 60 * 1000;
 
 /**
  * The Shift Schedule (ShiftAssignment) is the single source of truth for "who is
- * expected to work when." A day marked WEEKEND/LEAVE, or with no assignment at all,
- * has no scheduled time — the employee can still check in manually, we just won't
- * compute a "late" status against nothing.
+ * expected to work when." A day marked WEEKEND or any leave type (PAID_LEAVE/
+ * UNPAID_LEAVE/SICK_LEAVE), or with no assignment at all, has no scheduled time —
+ * the employee can still check in manually, we just won't compute a "late" status
+ * against nothing.
  */
 export async function getOrCreateTodayRecord(userId: string, referenceDate: Date = new Date()) {
   const today = startOfDayUTC(referenceDate);

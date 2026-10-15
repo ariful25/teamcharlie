@@ -143,7 +143,7 @@ export function ShiftScheduleBoard({
         return {
           userId: r.userId,
           name: r.employeeName,
-          status: (dayAssignment?.status ?? "WORKING") as "WORKING" | "WEEKEND" | "LEAVE",
+          status: (dayAssignment?.status ?? "WORKING") as "WORKING" | "WEEKEND" | "PAID_LEAVE" | "UNPAID_LEAVE" | "SICK_LEAVE",
           angle:
             ((timeToFraction(shiftForDay.startTime) + timeToFraction(shiftForDay.endTime, true)) / 2) * Math.PI * 2 -
             Math.PI / 2 +
@@ -156,7 +156,7 @@ export function ShiftScheduleBoard({
       return {
         userId: r.userId,
         name: r.employeeName,
-        status: (dayAssignment?.status ?? "WORKING") as "WORKING" | "WEEKEND" | "LEAVE",
+        status: (dayAssignment?.status ?? "WORKING") as "WORKING" | "WEEKEND" | "PAID_LEAVE" | "UNPAID_LEAVE" | "SICK_LEAVE",
         angle: (i / Math.max(roster.unassignedRows.length, 1)) * Math.PI * 2 - Math.PI / 2,
         color: "#94a3b8",
       };

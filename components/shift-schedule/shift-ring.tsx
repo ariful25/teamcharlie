@@ -6,9 +6,15 @@ import { Float, Html, Line, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
 export type RingShift = { id: string; name: string; startTime: string; endTime: string; colorHex: string };
-export type RingChip = { userId: string; name: string; status: "WORKING" | "WEEKEND" | "LEAVE"; angle: number; color?: string };
+export type RingChip = { userId: string; name: string; status: "WORKING" | "WEEKEND" | "PAID_LEAVE" | "UNPAID_LEAVE" | "SICK_LEAVE"; angle: number; color?: string };
 
-const STATUS_COLOR: Record<string, string> = { WORKING: "#34d399", WEEKEND: "#f59e0b", LEAVE: "#f87171" };
+const STATUS_COLOR: Record<string, string> = {
+  WORKING: "#34d399",
+  WEEKEND: "#f59e0b",
+  PAID_LEAVE: "#f87171",
+  UNPAID_LEAVE: "#fb923c",
+  SICK_LEAVE: "#c084fc",
+};
 
 function timeToAngle(hhmm: string) {
   const [h, m] = hhmm.split(":").map(Number);

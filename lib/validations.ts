@@ -200,7 +200,7 @@ export const shiftAssignmentCreateSchema = z.object({
 
 export const shiftAssignmentUpdateSchema = z.object({
   shiftTypeId: z.string().optional().nullable(),
-  status: z.enum(["WORKING", "WEEKEND", "LEAVE"]),
+  status: z.enum(["WORKING", "WEEKEND", "PAID_LEAVE", "UNPAID_LEAVE", "SICK_LEAVE"]),
   customStart: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   customEnd: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   note: z.string().optional().nullable(),

@@ -50,15 +50,18 @@ export function statusTone(status: string): Tone {
     case "WEEKEND":
     case "AIRBNB_TRANSITION":
     case "NEEDS_REVIEW":
+    case "UNPAID_LEAVE":
       return "warning";
     case "OVERDUE":
     case "URGENT":
     case "BLOCKED":
     case "MISSING_CHECK_IN":
     case "MISSING_CHECK_OUT":
-    case "LEAVE":
+    case "PAID_LEAVE":
     case "FAILED":
       return "danger";
+    case "SICK_LEAVE":
+      return "info";
     case "WAITING":
     case "UPCOMING":
     case "CHECKED_IN":
