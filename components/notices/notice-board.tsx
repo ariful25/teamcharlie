@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { NoticeComposer } from "@/components/notices/notice-composer";
 import { NOTICE_COLOR_STYLES } from "@/components/notices/notice-colors";
+import { formatClientShortDate } from "@/lib/time";
 
 type ChecklistItem = { id: string; text: string; checked: boolean };
 
@@ -143,7 +144,7 @@ function NoticeCard({ notice, canPinNotices, canManage }: { notice: Notice; canP
 
       <div className="mt-3 flex items-center justify-between">
         <span className="text-xs opacity-70">
-          {notice.author.name} · {new Date(notice.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          {notice.author.name} · {formatClientShortDate(new Date(notice.createdAt))}
         </span>
         <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
           {canPinNotices && !notice.archived && (

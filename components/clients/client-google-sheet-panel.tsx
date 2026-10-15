@@ -8,6 +8,7 @@ import { Badge, Tone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { formatClientDateTime } from "@/lib/time";
 
 type GoogleSheet = {
   spreadsheetId: string | null;
@@ -79,7 +80,7 @@ function SyncLogModal({ clientId }: { clientId: string }) {
               <div key={log.id} className="rounded-xl border border-border px-3 py-2 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">{log.property?.internalName ?? log.action}</span>
-                  <span className="text-muted-foreground">{new Date(log.createdAt).toLocaleString("en-US")}</span>
+                  <span className="text-muted-foreground">{formatClientDateTime(new Date(log.createdAt))}</span>
                 </div>
                 {log.field ? (
                   <p className="mt-1 text-muted-foreground">
@@ -168,7 +169,7 @@ export function ClientGoogleSheetPanel({
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Last Sync</span>
-              <span>{googleSheet?.lastSyncedAt ? new Date(googleSheet.lastSyncedAt).toLocaleString("en-US") : "Never"}</span>
+              <span>{googleSheet?.lastSyncedAt ? formatClientDateTime(new Date(googleSheet.lastSyncedAt)) : "Never"}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Properties Synced</span>

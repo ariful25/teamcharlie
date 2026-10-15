@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { formatClientDate } from "@/lib/time";
 
 type Property = any;
 type Unit = any;
@@ -20,14 +21,15 @@ type Task = any;
 const listingLevels = ["WHOLE_PROPERTY", "WHOLE_HOUSE", "PRIVATE_ROOM", "DETACHED_UNIT"];
 const tenancyStatuses = ["CURRENT", "UPCOMING", "VACANT", "AIRBNB_TRANSITION"];
 
-// Locale pinned to "en-US" explicitly (not the environment default) — with
-// `undefined`, Node's server-side locale can differ from the browser's,
-// producing different formatted text ("30 Sept 2026" vs "Sep 30, 2026") and
-// a hydration mismatch that forces React to re-render the whole page
-// client-side.
+// formatClientDate (date-fns formatted in the team's fixed CLIENT_TEAM_TIMEZONE)
+// rather than toLocaleDateString: the latter uses the *viewer's own browser*
+// timezone/locale, which both shows the wrong calendar day for a viewer whose
+// browser isn't on Dhaka time and risks a server/client hydration mismatch
+// (Node's server-side locale can differ from the browser's). formatClientDate
+// is deterministic — same output everywhere, always Dhaka's calendar day.
 function fmtDate(value?: string | null) {
   if (!value) return "Open";
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return formatClientDate(new Date(value));
 }
 
 function dateInput(value?: string | null) {

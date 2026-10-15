@@ -8,6 +8,7 @@ import { Badge, priorityTone } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { TaskDetailDialog } from "./task-detail-dialog";
+import { formatClientDate } from "@/lib/time";
 
 type Option = { id: string; name: string };
 
@@ -61,7 +62,7 @@ function HistoryRow({ task, clients, employees, categories }: { task: any; clien
             <Badge tone={priorityTone(task.priority)}>{task.priority}</Badge>
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {new Date(task.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} ·{" "}
+            {formatClientDate(new Date(task.date))} ·{" "}
             {task.client?.name ?? "No client"} · {task.assignedUser?.name ?? "Unassigned"}
           </p>
         </div>
