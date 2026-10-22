@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC } from "@/lib/time";
 import { generateRecurringTaskInstances, refreshOverdueTasks } from "@/lib/services/task-generation";
+import { autoStopOpenSessions } from "@/lib/services/attendance";
 import { notifyDailyDigest } from "@/lib/notifications";
 
 // Vercel Cron (see vercel.json) hits this once a day at the team's local
@@ -15,17 +16,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const teams = await prisma.team.findMany({ select: { id: true } });
-  const today = startOfDayUTC(new Date());
+  const teams = await prisma.team.findMany({ select: { id: true, timezone: true } });
   let digestsSent = 0;
 
   for (const team of teams) {
+    // Each team's own "today" — teams in different timezones can be on
+    // different calendar days when this runs.
+    const today = startOfDayUTC(new Date(), team.timezone);
     // Make sure today's recurring instances already exist and nothing
     // stale is sitting as UPCOMING/IN_PROGRESS past its due time — this
     // cron is now the reliable trigger for both, independent of whether
     // anyone has loaded the Dashboard yet today.
     await generateRecurringTaskInstances(team.id);
     await refreshOverdueTasks(team.id);
+    await autoStopOpenSessions({ teamId: team.id });
 
     const tasks = await prisma.task.findMany({
       where: {
@@ -48,7 +52,7 @@ export async function GET(req: NextRequest) {
     for (const [, userTasks] of byAssignee) {
       const assignee = userTasks[0].assignedUser;
       if (!assignee) continue;
-      await notifyDailyDigest(assignee, userTasks);
+      await notifyDailyDigest(team.id, assignee, userTasks);
       digestsSent++;
     }
   }

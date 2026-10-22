@@ -33,6 +33,15 @@ Google Sheets/Drive integration.
   of `npm run build`, so a normal Vercel deploy applies pending migrations
   automatically — don't reintroduce `db push`-only workflows.
 
+## Attendance & overtime
+
+The rules (auto-stop after 10h, lead approval for missed punches, the
+next-check-in lock, overtime only via approved requests, no self-approval)
+are written down in `docs/attendance-rules.md`. Pure logic lives in
+`lib/attendance/rules.ts` — run `npm run test:attendance` after touching it.
+Raw punches (`actualCheckIn/Out`) are never overwritten; approved times go in
+`effectiveCheckIn/Out` and every decision is audited (`AttendanceAudit`).
+
 ## Design language — don't reinvent it per page
 
 Charlie HQ already has an established visual identity in `app/globals.css`

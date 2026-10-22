@@ -9,6 +9,7 @@ import { IconTooltip } from "@/components/ui/tooltip";
 import { NoticeComposer } from "@/components/notices/notice-composer";
 import { NOTICE_COLOR_STYLES } from "@/components/notices/notice-colors";
 import { formatClientShortDate } from "@/lib/time";
+import { useTeamTimezone } from "@/components/providers/team-timezone";
 
 type ChecklistItem = { id: string; text: string; checked: boolean };
 
@@ -24,6 +25,7 @@ type Notice = {
 };
 
 function NoticeCard({ notice, canPinNotices, canManage }: { notice: Notice; canPinNotices: boolean; canManage: boolean }) {
+  const tz = useTeamTimezone();
   const router = useRouter();
   // Local optimistic copies, same pattern as components/tasks/task-card.tsx.
   // `hidden` covers both archive and unarchive — either action removes the
@@ -144,7 +146,7 @@ function NoticeCard({ notice, canPinNotices, canManage }: { notice: Notice; canP
 
       <div className="mt-3 flex items-center justify-between">
         <span className="text-xs opacity-70">
-          {notice.author.name} · {formatClientShortDate(new Date(notice.createdAt))}
+          {notice.author.name} · {formatClientShortDate(new Date(notice.createdAt), tz)}
         </span>
         <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
           {canPinNotices && !notice.archived && (

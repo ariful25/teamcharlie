@@ -11,6 +11,8 @@
 // so task routes can call these unconditionally without needing to guard
 // every call site on whether the bot has been configured.
 
+import { postToWebhook } from "@/lib/discord";
+
 const DISCORD_API = "https://discord.com/api/v10";
 
 type DiscordResult = { ok: boolean; error?: string; messageId?: string };
@@ -42,7 +44,13 @@ async function discordRequest(path: string, init: RequestInit): Promise<{ ok: bo
   }
 }
 
-async function postToTaskChannel(payload: Record<string, unknown>): Promise<DiscordResult> {
+// A team other than the home team has no bot — its task messages go to the
+// plain webhook it saved in Settings instead (text only; webhooks can't carry
+// the digest's clickable buttons).
+export type TaskTarget = { webhookUrl?: string | null };
+
+async function postToTaskChannel(payload: Record<string, unknown>, target?: TaskTarget): Promise<DiscordResult> {
+  if (target?.webhookUrl) return postToWebhook(target.webhookUrl, String(payload.content ?? ""));
   const channelId = process.env.DISCORD_TASK_CHANNEL_ID;
   if (!channelId) return { ok: false, error: "DISCORD_TASK_CHANNEL_ID not configured" };
   const result = await discordRequest(`/channels/${channelId}/messages`, {
@@ -83,7 +91,7 @@ type TaskForMessage = {
   assignedUser?: { name: string; discordUserId?: string | null } | null;
 };
 
-export async function sendTaskCreated(task: TaskForMessage, actorName: string) {
+export async function sendTaskCreated(task: TaskForMessage, actorName: string, target?: TaskTarget) {
   const content = [
     `🆕 **Task Created**`,
     ``,
@@ -91,41 +99,46 @@ export async function sendTaskCreated(task: TaskForMessage, actorName: string) {
     `Assigned: ${task.assignedUser ? mentionFor(task.assignedUser) : "Unassigned"}`,
     `By: ${actorName}`,
   ].join("\n");
-  return postToTaskChannel({ content });
+  return postToTaskChannel({ content }, target);
 }
 
-export async function sendTaskEdited(task: TaskForMessage, actorName: string) {
+export async function sendTaskEdited(task: TaskForMessage, actorName: string, target?: TaskTarget) {
   const content = [`✏️ **Task Updated**`, ``, `${PRIORITY_EMOJI[task.priority] ?? ""} ${taskLine(task)}`, `By: ${actorName}`].join(
     "\n"
   );
-  return postToTaskChannel({ content });
+  return postToTaskChannel({ content }, target);
 }
 
-export async function sendTaskDeleted(task: TaskForMessage, actorName: string) {
+export async function sendTaskDeleted(task: TaskForMessage, actorName: string, target?: TaskTarget) {
   const content = [`🗑️ **Task Deleted**`, ``, `${taskLine(task)}`, `By: ${actorName}`].join("\n");
-  return postToTaskChannel({ content });
+  return postToTaskChannel({ content }, target);
 }
 
-export async function sendTaskStatusChanged(task: TaskForMessage, status: "IN_PROGRESS" | "COMPLETED" | "BLOCKED", actorName: string) {
+export async function sendTaskStatusChanged(
+  task: TaskForMessage,
+  status: "IN_PROGRESS" | "COMPLETED" | "BLOCKED",
+  actorName: string,
+  target?: TaskTarget
+) {
   const headers: Record<string, string> = {
     IN_PROGRESS: "🔵 **Task In Progress**",
     COMPLETED: "✅ **Task Completed**",
     BLOCKED: "⛔ **Task Blocked**",
   };
   const content = [headers[status], ``, `${taskLine(task)}`, `By: ${actorName}`].join("\n");
-  return postToTaskChannel({ content });
+  return postToTaskChannel({ content }, target);
 }
 
 // Batched into one message (not one per task) since this runs off the
 // throttled overdue sweep and could otherwise fire a burst of messages.
-export async function sendTasksOverdue(tasks: TaskForMessage[]) {
+export async function sendTasksOverdue(tasks: TaskForMessage[], target?: TaskTarget) {
   if (tasks.length === 0) return { ok: true } as DiscordResult;
   const content = [
     `⏰ **${tasks.length} Task${tasks.length > 1 ? "s" : ""} Overdue**`,
     ``,
     ...tasks.map((t) => `• ${taskLine(t)} — ${t.assignedUser ? mentionFor(t.assignedUser) : "Unassigned"}`),
   ].join("\n");
-  return postToTaskChannel({ content });
+  return postToTaskChannel({ content }, target);
 }
 
 const COMPLETE_BUTTON_PREFIX = "complete_task:";
@@ -173,11 +186,18 @@ export function buildDailyDigestContent(user: { name: string; discordUserId?: st
   ].join("\n");
 }
 
-export async function sendDailyDigest(user: { name: string; discordUserId?: string | null }, tasks: TaskForMessage[]) {
-  return postToTaskChannel({
-    content: buildDailyDigestContent(user, tasks),
-    components: tasks.length > 0 ? digestComponents(tasks) : undefined,
-  });
+export async function sendDailyDigest(
+  user: { name: string; discordUserId?: string | null },
+  tasks: TaskForMessage[],
+  target?: TaskTarget
+) {
+  return postToTaskChannel(
+    {
+      content: buildDailyDigestContent(user, tasks),
+      components: tasks.length > 0 ? digestComponents(tasks) : undefined,
+    },
+    target
+  );
 }
 
 // Shared by the daily digest and by the interactions endpoint re-rendering

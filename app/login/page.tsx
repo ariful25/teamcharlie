@@ -3,17 +3,14 @@
 import { Suspense, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Radar, Lock, Mail, Eye, EyeOff, Building2, ListChecks, Users, Loader2 } from "lucide-react";
+import { Radar, Lock, Mail, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AUTH_ERROR_ACCOUNT_DISABLED } from "@/lib/auth-errors";
-
-const FEATURES = [
-  { icon: Building2, title: "Properties", body: "Every listing's knowledge base in one place" },
-  { icon: ListChecks, title: "Tasks", body: "Keep your whole team aligned, every shift" },
-  { icon: Users, title: "Teamwork", body: "Roles, permissions, and visibility that fit how you operate" },
-];
+import { PRODUCT_NAME } from "@/lib/brand";
+import { BrandPanel, FEATURES } from "@/components/auth/brand-panel";
 
 function ForgotPasswordDialog() {
   const [open, setOpen] = useState(false);
@@ -28,7 +25,7 @@ function ForgotPasswordDialog() {
       </button>
       <DialogContent title="Forgot your password?" className="max-w-sm">
         <p className="text-sm text-muted-foreground">
-          Charlie HQ doesn&apos;t have self-service password resets yet — accounts are managed by your team admin.
+          {PRODUCT_NAME} doesn&apos;t have self-service password resets yet — accounts are managed by your team admin.
           Reach out to them directly and they can issue you a new temporary password from Settings.
         </p>
       </DialogContent>
@@ -48,7 +45,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (searchParams.get("signedOut")) {
-      toast.success("You've been signed out. Thanks for using Charlie HQ.");
+      toast.success(`You've been signed out. Thanks for using ${PRODUCT_NAME}.`);
     } else if (searchParams.get("disabled")) {
       toast.error("Your account has been disabled. Contact your administrator.");
     }
@@ -82,7 +79,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 lg:min-h-0 lg:flex-1 lg:justify-end lg:px-0 lg:py-0">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden flex-1 px-4 py-10 lg:min-h-0 lg:justify-end lg:px-0 lg:py-0">
       <div className="pointer-events-none absolute inset-0 lg:hidden">
         <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-primary/20 blur-3xl animate-pulse-glow" />
         <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-accent/20 blur-3xl animate-pulse-glow" />
@@ -98,8 +95,8 @@ function LoginForm() {
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 glow-border">
             <Radar className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Sign in to Charlie HQ</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage your properties, guests, and operations in one place.</p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Sign in to {PRODUCT_NAME}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Your team&apos;s tasks, shifts, and operations in one place.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -187,7 +184,11 @@ function LoginForm() {
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Don&apos;t have an account? Contact your administrator.
+          New here?{" "}
+          <Link href="/signup" className="font-medium text-primary hover:brightness-110">
+            Create a team
+          </Link>{" "}
+          — or ask your admin for an invite link.
         </p>
 
         <div className="mt-6 grid grid-cols-3 gap-2 border-t border-border pt-5 lg:hidden">
@@ -196,59 +197,6 @@ function LoginForm() {
               <f.icon className="h-4 w-4 text-primary" />
               <span className="text-[10px] font-medium text-muted-foreground">{f.title}</span>
             </div>
-          ))}
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-function BrandPanel() {
-  return (
-    <div className="relative hidden overflow-hidden bg-[hsl(222_47%_4%)] lg:flex lg:w-[45%] lg:items-center lg:justify-start lg:px-16">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-0 h-[32rem] w-[32rem] rounded-full bg-primary/25 blur-[100px]" />
-        <div className="absolute -bottom-24 -right-10 h-[28rem] w-[28rem] rounded-full bg-accent/20 blur-[100px]" />
-        <svg className="absolute inset-0 h-full w-full opacity-[0.07]" aria-hidden="true">
-          <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
-            <path d="M 36 0 L 0 0 0 36" fill="none" stroke="white" strokeWidth="1" />
-          </pattern>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, x: -12 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 max-w-md"
-      >
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Property Operations, Simplified</p>
-        <h2 className="mt-4 font-display text-4xl font-semibold leading-tight tracking-tight">
-          Great stays start with great operations.
-        </h2>
-        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Charlie HQ helps short-term rental teams stay organized, efficient, and guest-ready — one shared source of
-          truth for every property, task, and teammate.
-        </p>
-
-        <div className="mt-10 space-y-5">
-          {FEATURES.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.15 + i * 0.1 }}
-              className="flex items-start gap-3"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 glow-border">
-                <f.icon className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">{f.title}</p>
-                <p className="text-xs text-muted-foreground">{f.body}</p>
-              </div>
-            </motion.div>
           ))}
         </div>
       </motion.div>

@@ -46,7 +46,7 @@ async function main() {
   ];
   const categories: Record<string, string> = {};
   for (const name of categoryNames) {
-    const c = await prisma.category.upsert({ where: { name }, update: {}, create: { name } });
+    const c = await prisma.category.upsert({ where: { teamId_name: { teamId: team.id, name } }, update: {}, create: { name, teamId: team.id } });
     categories[name] = c.id;
   }
 

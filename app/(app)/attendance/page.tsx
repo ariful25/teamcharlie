@@ -1,98 +1,118 @@
 import Link from "next/link";
+import { CalendarClock, ShieldCheck } from "lucide-react";
 import { permissions } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
-import { getTodayAttendance, getMonthlyAttendance, getWeeklyAttendance } from "@/lib/queries/attendance";
-import { AttendanceTable } from "@/components/attendance/attendance-table";
-import { MonthlySummary } from "@/components/attendance/monthly-summary";
+import { prisma } from "@/lib/prisma";
+import { getTeamTimezone } from "@/lib/team-timezone";
+import { dayAsTeamInstant, dayKey, formatDateLong, startOfDayUTC } from "@/lib/time";
+import {
+  getEmployeeShifts,
+  getMyOvertime,
+  getPeriodSummary,
+  getReviewQueue,
+  getShiftCardState,
+  monthRange,
+  weekRange,
+} from "@/lib/queries/attendance";
+import { Button } from "@/components/ui/button";
+import { ShiftCard } from "@/components/dashboard/shift-card";
+import { MyAttendance } from "@/components/attendance/my-attendance";
+import { PeriodTable } from "@/components/attendance/period-table";
 import { MonthSelector } from "@/components/attendance/month-selector";
 import { WeekSelector } from "@/components/attendance/week-selector";
-import { Button } from "@/components/ui/button";
-import { CalendarClock, ShieldCheck } from "lucide-react";
-import { startOfWeekMonday, startOfDayUTC } from "@/lib/time";
+import { Panel, StatTile } from "@/components/attendance/ui";
+import { hm } from "@/lib/attendance/format";
 
-export default async function AttendancePage({
-  searchParams,
-}: {
-  searchParams: { year?: string; month?: string; weekStart?: string };
-}) {
+export default async function AttendancePage({ searchParams }: { searchParams: { year?: string; month?: string; weekStart?: string } }) {
   const currentUser = await getCurrentUser();
+  const tz = await getTeamTimezone(currentUser.teamId);
+  const isLead = permissions.canEditAttendance(currentUser.role);
 
   const now = new Date();
-  // now.getFullYear()/getMonth() read the *server process's* local calendar
-  // day (UTC on Vercel) — wrong for ~6 hours every day, since Dhaka is UTC+6
-  // and is already on the next day (and, month-end, the next month) while
-  // the server still thinks it's the previous one. startOfDayUTC converts
-  // `now` to Dhaka's calendar day first, so reading UTC getters off *that*
-  // is safe regardless of what timezone the server process itself runs in.
-  const todayInTeamTz = startOfDayUTC(now);
-  const year = searchParams.year ? Number(searchParams.year) : todayInTeamTz.getUTCFullYear();
-  const month = searchParams.month ? Number(searchParams.month) : todayInTeamTz.getUTCMonth();
-  const weekStartParam = searchParams.weekStart ? new Date(`${searchParams.weekStart}T00:00:00.000Z`) : now;
+  const today = startOfDayUTC(now, tz);
+  const year = searchParams.year ? Number(searchParams.year) : today.getUTCFullYear();
+  const month = searchParams.month ? Number(searchParams.month) : today.getUTCMonth();
+  const weekAnchor = searchParams.weekStart ? dayAsTeamInstant(new Date(`${searchParams.weekStart}T00:00:00.000Z`), tz) : now;
+  const week = await weekRange(currentUser.teamId, weekAnchor);
+  const thisWeek = await weekRange(currentUser.teamId, now);
+  const thisMonth = monthRange(today.getUTCFullYear(), today.getUTCMonth());
+  const selectedMonth = monthRange(year, month);
+  const onlyMe = isLead ? undefined : currentUser.id;
 
-  const [todayRows, monthlyRows, weekly] = await Promise.all([
-    getTodayAttendance(currentUser.teamId),
-    getMonthlyAttendance(currentUser.teamId, year, month),
-    getWeeklyAttendance(currentUser.teamId, weekStartParam),
+  const [shiftState, mine, myOvertime, myWeek, myMonth, weekRows, monthRows, queue, leads, checklist] = await Promise.all([
+    getShiftCardState(currentUser.id),
+    getEmployeeShifts(currentUser.teamId, currentUser.id, 14),
+    getMyOvertime(currentUser.id),
+    getPeriodSummary(currentUser.teamId, thisWeek.start, thisWeek.end, currentUser.id),
+    getPeriodSummary(currentUser.teamId, thisMonth.start, thisMonth.end, currentUser.id),
+    getPeriodSummary(currentUser.teamId, week.start, week.end, onlyMe),
+    getPeriodSummary(currentUser.teamId, selectedMonth.start, selectedMonth.end, onlyMe),
+    isLead ? getReviewQueue(currentUser.teamId) : Promise.resolve([]),
+    prisma.user.findMany({
+      where: { teamId: currentUser.teamId, active: true, role: { in: ["ADMIN", "TEAM_LEAD"] } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.checklistItem.findMany({ where: { teamId: currentUser.teamId, type: "CHECKOUT", active: true }, orderBy: [{ order: "asc" }, { createdAt: "asc" }] }),
   ]);
 
-  const canEdit = permissions.canEditAttendance(currentUser.role);
+  const w = myWeek[0];
+  const m = myMonth[0];
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Attendance</h1>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{formatDateLong(now, tz)}</p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">Attendance</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Today&apos;s check-ins, check-outs, and monthly totals. Expected shift times come
-            from the{" "}
+            Your shifts, hours and requests. Expected times come from the{" "}
             <Link href="/shift-schedule" className="text-primary hover:underline">
               Shift Schedule
             </Link>
             .
           </p>
         </div>
-        {canEdit && (
-          <div className="flex items-center gap-2">
-            <Link href="/attendance/admin">
-              <Button variant="secondary" size="md">
-                <ShieldCheck className="h-4 w-4" /> Team Attendance (Admin)
+        {isLead && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/attendance/admin?tab=review">
+              <Button variant={queue.length ? "primary" : "secondary"}>
+                <ShieldCheck className="h-4 w-4" /> Team Attendance
+                {queue.length > 0 && <span className="rounded-full bg-background/30 px-1.5 text-xs">{queue.length} to review</span>}
               </Button>
             </Link>
             <Link href="/shift-schedule">
-              <Button variant="secondary" size="md">
-                <CalendarClock className="h-4 w-4" /> Manage Shift Schedule
+              <Button variant="secondary">
+                <CalendarClock className="h-4 w-4" /> Shift Schedule
               </Button>
             </Link>
           </div>
         )}
       </div>
 
-      <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Today
-        </h2>
-        <AttendanceTable rows={todayRows} canEdit={canEdit} />
+      <div className="grid gap-6 lg:grid-cols-[minmax(300px,380px)_1fr]">
+        <ShiftCard state={shiftState} checklistItems={checklist.map((c) => ({ id: c.id, label: c.label }))} leads={leads} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatTile label="Paid this week" value={hm((w?.regularMinutes ?? 0) + (w?.overtimeMinutes ?? 0))} hint={`of ${hm(w?.scheduledMinutes ?? 0)} scheduled`} tone="primary" />
+          <StatTile label="Overtime this week" value={hm(w?.overtimeMinutes ?? 0)} hint="approved only" tone="accent" />
+          <StatTile label="Pending review" value={hm((w?.pendingMinutes ?? 0))} hint={`${w?.needsReview ?? 0} shift(s)`} tone={w?.needsReview ? "warning" : "muted"} />
+          <StatTile label="Late this week" value={w?.lateCount ?? 0} hint="incl. missed check-ins" tone={w?.lateCount ? "warning" : "muted"} />
+          <StatTile label="Paid this month" value={hm((m?.regularMinutes ?? 0) + (m?.overtimeMinutes ?? 0))} hint={`of ${hm(m?.scheduledMinutes ?? 0)} scheduled`} tone="primary" />
+          <StatTile label="Overtime this month" value={hm(m?.overtimeMinutes ?? 0)} tone="accent" />
+          <StatTile label="Unapproved extra" value={hm(m?.extraMinutes ?? 0)} hint="this month · not paid" tone={m?.extraMinutes ? "danger" : "muted"} />
+          <StatTile label="Missed punches" value={m?.missedPunches ?? 0} hint="this month" tone={m?.missedPunches ? "danger" : "muted"} />
+        </div>
       </div>
 
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Weekly Working Hours
-          </h2>
-          <WeekSelector weekStart={startOfWeekMonday(weekStartParam)} />
-        </div>
-        <MonthlySummary rows={weekly.rows} emptyLabel="No attendance records for this week." />
-      </div>
+      <MyAttendance shifts={mine?.shifts ?? []} overtime={myOvertime} leads={leads} today={dayKey(today)} />
 
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Monthly Working Hours
-          </h2>
-          <MonthSelector year={year} month={month} />
-        </div>
-        <MonthlySummary rows={monthlyRows} />
-      </div>
+      <Panel title={isLead ? "Weekly hours — team" : "Weekly hours"} action={<WeekSelector weekStart={week.start} />}>
+        <PeriodTable rows={weekRows} emptyLabel="No attendance this week." linkRows={isLead} />
+      </Panel>
+
+      <Panel title={isLead ? "Monthly hours — team" : "Monthly hours"} action={<MonthSelector year={year} month={month} />}>
+        <PeriodTable rows={monthRows} linkRows={isLead} />
+      </Panel>
     </div>
   );
 }

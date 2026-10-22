@@ -1,82 +1,56 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { permissions } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-import { getAttendanceHistory } from "@/lib/queries/attendance";
-import { Card } from "@/components/ui/card";
-import { Badge, statusTone } from "@/components/ui/badge";
-import { formatClientDate, formatClientTime, formatMinutesAsHm } from "@/lib/time";
-import { EditAttendanceModal } from "@/components/attendance/edit-attendance-modal";
-import { notFound } from "next/navigation";
+import { getTeamTimezone } from "@/lib/team-timezone";
+import { dayKey, startOfDayUTC } from "@/lib/time";
+import { getEmployeeShifts, getPeriodSummary, monthRange } from "@/lib/queries/attendance";
+import { EmployeeShifts } from "@/components/attendance/employee-shifts";
+import { StatTile } from "@/components/attendance/ui";
+import { hm } from "@/lib/attendance/format";
 
-function fmtTime(date: Date | null) {
-  if (!date) return "—";
-  return formatClientTime(date);
-}
-
-export default async function EmployeeAttendanceHistoryPage({ params }: { params: { userId: string } }) {
+export default async function EmployeeAttendancePage({ params }: { params: { userId: string } }) {
   const currentUser = await getCurrentUser();
-  const canEdit = permissions.canEditAttendance(currentUser.role);
+  const canReview = permissions.canEditAttendance(currentUser.role);
+  // Employees can only see their own history.
+  if (!canReview && params.userId !== currentUser.id) redirect("/attendance");
 
-  const employee = await prisma.user.findUnique({ where: { id: params.userId } });
-  if (!employee) notFound();
-
-  const history = await getAttendanceHistory(params.userId);
+  const tz = await getTeamTimezone(currentUser.teamId);
+  const today = startOfDayUTC(new Date(), tz);
+  const month = monthRange(today.getUTCFullYear(), today.getUTCMonth());
+  const [history, summary] = await Promise.all([
+    getEmployeeShifts(currentUser.teamId, params.userId, 45),
+    getPeriodSummary(currentUser.teamId, month.start, month.end, params.userId),
+  ]);
+  if (!history) notFound();
+  const m = summary[0];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">{employee.name}&apos;s Attendance History</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Last 90 days of recorded attendance.</p>
+        <Link href={canReview ? "/attendance/admin" : "/attendance"} className="mb-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-3 w-3" /> Back
+        </Link>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">{history.user.name}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Attendance history and this month&apos;s hours.</p>
       </div>
 
-      <Card className="overflow-x-auto p-0">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="px-5 py-2 font-medium">Date</th>
-              <th className="px-5 py-2 font-medium">Scheduled In</th>
-              <th className="px-5 py-2 font-medium">Actual In</th>
-              <th className="px-5 py-2 font-medium">Scheduled Out</th>
-              <th className="px-5 py-2 font-medium">Actual Out</th>
-              <th className="px-5 py-2 font-medium">Total Hours</th>
-              <th className="px-5 py-2 font-medium">Status</th>
-              {canEdit && <th className="px-5 py-2 font-medium">Edit</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {history.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">
-                  No attendance records for this month.
-                </td>
-              </tr>
-            ) : (
-              history.map((r) => (
-                <tr key={r.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
-                  <td className="px-5 py-3 whitespace-nowrap tabular-nums">
-                    {formatClientDate(r.date)}
-                  </td>
-                  <td className="px-5 py-3 text-muted-foreground tabular-nums">{r.scheduledCheckIn ?? "—"}</td>
-                  <td className="px-5 py-3 text-muted-foreground tabular-nums">{fmtTime(r.actualCheckIn)}</td>
-                  <td className="px-5 py-3 text-muted-foreground tabular-nums">{r.scheduledCheckOut ?? "—"}</td>
-                  <td className="px-5 py-3 text-muted-foreground tabular-nums">{fmtTime(r.actualCheckOut)}</td>
-                  <td className="px-5 py-3 text-muted-foreground tabular-nums">
-                    {r.totalMinutes != null ? formatMinutesAsHm(r.totalMinutes) : "—"}
-                  </td>
-                  <td className="px-5 py-3">
-                    <Badge tone={statusTone(r.status)}>{r.status.replace(/_/g, " ")}</Badge>
-                  </td>
-                  {canEdit && (
-                    <td className="px-5 py-3">
-                      <EditAttendanceModal record={r} />
-                    </td>
-                  )}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </Card>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <StatTile label="Scheduled" value={hm(m?.scheduledMinutes ?? 0)} hint="this month" tone="muted" />
+        <StatTile label="Paid regular" value={hm(m?.regularMinutes ?? 0)} tone="primary" />
+        <StatTile label="Approved OT" value={hm(m?.overtimeMinutes ?? 0)} tone="accent" />
+        <StatTile label="Pending" value={hm(m?.pendingMinutes ?? 0)} hint={`${m?.needsReview ?? 0} to review`} tone={m?.needsReview ? "warning" : "muted"} />
+        <StatTile label="Unapproved extra" value={hm(m?.extraMinutes ?? 0)} hint="not paid" tone={m?.extraMinutes ? "danger" : "muted"} />
+        <StatTile label="Late / missed" value={`${m?.lateCount ?? 0} / ${m?.missedPunches ?? 0}`} tone={m?.lateCount || m?.missedPunches ? "warning" : "muted"} />
+      </div>
+
+      <EmployeeShifts
+        shifts={history.shifts}
+        today={dayKey(today)}
+        canReview={canReview}
+        currentUser={{ id: currentUser.id, role: currentUser.role }}
+      />
     </div>
   );
 }

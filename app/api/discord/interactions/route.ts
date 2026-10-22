@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import nacl from "tweetnacl";
 import { prisma } from "@/lib/prisma";
-import { startOfDayUTC } from "@/lib/time";
 import { buildDailyDigestContent, isCompleteTaskCustomId, taskIdFromCustomId, digestComponents } from "@/lib/discord-bot";
 
 // Discord's "Interactions Endpoint URL" — set in the Developer Portal once
@@ -63,11 +62,13 @@ export async function POST(req: NextRequest) {
     // to patch just this one line — simplest way to keep the message
     // consistent if multiple buttons get clicked close together.
     if (task.assignedUserId) {
-      const assignee = await prisma.user.findFirst({ where: { id: task.assignedUserId } });
+      const assignee = await prisma.user.findFirst({ where: { id: task.assignedUserId, teamId: task.teamId } });
       const dayTasks = await prisma.task.findMany({
         where: {
           assignedUserId: task.assignedUserId,
-          date: startOfDayUTC(task.date),
+          // task.date is already the UTC-midnight calendar day.
+          date: task.date,
+          teamId: task.teamId,
           isRecurringTemplate: false,
           deletedAt: null,
         },

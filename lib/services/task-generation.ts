@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { startOfDayUTC, dayOfWeekInTz, TEAM_TIMEZONE, combineDateAndTime } from "@/lib/time";
+import { startOfDayUTC, dayOfWeekInTz, combineDateAndTime } from "@/lib/time";
+import { getTeamTimezone } from "@/lib/team-timezone";
 import { notifyTasksOverdue } from "@/lib/notifications";
 
 /**
@@ -19,14 +20,19 @@ import { notifyTasksOverdue } from "@/lib/notifications";
  * old Routine system had, just with one entity instead of two.
  */
 export async function generateRecurringTaskInstances(teamId: string, referenceDate: Date = new Date()) {
-  const today = startOfDayUTC(referenceDate);
-  const dow = dayOfWeekInTz(referenceDate, TEAM_TIMEZONE);
+  const tz = await getTeamTimezone(teamId);
+  const today = startOfDayUTC(referenceDate, tz);
+  const dow = dayOfWeekInTz(referenceDate, tz);
 
   const templates = await prisma.task.findMany({
     where: { teamId, isRecurringTemplate: true, deletedAt: null },
   });
 
   const dueTemplates = templates.filter((t) => {
+    // A template's `date` is the series' start date — a series scheduled to
+    // begin next week must not produce instances before then. (Previously
+    // this was ignored, so a Daily task "starting Monday" appeared today.)
+    if (t.date.getTime() > today.getTime()) return false;
     if (t.repeatMode === "DAILY") return true;
     if (t.repeatMode === "WEEKLY" || t.repeatMode === "CUSTOM") {
       return t.repeatDays.includes(dow);
@@ -84,10 +90,9 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
   const resolveAssignee = (t: (typeof dueTemplates)[number]) =>
     t.shiftTypeId ? shiftAssigneeByShiftTypeId.get(t.shiftTypeId) ?? null : t.assignedUserId;
 
-  // No date check here — a template's own `date` is just when it was
-  // created, not "already generated today." Every due template gets a real
-  // instance today, including the day it was created, unless one already
-  // exists (the dedup check above).
+  // Every due template (start date reached, see above) gets a real instance
+  // today, including its start day, unless one already exists (the dedup
+  // check above).
   const toCreate = dueTemplates.filter((t) => !existingTemplateIds.has(t.id));
 
   if (toCreate.length === 0) return { created: 0 };
@@ -133,7 +138,8 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
  * a scheduled job.
  */
 export async function refreshOverdueTasks(teamId: string, referenceDate: Date = new Date()) {
-  const today = startOfDayUTC(referenceDate);
+  const tz = await getTeamTimezone(teamId);
+  const today = startOfDayUTC(referenceDate, tz);
 
   const candidates = await prisma.task.findMany({
     where: {
@@ -154,7 +160,7 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
     if (!t.dueTime) continue;
     // Each task's own date, not the reference day — a task from three days
     // ago is compared against its own due time on its own day, not today's.
-    const due = combineDateAndTime(t.date, t.dueTime);
+    const due = combineDateAndTime(t.date, t.dueTime, tz);
     if (due.getTime() < referenceDate.getTime()) {
       newlyOverdue.push(t);
     }
@@ -168,7 +174,7 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
     // Best-effort — this sweep runs off a throttled background job, not a
     // user action, so there's no "actor" to attribute and no request to
     // fail if Discord is unreachable.
-    await notifyTasksOverdue(newlyOverdue);
+    await notifyTasksOverdue(teamId, newlyOverdue);
   }
 
   return { markedOverdue: newlyOverdue.length };

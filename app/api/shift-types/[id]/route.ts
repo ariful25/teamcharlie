@@ -18,6 +18,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
+  const existing = await prisma.shiftType.findFirst({ where: { id: params.id, teamId: currentUser.teamId } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const shiftType = await prisma.shiftType.update({ where: { id: params.id }, data: parsed.data });
   return NextResponse.json({ shiftType });
 }
@@ -29,6 +32,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!permissions.canManageShiftSchedule(currentUser.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const existing = await prisma.shiftType.findFirst({ where: { id: params.id, teamId: currentUser.teamId } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.shiftType.update({ where: { id: params.id }, data: { active: false } });
   return NextResponse.json({ ok: true });

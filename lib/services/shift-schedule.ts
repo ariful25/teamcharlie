@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfWeekMonday, weekDays } from "@/lib/time";
 
 export async function getShiftTypes(teamId: string) {
@@ -11,7 +12,7 @@ export async function getShiftTypes(teamId: string) {
  * digital equivalent of the team's spreadsheet.
  */
 export async function getWeekRoster(teamId: string, anyDateInWeek: Date) {
-  const weekStart = startOfWeekMonday(anyDateInWeek);
+  const weekStart = startOfWeekMonday(anyDateInWeek, await getTeamTimezone(teamId));
   const days = weekDays(weekStart);
   const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -105,9 +106,10 @@ export async function assignEmployeeToWeek(
   userId: string,
   shiftTypeId: string,
   anyDateInWeek: Date,
-  createdBy: string
+  createdBy: string,
+  tz: string
 ) {
-  const weekStart = startOfWeekMonday(anyDateInWeek);
+  const weekStart = startOfWeekMonday(anyDateInWeek, tz);
   const days = weekDays(weekStart);
 
   const existing = await prisma.shiftAssignment.findMany({
@@ -135,7 +137,7 @@ export async function assignEmployeeToWeek(
  * one, with a handful of exceptions the admin then edits). Skips days that already
  * have an assignment in the target week. */
 export async function copyPreviousWeek(teamId: string, targetWeekAnyDate: Date, createdBy: string) {
-  const targetWeekStart = startOfWeekMonday(targetWeekAnyDate);
+  const targetWeekStart = startOfWeekMonday(targetWeekAnyDate, await getTeamTimezone(teamId));
   const previousWeekStart = new Date(targetWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
   const previousWeekEnd = targetWeekStart;
 

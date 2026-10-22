@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatClientDateTime } from "@/lib/time";
+import { useTeamTimezone } from "@/components/providers/team-timezone";
 
 type GoogleSheet = {
   spreadsheetId: string | null;
@@ -45,6 +46,7 @@ async function submitJson(url: string, method: string) {
 }
 
 function SyncLogModal({ clientId }: { clientId: string }) {
+  const tz = useTeamTimezone();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
@@ -80,7 +82,7 @@ function SyncLogModal({ clientId }: { clientId: string }) {
               <div key={log.id} className="rounded-xl border border-border px-3 py-2 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">{log.property?.internalName ?? log.action}</span>
-                  <span className="text-muted-foreground">{formatClientDateTime(new Date(log.createdAt))}</span>
+                  <span className="text-muted-foreground">{formatClientDateTime(new Date(log.createdAt), tz)}</span>
                 </div>
                 {log.field ? (
                   <p className="mt-1 text-muted-foreground">
@@ -112,6 +114,7 @@ export function ClientGoogleSheetPanel({
   propertiesSynced: number;
   canManage: boolean;
 }) {
+  const tz = useTeamTimezone();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const status = googleSheet?.status ?? "NOT_CONNECTED";
@@ -169,7 +172,7 @@ export function ClientGoogleSheetPanel({
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Last Sync</span>
-              <span>{googleSheet?.lastSyncedAt ? formatClientDateTime(new Date(googleSheet.lastSyncedAt)) : "Never"}</span>
+              <span>{googleSheet?.lastSyncedAt ? formatClientDateTime(new Date(googleSheet.lastSyncedAt), tz) : "Never"}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Properties Synced</span>

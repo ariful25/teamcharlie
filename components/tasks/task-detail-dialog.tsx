@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge, statusTone, priorityTone } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { TimePicker } from "@/components/ui/time-picker";
-import { formatClientLongDate } from "@/lib/time";
+import { formatDayLong } from "@/lib/time";
 
 type Option = { id: string; name: string };
 
@@ -167,6 +167,101 @@ function EditForm({
   );
 }
 
+const STATUS_OPTIONS = [
+  { value: "UPCOMING", label: "Upcoming" },
+  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "BLOCKED", label: "Blocked" },
+  { value: "COMPLETED", label: "Completed" },
+];
+
+// Status + series controls in view mode. Dragging between Kanban columns
+// was the only way to change status besides "Complete", which doesn't work
+// with a keyboard and fights scrolling on touch screens.
+function TaskActions({ task, onDone }: { task: any; onDone: () => void }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [blockedReason, setBlockedReason] = useState(task.blockedReason ?? "");
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const isPartOfSeries = !!task.recurringTemplateId || task.isRecurringTemplate;
+
+  async function saveStatus(status: string, reason?: string) {
+    setBusy(true);
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(status === "BLOCKED" ? { status, blockedReason: reason || null } : { status }),
+    });
+    setBusy(false);
+    if (res.ok) {
+      toast.success(`Marked ${status.toLowerCase().replace("_", " ")}`);
+      setPendingStatus(null);
+      router.refresh();
+      onDone();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error ?? "Could not update task");
+    }
+  }
+
+  async function stopSeries() {
+    if (!confirm("Stop repeating this task? Today's task stays; no new ones will be created.")) return;
+    setBusy(true);
+    const res = await fetch(`/api/tasks/${task.id}?series=true`, { method: "DELETE" });
+    setBusy(false);
+    if (res.ok) {
+      toast.success("Recurring series stopped");
+      router.refresh();
+      onDone();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error ?? "Could not stop the series");
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+      <div className="flex flex-wrap items-end gap-2">
+        <Field label="Status" className="min-w-[160px] flex-1">
+          <Select
+            value={pendingStatus ?? (task.status === "OVERDUE" ? "" : task.status)}
+            placeholder="Overdue"
+            onValueChange={(next) => {
+              if (!next || next === task.status) return;
+              if (next === "BLOCKED") setPendingStatus("BLOCKED");
+              else saveStatus(next);
+            }}
+            options={STATUS_OPTIONS}
+          />
+        </Field>
+        {isPartOfSeries && (
+          <Button type="button" variant="outline" disabled={busy} onClick={stopSeries} className="h-10">
+            <Repeat className="h-4 w-4" /> Stop repeating
+          </Button>
+        )}
+      </div>
+      {pendingStatus === "BLOCKED" && (
+        <div className="flex flex-wrap items-end gap-2">
+          <Field label="What's blocking it?" className="min-w-[200px] flex-1">
+            <input
+              autoFocus
+              value={blockedReason}
+              onChange={(e) => setBlockedReason(e.target.value)}
+              className={inputClass}
+              placeholder="e.g. Waiting on owner approval"
+            />
+          </Field>
+          <Button type="button" variant="outline" className="h-10" onClick={() => setPendingStatus(null)}>
+            Cancel
+          </Button>
+          <Button type="button" className="h-10" disabled={busy} onClick={() => saveStatus("BLOCKED", blockedReason)}>
+            Mark blocked
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Clicking a task card opens this. View mode shows everything including
 // notes (which otherwise have no other place in the UI); the pencil button
 // switches to an edit form. Editing always updates this specific day's task;
@@ -179,6 +274,7 @@ export function TaskDetailDialog({
   clients = [],
   employees = [],
   categories = [],
+  readOnly = false,
 }: {
   task: any;
   open: boolean;
@@ -186,6 +282,9 @@ export function TaskDetailDialog({
   clients?: Option[];
   employees?: Option[];
   categories?: Option[];
+  // A soft-deleted task (Task History) — every write to it 404s until it's
+  // restored, so hide the edit/status controls instead of offering them.
+  readOnly?: boolean;
 }) {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
@@ -215,19 +314,23 @@ export function TaskDetailDialog({
                 <Badge tone={priorityTone(task.priority)}>{task.priority}</Badge>
                 <Badge tone={statusTone(task.status)}>{task.status.replace("_", " ")}</Badge>
               </div>
-              <button
-                onClick={() => setMode("edit")}
-                aria-label="Edit task"
-                className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-primary"
-              >
-                <Pencil className="h-3 w-3" /> Edit
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => setMode("edit")}
+                  aria-label="Edit task"
+                  className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                >
+                  <Pencil className="h-3 w-3" /> Edit
+                </button>
+              )}
             </div>
+
+            {!readOnly && <TaskActions task={task} onDone={() => handleOpenChange(false)} />}
 
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Date</p>
-                <p className="mt-0.5">{formatClientLongDate(new Date(task.date))}</p>
+                <p className="mt-0.5">{formatDayLong(new Date(task.date))}</p>
               </div>
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Time</p>

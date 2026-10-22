@@ -14,7 +14,7 @@ export type ClientNode = {
   color: string;
 };
 
-function CenterCore() {
+function CenterCore({ label }: { label: string }) {
   return (
     <Float speed={1.5} rotationIntensity={0.4} floatIntensity={0.6}>
       <mesh>
@@ -23,7 +23,7 @@ function CenterCore() {
       </mesh>
       <Html center distanceFactor={8}>
         <div className="pointer-events-none select-none rounded-full bg-black/40 px-3 py-1 text-xs font-semibold text-cyan-200 backdrop-blur">
-          CHARLIE
+          {label}
         </div>
       </Html>
     </Float>
@@ -78,7 +78,7 @@ function ClientOrb({
   );
 }
 
-export default function CharlieHq3D({ nodes }: { nodes: ClientNode[] }) {
+export default function CharlieHq3D({ nodes, teamName }: { nodes: ClientNode[]; teamName: string }) {
   const router = useRouter();
 
   const positions = useMemo<[number, number, number][]>(() => {
@@ -95,7 +95,7 @@ export default function CharlieHq3D({ nodes }: { nodes: ClientNode[] }) {
         <ambientLight intensity={0.6} />
         <pointLight position={[5, 5, 5]} intensity={1.2} color="#7dd3fc" />
         <pointLight position={[-5, -3, -5]} intensity={0.6} color="#a78bfa" />
-        <CenterCore />
+        <CenterCore label={teamName.toUpperCase()} />
         {nodes.map((node, i) => (
           <ClientOrb
             key={node.id}

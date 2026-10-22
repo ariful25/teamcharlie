@@ -75,6 +75,7 @@ export function TasksBoard({
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
             <input
               placeholder="Search tasks..."
+              aria-label="Search tasks"
               className="bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -119,6 +120,13 @@ export function TasksBoard({
               options={[{ value: "", label: "All Employees" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
             />
           )}
+          <Select
+            className="w-auto min-w-[150px]"
+            value={category}
+            onValueChange={setCategory}
+            placeholder="All Categories"
+            options={[{ value: "", label: "All Categories" }, ...categories.map((c) => ({ value: c.name, label: c.name }))]}
+          />
         </div>
         <div className="flex items-center gap-2">
           <Link href="/tasks/history">

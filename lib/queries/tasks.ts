@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfDayUTC } from "@/lib/time";
 
 export async function getTasksPageData(teamId: string) {
-  const today = startOfDayUTC(new Date());
+  const today = startOfDayUTC(new Date(), await getTeamTimezone(teamId));
   const [tasks, clients, employees, categories, shiftTypes] = await Promise.all([
     prisma.task.findMany({
       where: {
@@ -24,7 +25,7 @@ export async function getTasksPageData(teamId: string) {
     }),
     prisma.client.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } }),
-    prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.category.findMany({ where: { teamId }, orderBy: { name: "asc" } }),
     prisma.shiftType.findMany({ where: { teamId, active: true }, orderBy: { startTime: "asc" } }),
   ]);
 

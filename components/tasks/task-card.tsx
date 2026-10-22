@@ -29,6 +29,14 @@ export function TaskCard({
   // so "Complete" flips the badge instantly instead of waiting on the
   // round-trip. Rolled back to the server's last-known value on failure.
   const [status, setStatus] = useState<string>(task.status);
+  // Re-sync when the server's value changes (router.refresh after the
+  // overdue sweep or a teammate's edit) — useState only reads its initial
+  // value once, so the card used to keep showing a stale status.
+  const [serverStatus, setServerStatus] = useState<string>(task.status);
+  if (task.status !== serverStatus) {
+    setServerStatus(task.status);
+    setStatus(task.status);
+  }
   const [deleted, setDeleted] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -77,7 +85,7 @@ export function TaskCard({
               handleDelete();
             }}
             aria-label="Delete task"
-            className="absolute right-3 top-3 rounded-lg p-1 text-muted-foreground opacity-0 transition hover:bg-danger/10 hover:text-danger group-hover:opacity-100"
+            className="absolute right-3 top-3 rounded-lg p-1 text-muted-foreground opacity-0 transition hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

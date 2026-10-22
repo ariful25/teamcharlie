@@ -24,6 +24,22 @@ export const taskSchema = z.object({
   // Only meaningful for MONTHLY — null falls back to the day-of-month of
   // `date` (see generateRecurringTaskInstances).
   repeatDayOfMonth: z.number().min(1).max(31).optional().nullable(),
+})
+  // A Weekly/Custom series with no days selected would be saved as a hidden
+  // template that never fires — reject it instead of silently creating it.
+  .refine((d) => !(d.repeatMode === "WEEKLY" || d.repeatMode === "CUSTOM") || d.repeatDays.length > 0, {
+    message: "Pick at least one day for a weekly repeat",
+    path: ["repeatDays"],
+  });
+
+// The lightweight status/priority/reassignment PATCH (Kanban drag, "Complete"
+// button, the detail dialog's status picker). Previously the route copied
+// body.status straight into Prisma, so an unknown value surfaced as a 500.
+export const taskQuickUpdateSchema = z.object({
+  status: z.enum(["UPCOMING", "IN_PROGRESS", "COMPLETED", "OVERDUE", "BLOCKED"]).optional(),
+  blockedReason: z.string().max(500).optional().nullable(),
+  assignedUserId: z.string().optional().nullable(),
+  priority: z.enum(["NORMAL", "IMPORTANT", "URGENT"]).optional(),
 });
 
 // Editing an existing task — every field optional since a PATCH only ever
@@ -78,11 +94,48 @@ export const noticeUpdateSchema = z
     message: "No changes provided",
   });
 
-export const attendanceEditSchema = z.object({
-  recordId: z.string(),
-  actualCheckIn: z.string().datetime().optional().nullable(),
-  actualCheckOut: z.string().datetime().optional().nullable(),
-  reason: z.string().min(3, "Please provide a reason for this edit"),
+// ---- Attendance (docs/attendance-rules.md) ----
+
+const isoInstant = z.string().datetime({ offset: true });
+const dayKeyField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a valid date");
+
+// Employee's claim for a missed punch.
+export const attendanceClaimSchema = z.object({
+  date: dayKeyField,
+  claimedCheckIn: isoInstant.optional().nullable(),
+  claimedCheckOut: isoInstant.optional().nullable(),
+  reason: z.string().trim().min(5, "Explain what happened (at least a few words)").max(500),
+});
+
+// Lead/admin decision. APPROVE needs both times — enforced in reviewRecord
+// too, with a clearer message.
+export const attendanceReviewSchema = z
+  .object({
+    recordId: z.string().optional(),
+    userId: z.string().optional(),
+    date: dayKeyField.optional(),
+    action: z.enum(["APPROVE", "REJECT", "APPROVE_CHECK_IN"]),
+    checkIn: isoInstant.optional().nullable(),
+    checkOut: isoInstant.optional().nullable(),
+    tasksConfirmed: z.boolean().optional(),
+    note: z.string().max(500).optional().nullable(),
+  })
+  .refine((d) => !!d.recordId || (!!d.userId && !!d.date), { message: "Which shift is this for?" });
+
+export const overtimeCreateSchema = z.object({
+  userId: z.string().optional().nullable(),
+  date: dayKeyField,
+  minutes: z.number().int(),
+  reason: z.string().trim().max(500),
+  askedById: z.string().optional().nullable(),
+  publicHoliday: z.boolean().optional(),
+  approveNow: z.boolean().optional(),
+});
+
+export const overtimeReviewSchema = z.object({
+  action: z.enum(["APPROVE", "REJECT"]),
+  approvedMinutes: z.number().int().optional().nullable(),
+  note: z.string().max(500).optional().nullable(),
 });
 
 export const clientSchema = z.object({
@@ -325,4 +378,57 @@ export const propertyKnowledgeItemSchema = z.object({
 export const propertyKnowledgeBulkImportSchema = z.object({
   clientId: z.string().min(1, "Client is required"),
   csvText: z.string().min(1, "Paste at least one property row"),
+});
+
+// ---- Multi-team: sign-up, invites, team settings ----
+
+const passwordField = z
+  .string()
+  .min(8, "Use at least 8 characters")
+  .max(200, "That password is too long");
+
+const timezoneField = z.string().refine(
+  (tz) => {
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: tz });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  { message: "Pick a valid timezone" }
+);
+
+export const signupSchema = z.object({
+  teamName: z.string().trim().min(2, "Team name is required").max(60, "Keep the team name under 60 characters"),
+  name: z.string().trim().min(1, "Your name is required").max(80),
+  email: z.string().trim().email("Enter a valid email"),
+  password: passwordField,
+  timezone: timezoneField,
+});
+
+export const inviteCreateSchema = z.object({
+  email: z.string().trim().email("Enter a valid email"),
+  role: z.enum(["ADMIN", "TEAM_LEAD", "EMPLOYEE"]).default("EMPLOYEE"),
+});
+
+export const inviteAcceptSchema = z.object({
+  token: z.string().min(10),
+  name: z.string().trim().min(1, "Your name is required").max(80),
+  password: passwordField,
+});
+
+export const teamSettingsSchema = z.object({
+  name: z.string().trim().min(2, "Team name is required").max(60).optional(),
+  timezone: timezoneField.optional(),
+  // "" clears it. Only Discord's own incoming-webhook URLs are accepted, so a
+  // saved value can't be used to make the server POST to arbitrary hosts.
+  autoCheckoutHours: z.number().int().min(4, "At least 4 hours").max(24, "At most 24 hours").optional(),
+  discordWebhookUrl: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || /^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(v), {
+      message: "Paste a Discord webhook URL (https://discord.com/api/webhooks/…)",
+    })
+    .optional(),
 });

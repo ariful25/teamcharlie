@@ -5,12 +5,12 @@ import { Badge } from "@/components/ui/badge";
 export type AttendanceRow = {
   userId: string;
   name: string;
-  status: "checked_in" | "late" | "not_checked_in";
+  status: "checked_in" | "late" | "not_checked_in" | "needs_review";
   time: string | null;
 };
 
 export function AttendanceWidget({ rows }: { rows: AttendanceRow[] }) {
-  const checkedInCount = rows.filter((r) => r.status !== "not_checked_in").length;
+  const checkedInCount = rows.filter((r) => r.status === "checked_in" || r.status === "late").length;
 
   return (
     <Card>
@@ -27,6 +27,7 @@ export function AttendanceWidget({ rows }: { rows: AttendanceRow[] }) {
             {r.status === "checked_in" && <Badge tone="success">Checked In {r.time}</Badge>}
             {r.status === "late" && <Badge tone="warning">Late {r.time}</Badge>}
             {r.status === "not_checked_in" && <Badge tone="neutral">Not Checked In</Badge>}
+            {r.status === "needs_review" && <Badge tone="danger">No check-out · review</Badge>}
           </div>
         ))}
         <Link href="/attendance" className="mt-2 inline-block text-xs text-primary hover:underline">

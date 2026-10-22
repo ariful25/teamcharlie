@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import anime from "animejs";
 import { DayCell, type DayCellAssignment } from "./day-cell";
-import { formatClientShortDate } from "@/lib/time";
+import { formatDayShort } from "@/lib/time";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -53,7 +53,7 @@ export function ShiftGrid({
         <div key={d} className="text-center">
           {DAY_LABELS[i]}
           <div className="text-[10px] font-normal normal-case text-muted-foreground/70">
-            {formatClientShortDate(new Date(d))}
+            {formatDayShort(new Date(d))}
           </div>
         </div>
       ))}

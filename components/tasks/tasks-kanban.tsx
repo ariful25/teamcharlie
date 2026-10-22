@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -100,7 +100,7 @@ function DraggableCard({
             onDelete(task.id);
           }}
           aria-label="Delete task"
-          className="absolute right-2 top-2 rounded-lg bg-card/80 p-1 text-muted-foreground opacity-0 transition hover:bg-danger/10 hover:text-danger group-hover:opacity-100"
+          className="absolute right-2 top-2 rounded-lg bg-card/80 p-1 text-muted-foreground opacity-0 transition hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -226,16 +226,34 @@ export function TasksKanban({
   const visibleTasks = tasks.map(effectiveTask);
   const byStatus = (status: string) => visibleTasks.filter((t) => t.status === status);
 
-  async function patchTask(id: string, data: Record<string, unknown>, previousStatus: string) {
+  const [, startTransition] = useTransition();
+
+  function dropOverride(id: string) {
+    setOverrides((prev) => {
+      const { [id]: _dropped, ...rest } = prev;
+      return rest;
+    });
+  }
+
+  async function patchTask(id: string, data: Record<string, unknown>) {
     const res = await fetch(`/api/tasks/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
     if (res.ok) {
-      router.refresh();
+      // Clear the override in the same transition as the refresh, so the
+      // card hands over to fresh server data without flickering back. The
+      // override used to live forever, masking any later change to the task
+      // (overdue sweep, a teammate's edit) until a full reload.
+      startTransition(() => {
+        router.refresh();
+        dropOverride(id);
+      });
     } else {
-      setOverrides((prev) => ({ ...prev, [id]: { status: previousStatus } }));
+      // Dropping the override reverts both status and blockedReason to the
+      // server's values (the old code only restored status).
+      dropOverride(id);
       toast.error("Could not update task — change reverted");
     }
   }
@@ -270,7 +288,7 @@ export function TasksKanban({
     if (Object.keys(clearReason).length) {
       setOverrides((prev) => ({ ...prev, [taskId]: { status: overStatus, blockedReason: null } }));
     }
-    patchTask(taskId, { status: overStatus, ...clearReason }, previousStatus);
+    patchTask(taskId, { status: overStatus, ...clearReason });
   }
 
   async function handleDelete(id: string) {
@@ -309,15 +327,14 @@ export function TasksKanban({
         open={!!pendingBlock}
         onSave={(reason) => {
           if (!pendingBlock) return;
-          const { id, previousStatus } = pendingBlock;
+          const { id } = pendingBlock;
           setOverrides((prev) => ({ ...prev, [id]: { status: "BLOCKED", blockedReason: reason || null } }));
-          patchTask(id, { status: "BLOCKED", blockedReason: reason || null }, previousStatus);
+          patchTask(id, { status: "BLOCKED", blockedReason: reason || null });
           setPendingBlock(null);
         }}
         onSkip={() => {
           if (!pendingBlock) return;
-          const { id, previousStatus } = pendingBlock;
-          patchTask(id, { status: "BLOCKED" }, previousStatus);
+          patchTask(pendingBlock.id, { status: "BLOCKED" });
           setPendingBlock(null);
         }}
       />

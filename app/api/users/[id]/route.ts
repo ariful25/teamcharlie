@@ -23,6 +23,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
+  // Team check before the write — without it an admin of one team could edit
+  // (or disable, or promote) any user on the platform by id.
+  const existing = await prisma.user.findFirst({ where: { id: params.id, teamId: currentUser.teamId } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const user = await prisma.user.update({ where: { id: params.id }, data: parsed.data });
   return NextResponse.json({ user });
 }

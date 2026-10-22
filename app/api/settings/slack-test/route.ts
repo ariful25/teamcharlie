@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getTeamChannels } from "@/lib/notifications";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
 import { sendTestNotification } from "@/lib/slack-bot";
@@ -15,6 +16,12 @@ export async function POST(req: NextRequest) {
   const { kind } = await req.json();
   if (!["checkin", "checkout"].includes(kind)) {
     return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
+  }
+
+  // Slack is wired to the deployment's single Slack app, which only the home
+  // team uses — see lib/notifications.ts.
+  if (!(await getTeamChannels((session.user as any).teamId as string)).isHomeTeam) {
+    return NextResponse.json({ error: "Slack isn't available for this team yet — use a Discord webhook instead." }, { status: 400 });
   }
 
   const result = await sendTestNotification(kind);

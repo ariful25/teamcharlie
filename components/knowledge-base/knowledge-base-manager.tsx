@@ -13,6 +13,7 @@ import { Select } from "@/components/ui/select";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { MANUAL_KNOWLEDGE_STATUSES } from "@/lib/services/property-knowledge";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 type ClientOption = { id: string; name: string };
 type KnowledgeItem = any;
@@ -427,7 +428,7 @@ export function KnowledgeBaseManager({
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Property Knowledge Base</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Prepare Airbnb listing information for Google Sheets and NotebookLM. Charlie HQ extracts the repetitive public details; the team reviews and fills operational notes.
+            Prepare Airbnb listing information for Google Sheets and NotebookLM. {PRODUCT_NAME} extracts the repetitive public details; the team reviews and fills operational notes.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { TimePicker } from "@/components/ui/time-picker";
 import { clientDateKey } from "@/lib/time";
+import { useTeamTimezone } from "@/components/providers/team-timezone";
 
 type Option = { id: string; name: string };
 
@@ -53,6 +54,7 @@ export function QuickAddTaskModal({
   categories: Option[];
   shiftTypes: Option[];
 }) {
+  const tz = useTeamTimezone();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -63,12 +65,12 @@ export function QuickAddTaskModal({
   const [categoryId, setCategoryId] = useState("");
   const [assignedUserId, setAssignedUserId] = useState("");
   const [shiftTypeId, setShiftTypeId] = useState("");
-  // clientDateKey formats "today" in the team's timezone (Asia/Dhaka), not
+  // clientDateKey formats "today" in the team's own timezone, not
   // the browser's — a raw new Date().toISOString().slice(0, 10) takes the
   // UTC calendar day, which is the wrong date for part of the day whenever
   // local time and UTC disagree on what day it is (e.g. any time between
   // local midnight and 6am in Asia/Dhaka, UTC+6).
-  const [date, setDate] = useState(() => clientDateKey());
+  const [date, setDate] = useState(() => clientDateKey(new Date(), tz));
   const [startTime, setStartTime] = useState("");
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState("NORMAL");
@@ -81,6 +83,28 @@ export function QuickAddTaskModal({
   // Date field whenever Monthly is picked, so the common case ("repeat on
   // whatever day I set this task for") needs no extra input.
   const [repeatDayOfMonth, setRepeatDayOfMonth] = useState<number>(() => Number(date.slice(8, 10)));
+
+  // Clear the form after a successful create — it used to reopen still
+  // holding the previous task, making accidental duplicates easy.
+  function resetForm() {
+    const today = clientDateKey(new Date(), tz);
+    setTitle("");
+    setClientId("");
+    setPropertyName("");
+    setCategoryId("");
+    setAssignedUserId("");
+    setShiftTypeId("");
+    setDate(today);
+    setStartTime("");
+    setDueTime("");
+    setPriority("NORMAL");
+    setStatus("UPCOMING");
+    setBlockedReason("");
+    setNotes("");
+    setRepeatMode("NONE");
+    setRepeatDays([]);
+    setRepeatDayOfMonth(Number(today.slice(8, 10)));
+  }
 
   function toggleDay(d: number) {
     setRepeatDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
@@ -116,8 +140,9 @@ export function QuickAddTaskModal({
 
     setSubmitting(false);
     if (res.ok) {
-      toast.success("Task created");
+      toast.success(repeatMode !== "NONE" ? "Recurring task created" : "Task created");
       setOpen(false);
+      resetForm();
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));

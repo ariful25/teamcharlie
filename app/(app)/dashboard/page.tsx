@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
-import { generateRecurringTaskInstances, refreshOverdueTasks } from "@/lib/services/task-generation";
-import { flagMissingCheckouts } from "@/lib/services/attendance";
+import { runTeamMaintenance } from "@/lib/services/team-maintenance";
+import { getTeamTimezone } from "@/lib/team-timezone";
 import { getDashboardData } from "@/lib/queries/dashboard";
+import { getShiftCardState } from "@/lib/queries/attendance";
 import { formatDateLong, formatTime, greeting, startOfDayUTC } from "@/lib/time";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ClientStatusCard } from "@/components/dashboard/client-status-card";
@@ -12,72 +14,30 @@ import { AttendanceWidget } from "@/components/dashboard/attendance-widget";
 import { CharlieHq3DWrapper } from "@/components/dashboard/charlie-hq-3d-wrapper";
 import { QuickAddTaskModal } from "@/components/tasks/quick-add-task-modal";
 
-const CLIENT_COLORS: Record<string, string> = {
-  Andrea: "#22d3ee",
-  Allen: "#a78bfa",
-  Shawn: "#f472b6",
-  "Perfect Stay": "#facc15",
-  Jack: "#34d399",
-};
-const TASK_GENERATION_THROTTLE_MS = 5 * 60 * 1000;
+// Assigned by each client's position in creation order, so colours stay
+// stable for a team without hard-coding any one team's client names (this
+// used to be a name->colour map of Team Charlie's clients).
+const CLIENT_PALETTE = ["#22d3ee", "#a78bfa", "#f472b6", "#facc15", "#34d399", "#fb923c", "#60a5fa", "#f87171"];
 
 export default async function DashboardPage() {
   const currentUser = await getCurrentUser();
 
-  // Claim the throttle slot atomically: the UPDATE's WHERE clause is
-  // re-checked against the committed row once any concurrent UPDATE on the
-  // same row releases its lock (Postgres "first updater wins"), so of two
-  // near-simultaneous dashboard loads at most one sees count === 1. A plain
-  // read-then-write here let both requests see a stale lastGeneratedAt and
-  // both run generation, which is exactly what produced a duplicated day's
-  // worth of recurring tasks in testing.
-  const claimed = await prisma.team.updateMany({
-    where: {
-      id: currentUser.teamId,
-      OR: [{ lastGeneratedAt: null }, { lastGeneratedAt: { lt: new Date(Date.now() - TASK_GENERATION_THROTTLE_MS) } }],
-    },
-    data: { lastGeneratedAt: new Date() },
-  });
-
-  if (claimed.count === 1) {
-    // Independent of each other — different tables, no shared state — so
-    // they run concurrently instead of one after another. This throttled
-    // maintenance work (only runs once per 5-minute window) was previously
-    // the single biggest contributor to a slow dashboard load: 3 sequential
-    // multi-query service calls on the critical render path.
-    await Promise.all([
-      generateRecurringTaskInstances(currentUser.teamId),
-      refreshOverdueTasks(currentUser.teamId),
-      flagMissingCheckouts(currentUser.teamId),
-    ]);
-  }
+  await runTeamMaintenance(currentUser.teamId);
 
   const today = new Date();
+  const [tz, team] = await Promise.all([
+    getTeamTimezone(currentUser.teamId),
+    prisma.team.findUniqueOrThrow({ where: { id: currentUser.teamId }, select: { name: true } }),
+  ]);
 
   // Every read below is independent — one round trip instead of three.
-  const [{ stats, clientStats, operationRows, attendanceRows }, record, clients, employees, categories, shiftTypes, checkoutChecklistItems] =
+  const [{ stats, clientStats, operationRows, attendanceRows }, shiftState, clients, employees, categories, shiftTypes, checkoutChecklistItems] =
     await Promise.all([
       getDashboardData(currentUser.teamId),
-      prisma.attendanceRecord.findFirst({
-        where: {
-          userId: currentUser.id,
-          OR: [
-            { actualCheckIn: { not: null }, actualCheckOut: null },
-            // startOfDayUTC converts to the team's timezone first, then
-            // takes the calendar day — a raw `today.toISOString().slice(0, 10)`
-            // takes the UTC calendar day instead, which is a different date
-            // for part of the day in Asia/Dhaka (UTC+6). That mismatch made
-            // this query keep matching yesterday's already-completed
-            // AttendanceRecord for several hours after local midnight,
-            // instead of finding (or being ready to create) today's.
-            { date: startOfDayUTC(today) },
-          ],
-        },
-        orderBy: { date: "desc" },
-      }),
-      prisma.client.findMany({ where: { teamId: currentUser.teamId, active: true } }),
+      getShiftCardState(currentUser.id),
+      prisma.client.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { createdAt: "asc" } }),
       prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true } }),
-      prisma.category.findMany(),
+      prisma.category.findMany({ where: { teamId: currentUser.teamId }, orderBy: { name: "asc" } }),
       prisma.shiftType.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { startTime: "asc" } }),
       prisma.checklistItem.findMany({
         where: { teamId: currentUser.teamId, type: "CHECKOUT", active: true },
@@ -85,16 +45,18 @@ export default async function DashboardPage() {
       }),
     ]);
 
+  const clientColor = new Map(clients.map((c, i) => [c.id, CLIENT_PALETTE[i % CLIENT_PALETTE.length]]));
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
-            {greeting()}, Charlie Team 👋
+            {greeting(today, tz)}, {currentUser.name.split(" ")[0] || team.name} 👋
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {formatDateLong(today)} · {formatTime(today)} · Team Charlie
+            {formatDateLong(today, tz)} · {formatTime(today, tz)} · {team.name}
           </p>
         </div>
         <QuickAddTaskModal
@@ -129,11 +91,21 @@ export default async function DashboardPage() {
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Client Status
             </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {clientStats.map((c) => (
-                <ClientStatusCard key={c.id} {...c} />
-              ))}
-            </div>
+            {clientStats.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                No clients yet.{" "}
+                <Link href="/clients" className="font-medium text-primary hover:brightness-110">
+                  Add your first client
+                </Link>{" "}
+                to track their tasks and follow-ups here.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {clientStats.map((c) => (
+                  <ClientStatusCard key={c.id} {...c} />
+                ))}
+              </div>
+            )}
           </div>
 
           <TodaysOperations rows={operationRows} />
@@ -141,24 +113,23 @@ export default async function DashboardPage() {
 
         <div className="space-y-6">
           <ShiftCard
-            scheduledCheckIn={record?.scheduledCheckIn ?? null}
-            scheduledCheckOut={record?.scheduledCheckOut ?? null}
-            actualCheckIn={record?.actualCheckIn?.toISOString() ?? null}
-            actualCheckOut={record?.actualCheckOut?.toISOString() ?? null}
+            state={shiftState}
             checklistItems={checkoutChecklistItems.map((c) => ({ id: c.id, label: c.label }))}
+            leads={employees.filter((e) => e.role === "ADMIN" || e.role === "TEAM_LEAD").map((e) => ({ id: e.id, name: e.name }))}
           />
           <AttendanceWidget rows={attendanceRows} />
         </div>
       </div>
 
       <CharlieHq3DWrapper
+        teamName={team.name}
         nodes={clientStats.map((c) => ({
           id: c.id,
           name: c.name,
           completedTasks: c.completedTasks,
           totalTasks: c.totalTasks,
           followUps: c.followUps,
-          color: CLIENT_COLORS[c.name] ?? "#22d3ee",
+          color: clientColor.get(c.id) ?? CLIENT_PALETTE[0],
         }))}
       />
     </div>

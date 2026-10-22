@@ -43,10 +43,11 @@ export async function GET(req: NextRequest) {
   // Best-effort visibility into who exported sensitive operational data and
   // when — never blocks or fails the download itself if Discord isn't
   // configured or is unreachable.
-  const client = clientId ? items[0]?.client ?? (await prisma.client.findUnique({ where: { id: clientId } })) : null;
-  await notifyKnowledgeExport({
+  const client = clientId ? items[0]?.client ?? (await prisma.client.findFirst({ where: { id: clientId, teamId } })) : null;
+  const team = await prisma.team.findUnique({ where: { id: teamId }, select: { name: true } });
+  await notifyKnowledgeExport(teamId, {
     actorName: session.user.name ?? "Unknown user",
-    teamName: (session.user as any).teamSlug ? String((session.user as any).teamSlug).replace(/^\w/, (c: string) => c.toUpperCase()) : "Charlie",
+    teamName: team?.name ?? "",
     clientName: client?.name ?? null,
     itemCount: items.length,
   }).catch(() => {});

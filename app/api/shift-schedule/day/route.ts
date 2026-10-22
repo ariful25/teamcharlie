@@ -4,6 +4,7 @@ import { permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { shiftAssignmentUpdateSchema } from "@/lib/validations";
+import { teamOwnsShiftType, teamOwnsUser } from "@/lib/tenancy";
 
 const bodySchema = shiftAssignmentUpdateSchema.extend({
   userId: z.string(),
@@ -25,6 +26,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { userId, date, ...rest } = parsed.data;
+  if (!(await teamOwnsUser(currentUser.teamId, userId))) {
+    return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
+  }
+  if (!(await teamOwnsShiftType(currentUser.teamId, rest.shiftTypeId))) {
+    return NextResponse.json({ error: "Invalid shiftTypeId" }, { status: 400 });
+  }
   const day = new Date(`${date.slice(0, 10)}T00:00:00.000Z`);
 
   const assignment = await prisma.shiftAssignment.upsert({

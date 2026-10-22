@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { INTEGRATION_LABELS } from "@/lib/validations";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 const STATUS_OPTIONS = [
   { value: "STABLE", label: "Stable" },
@@ -188,9 +189,9 @@ export function AddClientWizard() {
         {step === 3 && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Charlie HQ is the source of truth — this creates a client-specific Google Spreadsheet that mirrors the
+              {PRODUCT_NAME} is the source of truth — this creates a client-specific Google Spreadsheet that mirrors the
               Property Knowledge Base (read-only for NotebookLM/employees, editable by Admins) and stays in sync
-              automatically. Never the other way around: nothing typed into the sheet flows back into Charlie HQ.
+              automatically. Never the other way around: nothing typed into the sheet flows back into {PRODUCT_NAME}.
             </p>
             <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm hover:bg-muted/40">
               <input
@@ -211,7 +212,7 @@ export function AddClientWizard() {
 
         {step === 4 && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Every client automatically gets these Charlie HQ modules — nothing to configure.</p>
+            <p className="text-xs text-muted-foreground">Every client automatically gets these {PRODUCT_NAME} modules — nothing to configure.</p>
             <div className="grid grid-cols-2 gap-2">
               {ALWAYS_ON_MODULES.map((mod) => (
                 <div key={mod} className="flex items-center gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm">

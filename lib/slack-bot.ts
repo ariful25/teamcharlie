@@ -12,7 +12,8 @@
 // throws) when SLACK_BOT_TOKEN isn't set yet, so call sites don't need to
 // guard on whether Slack has been configured.
 
-import { formatTime, formatDateLong, formatMinutesAsHm } from "@/lib/time";
+import { formatTime, formatDayFull, formatMinutesAsHm } from "@/lib/time";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 const SLACK_API = "https://slack.com/api";
 
@@ -56,6 +57,9 @@ export function mentionFor(user: { name: string; slackUserId?: string | null }) 
 type CheckInPayload = {
   employeeName: string;
   teamName: string;
+  timezone: string;
+  // Extra context line, e.g. "Auto-stopped after 10h — awaiting review".
+  note?: string | null;
   date: Date;
   actualCheckIn: Date;
   scheduledCheckIn?: string | null;
@@ -66,6 +70,9 @@ type CheckInPayload = {
 type CheckOutPayload = {
   employeeName: string;
   teamName: string;
+  timezone: string;
+  // Extra context line, e.g. "Auto-stopped after 10h — awaiting review".
+  note?: string | null;
   date: Date;
   actualCheckIn: Date | null;
   actualCheckOut: Date;
@@ -79,10 +86,11 @@ export async function sendCheckInNotification(payload: CheckInPayload) {
     `${emoji} *Employee Check-In*`,
     `Employee: ${payload.employeeName}`,
     `Team: ${payload.teamName}`,
-    `Date: ${formatDateLong(payload.date)}`,
-    `Check-in Time: ${formatTime(payload.actualCheckIn)}`,
+    `Date: ${formatDayFull(payload.date)}`,
+    `Check-in Time: ${formatTime(payload.actualCheckIn, payload.timezone)}`,
     payload.scheduledCheckIn ? `Scheduled Time: ${payload.scheduledCheckIn}` : null,
     statusLine,
+    payload.note ? `Note: ${payload.note}` : null,
   ]
     .filter(Boolean)
     .join("\n");
@@ -94,11 +102,14 @@ export async function sendCheckOutNotification(payload: CheckOutPayload) {
     `🔴 *Employee Check-Out*`,
     `Employee: ${payload.employeeName}`,
     `Team: ${payload.teamName}`,
-    `Date: ${formatDateLong(payload.date)}`,
-    payload.actualCheckIn ? `Check-in: ${formatTime(payload.actualCheckIn)}` : `Check-in: Missing`,
-    `Check-out: ${formatTime(payload.actualCheckOut)}`,
+    `Date: ${formatDayFull(payload.date)}`,
+    payload.actualCheckIn ? `Check-in: ${formatTime(payload.actualCheckIn, payload.timezone)}` : `Check-in: Missing`,
+    `Check-out: ${formatTime(payload.actualCheckOut, payload.timezone)}`,
     payload.totalMinutes != null ? `Total Working Hours: ${formatMinutesAsHm(payload.totalMinutes)}` : `Total Working Hours: N/A`,
-  ].join("\n");
+    payload.note ? `Note: ${payload.note}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
   return postMessage(channelFor(process.env.SLACK_CHECKOUT_CHANNEL_ID), text);
 }
 
@@ -122,7 +133,7 @@ export async function sendKnowledgeExportNotification(payload: KnowledgeExportPa
 
 export async function sendTestNotification(kind: "checkin" | "checkout") {
   const channel = kind === "checkin" ? channelFor(process.env.SLACK_CHECKIN_CHANNEL_ID) : channelFor(process.env.SLACK_CHECKOUT_CHANNEL_ID);
-  return postMessage(channel, `✅ *Charlie HQ Test Notification*\nThis is a test of the ${kind} channel connection.`);
+  return postMessage(channel, `✅ *${PRODUCT_NAME} Test Notification*\nThis is a test of the ${kind} channel connection.`);
 }
 
 // ---- Task activity + daily digest (parallels lib/discord-bot.ts) ----

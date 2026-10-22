@@ -1,11 +1,16 @@
 // Server-side ONLY. Never import this from a client component.
-// Webhook URLs / bot tokens live in process.env and are never sent to the browser.
+// Webhook URLs / bot tokens are never sent to the browser. Which URL a
+// message goes to is decided per team in lib/notifications.ts.
 
-import { formatTime, formatDateLong, formatMinutesAsHm } from "@/lib/time";
+import { formatTime, formatDayFull, formatMinutesAsHm } from "@/lib/time";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 type CheckInPayload = {
   employeeName: string;
   teamName: string;
+  timezone: string;
+  // Extra context line, e.g. "Auto-stopped after 10h — awaiting review".
+  note?: string | null;
   date: Date;
   actualCheckIn: Date;
   scheduledCheckIn?: string | null;
@@ -16,13 +21,16 @@ type CheckInPayload = {
 type CheckOutPayload = {
   employeeName: string;
   teamName: string;
+  timezone: string;
+  // Extra context line, e.g. "Auto-stopped after 10h — awaiting review".
+  note?: string | null;
   date: Date;
   actualCheckIn: Date | null;
   actualCheckOut: Date;
   totalMinutes: number | null;
 };
 
-async function postToWebhook(url: string, content: string): Promise<{ ok: boolean; error?: string }> {
+export async function postToWebhook(url: string, content: string): Promise<{ ok: boolean; error?: string }> {
   if (!url) {
     return { ok: false, error: "Webhook URL not configured" };
   }
@@ -42,7 +50,7 @@ async function postToWebhook(url: string, content: string): Promise<{ ok: boolea
   }
 }
 
-export async function sendCheckInNotification(payload: CheckInPayload) {
+export async function sendCheckInNotification(payload: CheckInPayload, webhookUrl: string) {
   const emoji = payload.isLate ? "🟡" : "🟢";
   const statusLine = payload.isLate
     ? `Status: Late by ${payload.lateMinutes} minutes`
@@ -53,43 +61,43 @@ export async function sendCheckInNotification(payload: CheckInPayload) {
     ``,
     `Employee: ${payload.employeeName}`,
     `Team: ${payload.teamName}`,
-    `Date: ${formatDateLong(payload.date)}`,
-    `Check-in Time: ${formatTime(payload.actualCheckIn)}`,
+    `Date: ${formatDayFull(payload.date)}`,
+    `Check-in Time: ${formatTime(payload.actualCheckIn, payload.timezone)}`,
     payload.scheduledCheckIn ? `Scheduled Time: ${payload.scheduledCheckIn}` : null,
     statusLine,
-    `Source: Charlie HQ`,
+    payload.note ? `Note: ${payload.note}` : null,
+    `Source: ${PRODUCT_NAME}`,
   ]
     .filter(Boolean)
     .join("\n");
 
-  return postToWebhook(process.env.DISCORD_CHECKIN_WEBHOOK_URL || "", content);
+  return postToWebhook(webhookUrl, content);
 }
 
-export async function sendCheckOutNotification(payload: CheckOutPayload) {
+export async function sendCheckOutNotification(payload: CheckOutPayload, webhookUrl: string) {
   const content = [
     `🔴 **Employee Check-Out**`,
     ``,
     `Employee: ${payload.employeeName}`,
     `Team: ${payload.teamName}`,
-    `Date: ${formatDateLong(payload.date)}`,
-    payload.actualCheckIn ? `Check-in: ${formatTime(payload.actualCheckIn)}` : `Check-in: Missing`,
-    `Check-out: ${formatTime(payload.actualCheckOut)}`,
+    `Date: ${formatDayFull(payload.date)}`,
+    payload.actualCheckIn ? `Check-in: ${formatTime(payload.actualCheckIn, payload.timezone)}` : `Check-in: Missing`,
+    `Check-out: ${formatTime(payload.actualCheckOut, payload.timezone)}`,
     payload.totalMinutes != null
       ? `Total Working Hours: ${formatMinutesAsHm(payload.totalMinutes)}`
       : `Total Working Hours: N/A`,
-    `Source: Charlie HQ`,
-  ].join("\n");
+    payload.note ? `Note: ${payload.note}` : null,
+    `Source: ${PRODUCT_NAME}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  return postToWebhook(process.env.DISCORD_CHECKOUT_WEBHOOK_URL || "", content);
+  return postToWebhook(webhookUrl, content);
 }
 
-export async function sendTestNotification(kind: "checkin" | "checkout") {
-  const url =
-    kind === "checkin"
-      ? process.env.DISCORD_CHECKIN_WEBHOOK_URL || ""
-      : process.env.DISCORD_CHECKOUT_WEBHOOK_URL || "";
-  const content = `✅ **Charlie HQ Test Notification**\n\nThis is a test of the ${kind} channel connection.\nSource: Charlie HQ`;
-  return postToWebhook(url, content);
+export async function sendTestNotification(kind: "checkin" | "checkout" | "team", webhookUrl: string) {
+  const content = `✅ **${PRODUCT_NAME} Test Notification**\n\nThis is a test of the ${kind} channel connection.\nSource: ${PRODUCT_NAME}`;
+  return postToWebhook(webhookUrl, content);
 }
 
 type KnowledgeExportPayload = {
@@ -103,7 +111,7 @@ type KnowledgeExportPayload = {
 // set, same as every other webhook in this file. Gives admins/team leads
 // visibility into who pulled a CSV containing WiFi passwords and door codes
 // and when, without needing a dedicated audit-log feature.
-export async function sendKnowledgeExportNotification(payload: KnowledgeExportPayload) {
+export async function sendKnowledgeExportNotification(payload: KnowledgeExportPayload, webhookUrl: string) {
   const content = [
     `📤 **Property Knowledge Base Exported**`,
     ``,
@@ -111,7 +119,7 @@ export async function sendKnowledgeExportNotification(payload: KnowledgeExportPa
     `Team: ${payload.teamName}`,
     `Scope: ${payload.clientName ?? "All clients"}`,
     `Properties: ${payload.itemCount}`,
-    `Source: Charlie HQ`,
+    `Source: ${PRODUCT_NAME}`,
   ].join("\n");
-  return postToWebhook(process.env.DISCORD_KNOWLEDGE_EXPORT_WEBHOOK_URL || "", content);
+  return postToWebhook(webhookUrl, content);
 }

@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfDayUTC } from "@/lib/time";
 
 export async function getClientWorkspaceData(clientId: string, teamId: string) {
-  const today = startOfDayUTC(new Date());
+  const today = startOfDayUTC(new Date(), await getTeamTimezone(teamId));
 
   const client = await prisma.client.findFirst({ where: { id: clientId, teamId } });
   if (!client) {

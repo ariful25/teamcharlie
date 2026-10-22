@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Providers } from "./providers";
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/brand";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -17,19 +18,19 @@ const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Charlie HQ",
-  description: "Internal operations platform for Team Charlie, STR Assistance — tasks, properties, notices, attendance, and client workspaces in one place.",
+  title: PRODUCT_NAME,
+  description: PRODUCT_TAGLINE,
   openGraph: {
-    title: "Charlie HQ",
-    description: "Internal operations platform for Team Charlie, STR Assistance — tasks, properties, notices, attendance, and client workspaces in one place.",
-    siteName: "Charlie HQ",
+    title: PRODUCT_NAME,
+    description: PRODUCT_TAGLINE,
+    siteName: PRODUCT_NAME,
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Charlie HQ",
-    description: "Internal operations platform for Team Charlie, STR Assistance — tasks, properties, notices, attendance, and client workspaces in one place.",
+    title: PRODUCT_NAME,
+    description: PRODUCT_TAGLINE,
   },
   robots: {
     // Internal tool with no public content — real credentials sit behind

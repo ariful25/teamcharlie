@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
-import { formatClientDate } from "@/lib/time";
+import { formatDayMedium } from "@/lib/time";
 
 type Property = any;
 type Unit = any;
@@ -21,15 +21,13 @@ type Task = any;
 const listingLevels = ["WHOLE_PROPERTY", "WHOLE_HOUSE", "PRIVATE_ROOM", "DETACHED_UNIT"];
 const tenancyStatuses = ["CURRENT", "UPCOMING", "VACANT", "AIRBNB_TRANSITION"];
 
-// formatClientDate (date-fns formatted in the team's fixed CLIENT_TEAM_TIMEZONE)
-// rather than toLocaleDateString: the latter uses the *viewer's own browser*
-// timezone/locale, which both shows the wrong calendar day for a viewer whose
-// browser isn't on Dhaka time and risks a server/client hydration mismatch
-// (Node's server-side locale can differ from the browser's). formatClientDate
-// is deterministic — same output everywhere, always Dhaka's calendar day.
+// Tenancy dates are calendar days stored as UTC midnight, so they're
+// formatted in UTC (formatDayMedium) — not toLocaleDateString, which uses the
+// viewer's own browser timezone and can show the previous day and mismatch
+// the server render.
 function fmtDate(value?: string | null) {
   if (!value) return "Open";
-  return formatClientDate(new Date(value));
+  return formatDayMedium(new Date(value));
 }
 
 function dateInput(value?: string | null) {

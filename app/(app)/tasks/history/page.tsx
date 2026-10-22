@@ -22,7 +22,7 @@ export default async function TaskHistoryPage({
     }),
     prisma.client.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { name: "asc" } }),
-    prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.category.findMany({ where: { teamId: currentUser.teamId }, orderBy: { name: "asc" } }),
   ]);
 
   const plainTasks = JSON.parse(JSON.stringify(tasks));

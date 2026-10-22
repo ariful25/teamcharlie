@@ -8,8 +8,9 @@ import { ShiftGrid } from "./shift-grid";
 import { AddEmployeeForm } from "./add-employee-form";
 import { ShiftRingWrapper } from "./shift-ring-wrapper";
 import { Button } from "@/components/ui/button";
-import { clientDateKey, formatClientLongDate, formatClientShortDate, formatClientWeekday } from "@/lib/time";
+import { clientDateKey, formatDayLong, formatDayShort, formatDayWeekday } from "@/lib/time";
 import type { DayCellAssignment } from "./day-cell";
+import { useTeamTimezone } from "@/components/providers/team-timezone";
 
 type Roster = {
   weekStart: string;
@@ -28,8 +29,8 @@ type Roster = {
 // Finds "today"'s position in a Mon..Sun `days` array by comparing calendar-day
 // keys in the team's timezone (see clientDateKey) — not array index 0, and not a
 // naive browser-local comparison, both of which can point at the wrong day.
-function todayIndexInWeek(days: string[]) {
-  const todayKey = clientDateKey();
+function todayIndexInWeek(days: string[], tz: string) {
+  const todayKey = clientDateKey(new Date(), tz);
   const idx = days.findIndex((d) => d.slice(0, 10) === todayKey);
   return idx >= 0 ? idx : 0;
 }
@@ -41,11 +42,12 @@ export function ShiftScheduleBoard({
   initialRoster: Roster;
   canEdit: boolean;
 }) {
+  const tz = useTeamTimezone();
   const [roster, setRoster] = useState<Roster>(initialRoster);
   const [anchorDate, setAnchorDate] = useState(new Date(initialRoster.weekStart));
   // Defaults to *today's* column, not Monday — this was the actual bug behind
   // the board always opening on Monday regardless of what day it really was.
-  const [selectedDayIndex, setSelectedDayIndex] = useState(() => todayIndexInWeek(initialRoster.days));
+  const [selectedDayIndex, setSelectedDayIndex] = useState(() => todayIndexInWeek(initialRoster.days, tz));
   const [loading, setLoading] = useState(false);
 
   // Callers decide what happens to the day selection after a refetch — a
@@ -81,7 +83,7 @@ export function ShiftScheduleBoard({
     const now = new Date();
     setAnchorDate(now);
     const data = await fetchRoster(now);
-    if (data) setSelectedDayIndex(todayIndexInWeek(data.days));
+    if (data) setSelectedDayIndex(todayIndexInWeek(data.days, tz));
   }
 
   async function handleCopyPreviousWeek() {
@@ -128,12 +130,12 @@ export function ShiftScheduleBoard({
   const weekLabel = (() => {
     const start = new Date(roster.weekStart);
     const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
-    return `${formatClientShortDate(start)} – ${formatClientShortDate(end)}`;
+    return `${formatDayShort(start)} – ${formatDayShort(end)}`;
   })();
 
   const selectedDate = new Date(roster.days[selectedDayIndex] ?? roster.weekStart);
-  const dayLabel = formatClientWeekday(selectedDate);
-  const dateLabel = formatClientLongDate(selectedDate);
+  const dayLabel = formatDayWeekday(selectedDate);
+  const dateLabel = formatDayLong(selectedDate);
 
   const chips = [
     ...roster.groupedByShift.flatMap((g) =>

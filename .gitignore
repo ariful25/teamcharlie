@@ -6,3 +6,6 @@ node_modules
 .DS_Store
 next-env.d.ts
 *.tsbuildinfo
+
+# Browser test screenshots/logs (Playwright MCP)
+.playwright-mcp/

@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfDayUTC, formatTime, combineDateAndTime } from "@/lib/time";
 import { differenceInMinutes } from "date-fns";
 
 export async function getDashboardData(teamId: string) {
-  const today = startOfDayUTC(new Date());
+  const tz = await getTeamTimezone(teamId);
+  const today = startOfDayUTC(new Date(), tz);
 
   const [allTasks, clients, attendanceRecords, employees] = await Promise.all([
     prisma.task.findMany({
@@ -25,7 +27,7 @@ export async function getDashboardData(teamId: string) {
       orderBy: { startTime: "asc" },
     }),
     prisma.client.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } }),
-    prisma.attendanceRecord.findMany({ where: { date: today }, include: { user: true } }),
+    prisma.attendanceRecord.findMany({ where: { date: today, user: { teamId } }, include: { user: true } }),
     prisma.user.findMany({ where: { teamId, active: true } }),
   ]);
 
@@ -60,7 +62,7 @@ export async function getDashboardData(teamId: string) {
       // t's own date, not today's — a task overdue since 3 days ago must be
       // compared against when it was actually due, not today's date, or
       // "overdue by" would understate it (or go negative).
-      const due = combineDateAndTime(t.date, t.dueTime);
+      const due = combineDateAndTime(t.date, t.dueTime, tz);
       const mins = differenceInMinutes(new Date(), due);
       overdueBy = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins} minutes`;
     }
@@ -83,11 +85,16 @@ export async function getDashboardData(teamId: string) {
     if (!record?.actualCheckIn) {
       return { userId: emp.id, name: emp.name, status: "not_checked_in" as const, time: null };
     }
+    // An auto-stopped session (forgot to check out) is waiting for a lead,
+    // not "checked in".
+    if (record.autoClosedAt && record.review === "PENDING") {
+      return { userId: emp.id, name: emp.name, status: "needs_review" as const, time: formatTime(record.actualCheckIn, tz) };
+    }
     return {
       userId: emp.id,
       name: emp.name,
-      status: record.status === "LATE" ? ("late" as const) : ("checked_in" as const),
-      time: formatTime(record.actualCheckIn),
+      status: (record.lateMinutes ?? 0) > 0 ? ("late" as const) : ("checked_in" as const),
+      time: formatTime(record.actualCheckIn, tz),
     };
   });
 

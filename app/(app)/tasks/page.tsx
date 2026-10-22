@@ -1,9 +1,11 @@
 import { getCurrentUser } from "@/lib/session";
 import { getTasksPageData } from "@/lib/queries/tasks";
+import { runTeamMaintenance } from "@/lib/services/team-maintenance";
 import { TasksBoard } from "@/components/tasks/tasks-board";
 
 export default async function TasksPage() {
   const currentUser = await getCurrentUser();
+  await runTeamMaintenance(currentUser.teamId);
 
   const { tasks, clients, employees, categories, shiftTypes } = await getTasksPageData(currentUser.teamId);
 

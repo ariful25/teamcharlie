@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { taskSchema } from "@/lib/validations";
 import { notifyTaskCreated } from "@/lib/notifications";
+import { generateRecurringTaskInstances } from "@/lib/services/task-generation";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -58,6 +59,10 @@ export async function POST(req: NextRequest) {
     const assignee = await prisma.user.findFirst({ where: { id: data.assignedUserId, teamId } });
     if (!assignee) return NextResponse.json({ error: "Invalid assignedUserId" }, { status: 400 });
   }
+  if (data.categoryId) {
+    const category = await prisma.category.findFirst({ where: { id: data.categoryId, teamId } });
+    if (!category) return NextResponse.json({ error: "Invalid categoryId" }, { status: 400 });
+  }
   if (data.shiftTypeId) {
     const shiftType = await prisma.shiftType.findFirst({ where: { id: data.shiftTypeId, teamId } });
     if (!shiftType) return NextResponse.json({ error: "Invalid shiftTypeId" }, { status: 400 });
@@ -102,7 +107,13 @@ export async function POST(req: NextRequest) {
   // function exits, but failures never block the task from being created
   // (notifyTaskCreated is a best-effort no-op on any channel that isn't
   // configured).
-  await notifyTaskCreated(task, session.user.name ?? "Someone");
+  await notifyTaskCreated(teamId, task, session.user.name ?? "Someone");
+
+  // A recurring task is saved as a hidden template; the board only ever
+  // shows generated instances. Generate now (idempotent) so a series that
+  // starts today appears immediately, instead of after the next throttled
+  // maintenance run — previously the new task just seemed to vanish.
+  if (isRecurring) await generateRecurringTaskInstances(teamId);
 
   return NextResponse.json({ task });
 }

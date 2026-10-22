@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 type IntegrationRow = {
   provider: string;
@@ -77,7 +78,7 @@ function ConfigureModal({ clientId, row }: { clientId: string; row: IntegrationR
           <p className="text-xs text-muted-foreground">
             {row.hasConnector
               ? "Set this once the connection is set up."
-              : `Charlie HQ has no automated ${row.label} connector yet — this only records the status for team visibility, it does not give Charlie HQ access. Set it up directly in ${row.label}, then mark it "Externally Configured" here.`}
+              : `${PRODUCT_NAME} has no automated ${row.label} connector yet — this only records the status for team visibility, it does not give ${PRODUCT_NAME} access. Set it up directly in ${row.label}, then mark it "Externally Configured" here.`}
           </p>
           <Field label="Status">
             <Select

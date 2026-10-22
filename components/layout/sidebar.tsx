@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { permissions } from "@/lib/auth";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -31,10 +32,12 @@ const navItems = [
 
 export function Sidebar({
   user,
+  teamName,
   checkedIn,
   clients,
 }: {
   user: { name: string; role: string; avatarUrl?: string | null };
+  teamName: string;
   checkedIn: boolean;
   clients: { id: string; name: string }[];
 }) {
@@ -46,9 +49,9 @@ export function Sidebar({
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 glow-border">
           <Radar className="h-5 w-5 text-primary" />
         </div>
-        <div>
-          <p className="text-sm font-semibold leading-tight">CHARLIE HQ</p>
-          <p className="text-[11px] text-muted-foreground">STR Assistance</p>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold uppercase leading-tight">{PRODUCT_NAME}</p>
+          <p className="truncate text-[11px] text-muted-foreground">{teamName}</p>
         </div>
       </div>
 

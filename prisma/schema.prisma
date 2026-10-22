@@ -66,6 +66,24 @@ enum ChecklistType {
   CHECKOUT
 }
 
+// Whether a lead/admin still has to confirm a record (docs/attendance-rules.md).
+// NONE = clean punches, counts as-is. PENDING = missed punch / auto-stopped /
+// claim waiting. APPROVED = confirmed (effective times). REJECTED = claim not
+// accepted / didn't work — only real punches count.
+enum AttendanceReview {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OvertimeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum AttendanceStatus {
   ON_TIME
   LATE
@@ -194,20 +212,22 @@ enum KnowledgeColumnType {
 // ---------- CORE ----------
 
 model Team {
-  id        String   @id @default(cuid())
-  name      String   @unique // "Charlie"
-  slug      String   @unique // "charlie"
-  timezone  String   @default("Asia/Dhaka")
-  users     User[]
-  clients   Client[]
-  tasks     Task[]
-  notices   Notice[]
-  shiftTypes ShiftType[]
-  settings  TeamSettings?
-  checklistItems ChecklistItem[]
+  id              String          @id @default(cuid())
+  name            String          @unique // "Charlie"
+  slug            String          @unique // "charlie"
+  timezone        String          @default("Asia/Dhaka")
+  users           User[]
+  clients         Client[]
+  tasks           Task[]
+  notices         Notice[]
+  shiftTypes      ShiftType[]
+  settings        TeamSettings?
+  checklistItems  ChecklistItem[]
+  categories      Category[]
+  invites         TeamInvite[]
   lastGeneratedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model TeamSettings {
@@ -217,6 +237,16 @@ model TeamSettings {
 
   discordCheckinWebhookConfigured  Boolean @default(false)
   discordCheckoutWebhookConfigured Boolean @default(false)
+
+  // One Discord incoming-webhook URL for every event (tasks, check-in/out,
+  // exports) for a team that isn't the deployment's home team — see
+  // lib/notifications.ts. Server-side only; never sent to the browser.
+  discordWebhookUrl String?
+
+  // A check-in with no check-out is stopped automatically after this many
+  // hours (or the scheduled end + approved overtime, if later) and sent for
+  // review — see docs/attendance-rules.md.
+  autoCheckoutHours Int @default(10)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -244,15 +274,15 @@ model ChecklistItem {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  name          String
-  email         String   @unique
-  passwordHash  String
-  avatarUrl     String?
-  role          Role     @default(EMPLOYEE)
-  teamId        String
-  team          Team     @relation(fields: [teamId], references: [id])
-  active        Boolean  @default(true)
+  id           String  @id @default(cuid())
+  name         String
+  email        String  @unique
+  passwordHash String
+  avatarUrl    String?
+  role         Role    @default(EMPLOYEE)
+  teamId       String
+  team         Team    @relation(fields: [teamId], references: [id])
+  active       Boolean @default(true)
 
   // Their Discord user ID (an 18-ish digit snowflake, not a username) — set
   // in Settings so the bot can @mention the right person in task/digest
@@ -261,15 +291,16 @@ model User {
   discordUserId String?
   // Same idea for Slack — a Slack member ID (e.g. "U0123456789"), not a
   // username/handle.
-  slackUserId String?
+  slackUserId   String?
 
   defaultShiftTypeId String?
   defaultShiftType   ShiftType? @relation("UserDefaultShift", fields: [defaultShiftTypeId], references: [id])
 
-  assignedTasks         Task[]            @relation("TaskAssignee")
-  attendanceRecords     AttendanceRecord[]
-  postedNotices         Notice[]          @relation("NoticeAuthor")
-  shiftAssignments      ShiftAssignment[]
+  assignedTasks     Task[]             @relation("TaskAssignee")
+  attendanceRecords AttendanceRecord[]
+  overtimeRequests  OvertimeRequest[]  @relation("OvertimeRequests")
+  postedNotices     Notice[]           @relation("NoticeAuthor")
+  shiftAssignments  ShiftAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -278,29 +309,29 @@ model User {
 }
 
 model Client {
-  id                          String       @id @default(cuid())
+  id                          String                  @id @default(cuid())
   name                        String
-  status                      ClientStatus @default(STABLE)
+  status                      ClientStatus            @default(STABLE)
   guestCommunicationPlatform  String?
   operationPlatform           String?
   clientCommunicationPlatform String?
   notes                       String?
-  active                      Boolean      @default(true)
+  active                      Boolean                 @default(true)
   // Every client gets STANDARD automatically — this is what makes a new
   // client's workspace fully functional without any code change. Only an
   // explicit admin action moves a client onto a specialized template.
   workspaceTemplate           ClientWorkspaceTemplate @default(STANDARD)
   teamId                      String
-  team                        Team         @relation(fields: [teamId], references: [id])
+  team                        Team                    @relation(fields: [teamId], references: [id])
 
-  tasks    Task[]
-  properties Property[]
-  leads      Lead[]
-  knowledgeItems PropertyKnowledgeItem[]
-  integrations   ClientIntegration[]
-  files          ClientFile[]
-  googleSheet    ClientGoogleSheet?
-  knowledgeColumns KnowledgeColumn[]
+  tasks             Task[]
+  properties        Property[]
+  leads             Lead[]
+  knowledgeItems    PropertyKnowledgeItem[]
+  integrations      ClientIntegration[]
+  files             ClientFile[]
+  googleSheet       ClientGoogleSheet?
+  knowledgeColumns  KnowledgeColumn[]
   knowledgeSyncLogs KnowledgeSyncLog[]
 
   createdAt DateTime @default(now())
@@ -427,13 +458,40 @@ model KnowledgeSyncLog {
   @@index([propertyId])
 }
 
+// Per team — each team gets its own copy of the default list on sign-up
+// (lib/services/team-onboarding.ts). Was global before multi-team, which
+// would have shown one team's custom categories to every other team.
 model Category {
-  id       String    @id @default(cuid())
-  name     String    @unique
-  isCustom Boolean   @default(false)
+  id       String  @id @default(cuid())
+  name     String
+  isCustom Boolean @default(false)
   tasks    Task[]
 
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
+
+  @@unique([teamId, name])
+}
+
+// A single-use link an admin sends to bring someone onto their team. The raw
+// token is only ever in the link itself; the database stores its SHA-256.
+model TeamInvite {
+  id         String    @id @default(cuid())
+  teamId     String
+  team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  email      String
+  role       Role      @default(EMPLOYEE)
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+  createdBy  String
+  createdAt  DateTime  @default(now())
+
+  @@index([teamId])
+  @@index([email])
 }
 
 // A Task can optionally be a recurring template (isRecurringTemplate: true).
@@ -441,9 +499,9 @@ model Category {
 // lib/services/task-generation.ts reads repeatMode/repeatDays on template tasks and
 // spawns plain (non-template) Task rows for future days.
 model Task {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   clientId     String?
-  client       Client?  @relation(fields: [clientId], references: [id])
+  client       Client? @relation(fields: [clientId], references: [id])
   propertyName String?
 
   categoryId String?
@@ -476,8 +534,8 @@ model Task {
   notes       String?
 
   date      DateTime // calendar day (UTC midnight) this task instance belongs to
-  startTime String?  // "HH:mm"
-  dueTime   String?  // "HH:mm"
+  startTime String? // "HH:mm"
+  dueTime   String? // "HH:mm"
 
   priority Priority   @default(NORMAL)
   status   TaskStatus @default(UPCOMING)
@@ -509,6 +567,11 @@ model Task {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Belt-and-suspenders against the generator ever creating two instances of
+  // the same template on the same day (e.g. a throttle race between two
+  // concurrent requests) — Postgres treats NULL as distinct from NULL, so
+  // this only constrains actual generated instances, never one-off tasks.
+  @@unique([recurringTemplateId, date])
   @@index([teamId, date])
   @@index([clientId])
   @@index([assignedUserId])
@@ -516,11 +579,6 @@ model Task {
   @@index([isRecurringTemplate])
   @@index([teamId, deletedAt])
   @@index([recurringTemplateId])
-  // Belt-and-suspenders against the generator ever creating two instances of
-  // the same template on the same day (e.g. a throttle race between two
-  // concurrent requests) — Postgres treats NULL as distinct from NULL, so
-  // this only constrains actual generated instances, never one-off tasks.
-  @@unique([recurringTemplateId, date])
 }
 
 model Property {
@@ -548,9 +606,9 @@ model Property {
 }
 
 model PropertyKnowledgeItem {
-  id              String                  @id @default(cuid())
-  clientId        String
-  client          Client                  @relation(fields: [clientId], references: [id])
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
 
   internalName    String
   airbnbUrl       String
@@ -560,37 +618,37 @@ model PropertyKnowledgeItem {
   completionPct   Int                     @default(0)
   extractionError String?
 
-  listingName     String?
-  description     String?
-  amenities       String[]                @default([])
-  propertyType    String?
-  location        String?
-  guestCapacity   Int?
-  bedrooms        Float?
-  bathrooms       Float?
-  beds            Float?
-  rules           String?
+  listingName   String?
+  description   String?
+  amenities     String[] @default([])
+  propertyType  String?
+  location      String?
+  guestCapacity Int?
+  bedrooms      Float?
+  bathrooms     Float?
+  beds          Float?
+  rules         String?
 
-  wifiName        String?
-  wifiPassword    String?
-  doorCode        String?
-  parkingInfo     String?
-  checkInInfo     String?
-  checkoutInfo    String?
-  internalNotes   String?
+  wifiName      String?
+  wifiPassword  String?
+  doorCode      String?
+  parkingInfo   String?
+  checkInInfo   String?
+  checkoutInfo  String?
+  internalNotes String?
 
-  extractedAt     DateTime?
-  exportedAt      DateTime?
+  extractedAt         DateTime?
+  exportedAt          DateTime?
   // Set every time this row is written to the client's Google Sheet — not
   // the same as exportedAt (which tracks the CSV export instead). Null
   // means it has never been synced (e.g. the client has no spreadsheet, or
   // this property was created before one existed).
   googleSheetSyncedAt DateTime?
 
-  syncLogs        KnowledgeSyncLog[]
+  syncLogs KnowledgeSyncLog[]
 
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([clientId, airbnbUrl])
   @@index([clientId])
@@ -656,18 +714,18 @@ model Tenancy {
 }
 
 model Lead {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   clientId         String
-  client           Client   @relation(fields: [clientId], references: [id])
+  client           Client    @relation(fields: [clientId], references: [id])
   interestedUnitId String?
-  interestedUnit   Unit?    @relation(fields: [interestedUnitId], references: [id])
+  interestedUnit   Unit?     @relation(fields: [interestedUnitId], references: [id])
   name             String
   channel          String
   status           String
   contactedDate    DateTime?
   notes            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([clientId])
   @@index([interestedUnitId])
@@ -676,18 +734,18 @@ model Lead {
 // The four (or more) shift blocks the team schedules against. Admin-editable in
 // Settings — never hardcoded in application code.
 model ShiftType {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   teamId    String
-  team      Team     @relation(fields: [teamId], references: [id])
-  name      String   // "Morning", "Evening", "Night", "Backup"
-  startTime String   // "HH:mm"
-  endTime   String   // "HH:mm" — may be earlier than startTime (crosses midnight)
-  colorHex  String   @default("#22d3ee")
-  active    Boolean  @default(true)
+  team      Team    @relation(fields: [teamId], references: [id])
+  name      String // "Morning", "Evening", "Night", "Backup"
+  startTime String // "HH:mm"
+  endTime   String // "HH:mm" — may be earlier than startTime (crosses midnight)
+  colorHex  String  @default("#22d3ee")
+  active    Boolean @default(true)
 
-  assignments      ShiftAssignment[]
-  tasks            Task[]
-  defaultForUsers  User[]            @relation("UserDefaultShift")
+  assignments     ShiftAssignment[]
+  tasks           Task[]
+  defaultForUsers User[]            @relation("UserDefaultShift")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -702,13 +760,13 @@ model ShiftAssignment {
   id          String         @id @default(cuid())
   userId      String
   user        User           @relation(fields: [userId], references: [id])
-  date        DateTime       // specific calendar day (UTC midnight)
+  date        DateTime // specific calendar day (UTC midnight)
   shiftTypeId String?
   shiftType   ShiftType?     @relation(fields: [shiftTypeId], references: [id])
   status      ShiftDayStatus @default(WORKING)
-  customStart String?        // "HH:mm" override, e.g. this person's Evening actually runs 3PM-12AM
-  customEnd   String?        // "HH:mm" override
-  note        String?        // free text, mirrors the spreadsheet's NOTE column
+  customStart String? // "HH:mm" override, e.g. this person's Evening actually runs 3PM-12AM
+  customEnd   String? // "HH:mm" override
+  note        String? // free text, mirrors the spreadsheet's NOTE column
 
   createdBy String?
   createdAt DateTime @default(now())
@@ -719,15 +777,49 @@ model ShiftAssignment {
 }
 
 model AttendanceRecord {
-  id     String @id @default(cuid())
+  id     String   @id @default(cuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User     @relation(fields: [userId], references: [id])
   date   DateTime // calendar day (UTC midnight)
 
   scheduledCheckIn  String?
   scheduledCheckOut String?
-  actualCheckIn     DateTime?
-  actualCheckOut    DateTime?
+  // Absolute scheduled instants (end is on the next day for overnight
+  // shifts). Null for an unscheduled day.
+  shiftStartAt      DateTime?
+  shiftEndAt        DateTime?
+
+  // Raw punches — server time, never overwritten by an edit or approval.
+  actualCheckIn  DateTime?
+  actualCheckOut DateTime?
+
+  // System marker: the open session was stopped here because nobody checked
+  // out (docs/attendance-rules.md, rule 4). actualCheckOut stays null.
+  autoClosedAt       DateTime?
+  // Employee pressed "Confirm check-out" after the auto-stop.
+  reportedCheckOutAt DateTime?
+  // Employee was blocked by an unresolved shift and asked to start this one.
+  checkInRequestedAt DateTime?
+  // Employee's claimed real times for a missed punch.
+  claimedCheckIn     DateTime?
+  claimedCheckOut    DateTime?
+  claimReason        String?
+  missedCheckIn      Boolean   @default(false)
+  missedCheckOut     Boolean   @default(false)
+  // Set by the auto-stop: this unresolved shift locks the employee's next
+  // check-in until a lead confirms it. Records imported from before these
+  // rules are queued for review but never lock anyone out.
+  blocksCheckIn      Boolean   @default(false)
+
+  // What a lead/admin confirmed — used for hours instead of the punches.
+  effectiveCheckIn   DateTime?
+  effectiveCheckOut  DateTime?
+  review             AttendanceReview @default(NONE)
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  reviewNote         String?
+  tasksConfirmed     Boolean          @default(false)
+  checkoutNotifiedAt DateTime?
 
   totalMinutes Int?
   lateMinutes  Int?
@@ -750,15 +842,60 @@ model AttendanceRecord {
   slackCheckInError   String?
   slackCheckOutError  String?
 
-  editedBy     String?
-  editedAt     DateTime?
-  editReason   String?
+  editedBy   String?
+  editedAt   DateTime?
+  editReason String?
+
+  audits AttendanceAudit[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, date])
   @@index([date])
+  @@index([review])
+}
+
+// Who changed what on an attendance record, and why. Append-only.
+model AttendanceAudit {
+  id        String           @id @default(cuid())
+  recordId  String
+  record    AttendanceRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  actorId   String
+  action    String // APPROVE, REJECT, ABSENT, CLAIM, AUTO_STOP, CONFIRM_CHECKOUT, REQUEST_CHECK_IN
+  before    Json?
+  after     Json?
+  note      String?
+  createdAt DateTime         @default(now())
+
+  @@index([recordId])
+}
+
+// Overtime only counts when approved here first (docs/attendance-rules.md,
+// rule 7) — never inferred from a late check-out.
+model OvertimeRequest {
+  id                  String         @id @default(cuid())
+  teamId              String
+  userId              String
+  user                User           @relation("OvertimeRequests", fields: [userId], references: [id])
+  date                DateTime // shift day (UTC midnight), same key as AttendanceRecord.date
+  requestedMinutes    Int
+  reason              String
+  // The lead/admin who asked for the overtime (the old form's "Requested by").
+  askedById           String?
+  publicHoliday       Boolean        @default(false)
+  submittedAfterShift Boolean        @default(false)
+  status              OvertimeStatus @default(PENDING)
+  approvedMinutes     Int?
+  reviewedById        String?
+  reviewedAt          DateTime?
+  reviewNote          String?
+  createdById         String
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([teamId, status])
+  @@index([userId, date])
 }
 
 // A team-wide bulletin board — simple sticky notes, not a ticket/workflow
@@ -766,19 +903,19 @@ model AttendanceRecord {
 // no status, no severity: anyone on the team can pin up a reminder or tip,
 // see components/notices/notice-board.tsx.
 model Notice {
-  id      String      @id @default(cuid())
+  id        String      @id @default(cuid())
   // Empty string for a checklist note with no caption — see the `checklist`
   // comment below. Never empty for a plain text note (enforced by
   // noticeSchema in lib/validations.ts, not the DB).
-  content String
-  color   NoticeColor @default(YELLOW)
+  content   String
+  color     NoticeColor @default(YELLOW)
   // Pinned notices always sort first — for a genuine announcement over a
   // casual sticky note. See lib/auth.ts's canPinNotices for who can pin.
-  pinned  Boolean     @default(false)
+  pinned    Boolean     @default(false)
   // Archived notices drop off the main board but aren't deleted — the
   // Google-Keep-style "clean up without losing it" action. Distinct from
   // delete, which is permanent.
-  archived Boolean    @default(false)
+  archived  Boolean     @default(false)
   // Null for a plain text note. A JSON array of {id, text, checked} for a
   // checklist note — Prisma has no native list-of-objects column, and a
   // separate NoticeChecklistItem table would be overkill for a handful of

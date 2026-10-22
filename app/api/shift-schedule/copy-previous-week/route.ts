@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getTeamTimezone } from "@/lib/team-timezone";
+import { parseDayParam } from "@/lib/time";
 import { getCurrentUserOrNull } from "@/lib/session";
 import { permissions } from "@/lib/auth";
 import { copyPreviousWeek } from "@/lib/services/shift-schedule";
@@ -14,6 +16,6 @@ export async function POST(req: NextRequest) {
   const { weekStart } = await req.json();
   if (!weekStart) return NextResponse.json({ error: "weekStart is required" }, { status: 400 });
 
-  const result = await copyPreviousWeek(currentUser.teamId, new Date(weekStart), currentUser.id);
+  const result = await copyPreviousWeek(currentUser.teamId, parseDayParam(weekStart, await getTeamTimezone(currentUser.teamId)), currentUser.id);
   return NextResponse.json(result);
 }

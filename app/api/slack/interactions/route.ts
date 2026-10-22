@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { startOfDayUTC } from "@/lib/time";
 import { buildDailyDigestText, isCompleteTaskAction, digestBlocks } from "@/lib/slack-bot";
 
 const MAX_TIMESTAMP_SKEW_SECONDS = 60 * 5;
@@ -65,11 +64,13 @@ export async function POST(req: NextRequest) {
   // update happens as a separate POST to `response_url` (valid for ~30
   // minutes), Slack's equivalent of Discord's inline type-7 UPDATE_MESSAGE.
   if (task.assignedUserId && payload.response_url) {
-    const assignee = await prisma.user.findFirst({ where: { id: task.assignedUserId } });
+    const assignee = await prisma.user.findFirst({ where: { id: task.assignedUserId, teamId: task.teamId } });
     const dayTasks = await prisma.task.findMany({
       where: {
         assignedUserId: task.assignedUserId,
-        date: startOfDayUTC(task.date),
+        // task.date is already the UTC-midnight calendar day.
+        date: task.date,
+        teamId: task.teamId,
         isRecurringTemplate: false,
         deletedAt: null,
       },

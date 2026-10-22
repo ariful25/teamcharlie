@@ -1,4 +1,5 @@
 import { extractAirbnbListingId } from "@/lib/services/property-knowledge";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 type ExtractedAirbnbListing = {
   airbnbListingId: string | null;
@@ -210,7 +211,7 @@ export async function extractAirbnbListing(airbnbUrl: string): Promise<Extracted
     const res = await fetch(airbnbUrl, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; CharlieHQ/1.0; +https://github.com/ariful25/teamcharlie)",
+          `Mozilla/5.0 (compatible; ${PRODUCT_NAME}/1.0)`,
         Accept: "text/html,application/xhtml+xml",
       },
       cache: "no-store",

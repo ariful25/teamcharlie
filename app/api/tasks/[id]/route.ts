@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { taskEditSchema } from "@/lib/validations";
+import { taskEditSchema, taskQuickUpdateSchema } from "@/lib/validations";
+import { combineDateAndTime } from "@/lib/time";
+import { getTeamTimezone } from "@/lib/team-timezone";
 import { notifyTaskEdited, notifyTaskDeleted, notifyTaskStatusChanged } from "@/lib/notifications";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -47,6 +49,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       const assignee = await prisma.user.findFirst({ where: { id: data.assignedUserId, teamId } });
       if (!assignee) return NextResponse.json({ error: "Invalid assignedUserId" }, { status: 400 });
     }
+    if (data.categoryId) {
+      const category = await prisma.category.findFirst({ where: { id: data.categoryId, teamId } });
+      if (!category) return NextResponse.json({ error: "Invalid categoryId" }, { status: 400 });
+    }
 
     const instanceData: Record<string, unknown> = {};
     if (data.title !== undefined) instanceData.title = data.title;
@@ -60,12 +66,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (data.priority !== undefined) instanceData.priority = data.priority;
     if (data.notes !== undefined) instanceData.notes = data.notes || null;
 
+    // Moving an OVERDUE task's date/due time into the future makes it not
+    // overdue any more. The overdue sweep only ever flips tasks *to* OVERDUE,
+    // so without this an edited deadline left the task stuck in that column.
+    if (existing.status === "OVERDUE") {
+      const nextDate = (instanceData.date as Date | undefined) ?? existing.date;
+      const nextDue = data.dueTime !== undefined ? data.dueTime || null : existing.dueTime;
+      const stillOverdue = nextDue ? combineDateAndTime(nextDate, nextDue, await getTeamTimezone(teamId)).getTime() < Date.now() : false;
+      if (!stillOverdue) instanceData.status = "UPCOMING";
+    }
+
     const task = await prisma.task.update({
       where: { id: params.id },
       data: instanceData,
       include: { client: true, assignedUser: true },
     });
-    await notifyTaskEdited(task, session.user.name ?? "Someone");
+    await notifyTaskEdited(teamId, task, session.user.name ?? "Someone");
 
     // "Also apply to future occurrences" pushes only the content fields —
     // never date, status, or assignedUserId, which are instance-specific (a
@@ -95,22 +111,41 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ task });
   }
 
-  if (body.assignedUserId !== undefined && body.assignedUserId !== null) {
-    const assignee = await prisma.user.findFirst({ where: { id: body.assignedUserId, teamId } });
+  const quick = taskQuickUpdateSchema.safeParse(body);
+  if (!quick.success) {
+    return NextResponse.json({ error: quick.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+  }
+  const q = quick.data;
+
+  if (q.assignedUserId) {
+    const assignee = await prisma.user.findFirst({ where: { id: q.assignedUserId, teamId } });
     if (!assignee) return NextResponse.json({ error: "Invalid assignedUserId" }, { status: 400 });
   }
 
   const updateData: Record<string, unknown> = {};
-  if (body.status) {
-    updateData.status = body.status;
-    if (body.status === "COMPLETED") {
+  if (q.status && q.status !== existing.status) {
+    updateData.status = q.status;
+    if (q.status === "COMPLETED") {
       updateData.completedAt = new Date();
       updateData.completedBy = userId;
+    } else if (existing.status === "COMPLETED") {
+      // Re-opening a completed task — clear the completion stamp so reports
+      // and history don't count it as done.
+      updateData.completedAt = null;
+      updateData.completedBy = null;
     }
+    // Leaving BLOCKED always drops the stale reason, whichever UI did it.
+    if (q.status !== "BLOCKED") updateData.blockedReason = null;
   }
-  if (body.blockedReason !== undefined) updateData.blockedReason = body.blockedReason;
-  if (body.assignedUserId !== undefined) updateData.assignedUserId = body.assignedUserId;
-  if (body.priority) updateData.priority = body.priority;
+  if (q.blockedReason !== undefined && (q.status ?? existing.status) === "BLOCKED") {
+    updateData.blockedReason = q.blockedReason || null;
+  }
+  if (q.assignedUserId !== undefined) updateData.assignedUserId = q.assignedUserId || null;
+  if (q.priority) updateData.priority = q.priority;
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ task: existing });
+  }
 
   // Editing a generated task instance only ever touches this Task row — it never
   // mutates the recurring template it may have come from (Task.isRecurringTemplate).
@@ -124,16 +159,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // Blocked); any other lightweight field change (priority, reassignment)
   // falls back to the generic "updated" message. Never both for one PATCH.
   const actorName = session.user.name ?? "Someone";
-  if (body.status && ["IN_PROGRESS", "COMPLETED", "BLOCKED"].includes(body.status)) {
-    await notifyTaskStatusChanged(task, body.status, actorName);
-  } else if (Object.keys(updateData).length > 0) {
-    await notifyTaskEdited(task, actorName);
+  if (q.status === "IN_PROGRESS" || q.status === "COMPLETED" || q.status === "BLOCKED") {
+    await notifyTaskStatusChanged(teamId, task, q.status, actorName);
+  } else {
+    await notifyTaskEdited(teamId, task, actorName);
   }
 
   return NextResponse.json({ task });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -142,6 +177,21 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const existing = await prisma.task.findFirst({ where: { id: params.id, teamId, deletedAt: null } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // ?series=true stops a recurring series: soft-deletes its template so no
+  // more instances are generated. Today's instance (and all past ones) stay
+  // as they are. Templates are never shown on the board, so before this
+  // there was no way to stop a series that wasn't attached to a client.
+  if (new URL(req.url).searchParams.get("series") === "true") {
+    const templateId = existing.isRecurringTemplate ? existing.id : existing.recurringTemplateId;
+    if (!templateId) return NextResponse.json({ error: "This task is not part of a recurring series" }, { status: 400 });
+    const stopped = await prisma.task.updateMany({
+      where: { id: templateId, teamId, isRecurringTemplate: true, deletedAt: null },
+      data: { deletedAt: new Date(), deletedBy: userId },
+    });
+    if (stopped.count === 0) return NextResponse.json({ error: "This series has already been stopped" }, { status: 404 });
+    return NextResponse.json({ ok: true });
+  }
+
   // Soft delete — see the Task.deletedAt comment in schema.prisma. A task
   // with an audit trail (completedAt/completedBy) must stay recoverable.
   const task = await prisma.task.update({
@@ -149,6 +199,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     data: { deletedAt: new Date(), deletedBy: userId },
     include: { client: true, assignedUser: true },
   });
-  await notifyTaskDeleted(task, session.user.name ?? "Someone");
+  await notifyTaskDeleted(teamId, task, session.user.name ?? "Someone");
   return NextResponse.json({ ok: true });
 }

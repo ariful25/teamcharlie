@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 export const runtime = "edge";
-export const alt = "Charlie HQ — STR Assistance Operations Platform";
+export const alt = `${PRODUCT_NAME} — Team Operations Platform`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -50,10 +51,10 @@ export default function OpengraphImage() {
           </svg>
         </div>
         <div style={{ display: "flex", fontSize: 76, fontWeight: 700, color: "hsl(210, 40%, 96%)", letterSpacing: -1.5 }}>
-          Charlie HQ
+          {PRODUCT_NAME}
         </div>
         <div style={{ display: "flex", marginTop: 18, fontSize: 30, color: "hsl(215, 20%, 65%)" }}>
-          STR Assistance — Operations Platform
+          Team Operations Platform
         </div>
       </div>
     ),

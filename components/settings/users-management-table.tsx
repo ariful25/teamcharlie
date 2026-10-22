@@ -12,7 +12,16 @@ const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin" },
 ];
 
-export function UsersManagementTable({ users, currentUserId }: { users: any[]; currentUserId: string }) {
+// showSlack: only the home team has the Slack app (lib/notifications.ts).
+export function UsersManagementTable({
+  users,
+  currentUserId,
+  showSlack = true,
+}: {
+  users: any[];
+  currentUserId: string;
+  showSlack?: boolean;
+}) {
   const [rows, setRows] = useState(users);
   const [isPending, startTransition] = useTransition();
   const [discordDrafts, setDiscordDrafts] = useState<Record<string, string>>({});
@@ -97,19 +106,21 @@ export function UsersManagementTable({ users, currentUserId }: { users: any[]; c
               title="Discord user ID — used to @mention them in task/digest notifications"
               className="w-[150px] rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-xs outline-none focus:border-primary/50"
             />
-            <input
-              value={slackDrafts[u.id] ?? u.slackUserId ?? ""}
-              onChange={(e) => setSlackDrafts((prev) => ({ ...prev, [u.id]: e.target.value }))}
-              onBlur={() => {
-                const draft = slackDrafts[u.id];
-                if (draft !== undefined && draft.trim() !== (u.slackUserId ?? "")) {
-                  saveChatId(u.id, "slackUserId", draft.trim(), "Slack");
-                }
-              }}
-              placeholder="Slack user ID"
-              title="Slack user ID — used to @mention them in task/digest notifications"
-              className="w-[140px] rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-xs outline-none focus:border-primary/50"
-            />
+            {showSlack && (
+              <input
+                value={slackDrafts[u.id] ?? u.slackUserId ?? ""}
+                onChange={(e) => setSlackDrafts((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                onBlur={() => {
+                  const draft = slackDrafts[u.id];
+                  if (draft !== undefined && draft.trim() !== (u.slackUserId ?? "")) {
+                    saveChatId(u.id, "slackUserId", draft.trim(), "Slack");
+                  }
+                }}
+                placeholder="Slack user ID"
+                title="Slack user ID — used to @mention them in task/digest notifications"
+                className="w-[140px] rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-xs outline-none focus:border-primary/50"
+              />
+            )}
             <Select
               className="w-[140px]"
               value={u.role}

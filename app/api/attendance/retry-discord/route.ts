@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
 import { retryNotificationSync } from "@/lib/services/attendance";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -18,6 +19,10 @@ export async function POST(req: NextRequest) {
   if (!recordId || !["checkin", "checkout"].includes(kind) || !["discord", "slack"].includes(channel)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
+
+  const teamId = (session.user as any).teamId as string;
+  const owned = await prisma.attendanceRecord.findFirst({ where: { id: recordId, user: { teamId } }, select: { id: true } });
+  if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   try {
     const record = await retryNotificationSync(recordId, kind, channel);
