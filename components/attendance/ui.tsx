@@ -4,88 +4,75 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { RecordView, ShiftState } from "@/lib/queries/attendance";
 
-// Shared building blocks for the attendance screens: state chips with a
-// glowing status dot, explicit shift-day labels, HUD-style number tiles and
-// the shift timeline bar. Everything uses the app's tokens (globals.css).
+// Shared building blocks for the attendance screens. Deliberately built on
+// the same primitives as the rest of the app (Card, Badge, the dashboard's
+// stat-card look) so attendance doesn't drift into its own visual style.
 
+import { Badge, type Tone as BadgeTone } from "@/components/ui/badge";
 import { dayLabel } from "@/lib/attendance/format";
 export { hm, dayLabel, timeIn, scheduleLabel } from "@/lib/attendance/format";
 
 type Tone = "success" | "warning" | "danger" | "info" | "primary" | "muted" | "accent";
 
-const toneDot: Record<Tone, string> = {
-  success: "bg-success shadow-[0_0_10px_hsl(var(--success))]",
-  warning: "bg-warning shadow-[0_0_10px_hsl(var(--warning))]",
-  danger: "bg-danger shadow-[0_0_10px_hsl(var(--danger))]",
-  info: "bg-info shadow-[0_0_10px_hsl(var(--info))]",
-  primary: "bg-primary shadow-[0_0_10px_hsl(var(--primary))]",
-  accent: "bg-accent shadow-[0_0_10px_hsl(var(--accent))]",
-  muted: "bg-muted-foreground/50",
+const badgeTone: Record<Tone, BadgeTone> = {
+  success: "success",
+  warning: "warning",
+  danger: "danger",
+  info: "info",
+  primary: "primary",
+  accent: "primary",
+  muted: "neutral",
 };
 
-const toneChip: Record<Tone, string> = {
-  success: "border-success/30 bg-success/10 text-success",
-  warning: "border-warning/30 bg-warning/10 text-warning",
-  danger: "border-danger/30 bg-danger/10 text-danger",
-  info: "border-info/30 bg-info/10 text-info",
-  primary: "border-primary/30 bg-primary/10 text-primary",
-  accent: "border-accent/30 bg-accent/10 text-accent",
-  muted: "border-border bg-muted/40 text-muted-foreground",
+const valueTone: Record<Tone, string> = {
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-danger",
+  info: "text-info",
+  primary: "text-foreground",
+  accent: "text-accent",
+  muted: "text-foreground",
 };
 
-export const STATE_META: Record<ShiftState, { label: string; tone: Tone; pulse?: boolean }> = {
-  WORKING: { label: "Working now", tone: "success", pulse: true },
-  REQUESTED_CHECK_IN: { label: "Check-in requested", tone: "info", pulse: true },
-  AUTO_STOPPED: { label: "No check-out · auto-stopped", tone: "danger" },
+export const STATE_META: Record<ShiftState, { label: string; tone: Tone }> = {
+  WORKING: { label: "Working now", tone: "success" },
+  REQUESTED_CHECK_IN: { label: "Check-in requested", tone: "info" },
+  AUTO_STOPPED: { label: "No check-out", tone: "danger" },
   NEEDS_REVIEW: { label: "Needs review", tone: "warning" },
   MISSED_SHIFT: { label: "Missed shift", tone: "danger" },
-  LATE_NOT_IN: { label: "Not checked in", tone: "warning", pulse: true },
+  LATE_NOT_IN: { label: "Not checked in", tone: "warning" },
   NOT_STARTED: { label: "Upcoming", tone: "muted" },
   DONE: { label: "Completed", tone: "primary" },
   ABSENT: { label: "Absent", tone: "danger" },
-  LEAVE: { label: "On leave", tone: "accent" },
+  LEAVE: { label: "On leave", tone: "info" },
   OFF: { label: "Off", tone: "muted" },
 };
 
-export function Dot({ tone, pulse }: { tone: Tone; pulse?: boolean }) {
+/** Thin wrapper over the app's Badge so attendance chips look like every other badge. */
+export function Chip({ tone, children, className }: { tone: Tone; children: React.ReactNode; pulse?: boolean; className?: string }) {
   return (
-    <span className="relative inline-flex h-2 w-2 shrink-0">
-      {pulse && <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", toneDot[tone].split(" ")[0])} />}
-      <span className={cn("relative inline-flex h-2 w-2 rounded-full", toneDot[tone])} />
-    </span>
-  );
-}
-
-export function Chip({ tone, children, pulse, className }: { tone: Tone; children: React.ReactNode; pulse?: boolean; className?: string }) {
-  return (
-    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium", toneChip[tone], className)}>
-      <Dot tone={tone} pulse={pulse} />
+    <Badge tone={badgeTone[tone]} className={cn("whitespace-nowrap", className)}>
       {children}
-    </span>
+    </Badge>
   );
 }
 
 export function StateChip({ state }: { state: ShiftState }) {
   const meta = STATE_META[state];
-  return (
-    <Chip tone={meta.tone} pulse={meta.pulse}>
-      {meta.label}
-    </Chip>
-  );
+  return <Chip tone={meta.tone}>{meta.label}</Chip>;
 }
 
-/** Small explicit "which day" badge used on every row and dialog. */
+/** Small explicit "which day" label used on every row and dialog. */
 export function DayBadge({ dayKey, today }: { dayKey: string; today?: string }) {
-  const isToday = today === dayKey;
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/30 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+    <Badge tone={today === dayKey ? "primary" : "neutral"}>
       {dayLabel(dayKey)}
-      {isToday && <span className="text-primary">· today</span>}
-    </span>
+      {today === dayKey && " · today"}
+    </Badge>
   );
 }
 
-/** A HUD-like number tile. */
+/** Same look as the dashboard's StatCard (label, then the number). */
 export function StatTile({
   label,
   value,
@@ -106,33 +93,25 @@ export function StatTile({
     <Comp
       onClick={onClick}
       className={cn(
-        "glass group relative overflow-hidden rounded-2xl p-4 text-left transition",
-        onClick && "hover:border-primary/40",
+        "glass rounded-2xl p-4 text-left shadow-card transition-shadow",
+        onClick && "cursor-pointer hover:shadow-glow-sm",
         active && "ring-2 ring-primary/50"
       )}
     >
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-      <span className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        <Dot tone={tone} />
-        {label}
-      </span>
-      <span className="mt-2 block font-mono text-2xl font-semibold tabular-nums tracking-tight">{value}</span>
-      {hint && <span className="mt-0.5 block text-[11px] text-muted-foreground">{hint}</span>}
+      <span className="block text-xs font-medium text-muted-foreground">{label}</span>
+      <span className={cn("mt-3 block text-2xl font-semibold tabular-nums", valueTone[tone])}>{value}</span>
+      {hint && <span className="mt-0.5 block text-xs text-muted-foreground">{hint}</span>}
     </Comp>
   );
 }
 
+/** A Card with the app's standard header (CardTitle style). */
 export function Panel({ title, action, children, className }: { title?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn("glass relative overflow-hidden rounded-2xl", className)}>
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-primary/60 via-accent/40 to-transparent" />
+    <section className={cn("glass overflow-hidden rounded-2xl shadow-card", className)}>
       {(title || action) && (
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-5 py-3">
-          {typeof title === "string" ? (
-            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
-          ) : (
-            title
-          )}
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-5 py-3.5">
+          {typeof title === "string" ? <h3 className="text-sm font-semibold text-foreground">{title}</h3> : title}
           {action}
         </header>
       )}
@@ -195,7 +174,7 @@ export function ShiftTimeline({ v, compact }: { v: RecordView; compact?: boolean
       {w0 !== null && w1 !== null && (
         <>
           <span
-            className={cn("absolute inset-y-0 rounded-full", pending ? "bg-warning/70" : "bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]")}
+            className={cn("absolute inset-y-0 rounded-full", pending ? "bg-warning/70" : "bg-primary")}
             style={{ left: pct(w0), width: width(w0, s1 !== null ? Math.min(w1, s1) : w1) }}
           />
           {s1 !== null && otEnd !== null && w1 > s1 && v.credit.overtimeMinutes > 0 && (
@@ -210,7 +189,7 @@ export function ShiftTimeline({ v, compact }: { v: RecordView; compact?: boolean
         </>
       )}
       {v.autoClosedAt && (
-        <span className="absolute -inset-y-1.5 w-0.5 rounded bg-danger shadow-[0_0_8px_hsl(var(--danger))]" style={{ left: pct(new Date(v.autoClosedAt).getTime()) }} />
+        <span className="absolute -inset-y-1.5 w-0.5 rounded bg-danger" style={{ left: pct(new Date(v.autoClosedAt).getTime()) }} />
       )}
     </div>
   );

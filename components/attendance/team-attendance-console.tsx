@@ -132,10 +132,10 @@ export function TeamAttendanceConsole({
       <Panel>
         <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Viewing shifts of</p>
-            <p className="font-display text-2xl font-semibold tracking-tight md:text-3xl">{dayLabel(day, "EEEE, d MMMM yyyy")}</p>
+            <p className="text-xs font-medium text-primary">Viewing shifts of</p>
+            <p className="font-display text-2xl font-semibold md:text-3xl">{dayLabel(day, "EEEE, d MMMM yyyy")}</p>
             <div className="mt-1 flex items-center gap-2">
-              <Chip tone={day === today ? "success" : "muted"} pulse={day === today}>
+              <Chip tone={day === today ? "success" : "muted"}>
                 {relativeDay(day, today)}
               </Chip>
               <span className="text-[11px] text-muted-foreground">Overnight shifts belong to the day they start · {tz}</span>
@@ -154,7 +154,7 @@ export function TeamAttendanceConsole({
                 value={day}
                 max={shiftDay(today, 7)}
                 onChange={(e) => e.target.value && go({ day: e.target.value })}
-                className={cn(inputClass, "h-9 w-[160px] font-mono")}
+                className={cn(inputClass, "h-9 w-[160px]")}
               />
             </label>
             <IconTooltip label="Next day">
@@ -173,9 +173,9 @@ export function TeamAttendanceConsole({
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatTile label="Scheduled" value={counts.scheduled} hint={dayLabel(day)} tone="primary" />
-        <StatTile label="Working now" value={counts.working} tone="success" active={tab === "roster" && filter === "WORKING"} onClick={() => { go({ tab: "roster" }); setFilter("WORKING"); }} />
-        <StatTile label="Late" value={counts.late} hint="incl. missed check-ins" tone="warning" active={tab === "roster" && filter === "LATE"} onClick={() => { go({ tab: "roster" }); setFilter("LATE"); }} />
-        <StatTile label="Not checked in" value={counts.notIn} tone="danger" active={tab === "roster" && filter === "NOT_IN"} onClick={() => { go({ tab: "roster" }); setFilter("NOT_IN"); }} />
+        <StatTile label="Working now" value={counts.working} tone={counts.working ? "success" : "muted"} active={tab === "roster" && filter === "WORKING"} onClick={() => { go({ tab: "roster" }); setFilter("WORKING"); }} />
+        <StatTile label="Late" value={counts.late} hint="incl. missed check-ins" tone={counts.late ? "warning" : "muted"} active={tab === "roster" && filter === "LATE"} onClick={() => { go({ tab: "roster" }); setFilter("LATE"); }} />
+        <StatTile label="Not checked in" value={counts.notIn} tone={counts.notIn ? "danger" : "muted"} active={tab === "roster" && filter === "NOT_IN"} onClick={() => { go({ tab: "roster" }); setFilter("NOT_IN"); }} />
         <StatTile label="Needs review" value={queue.length} hint="all days" tone={queue.length ? "danger" : "muted"} active={tab === "review"} onClick={() => go({ tab: "review" })} />
         <StatTile label="Overtime requests" value={overtime.pending.length} hint="waiting" tone={overtime.pending.length ? "accent" : "muted"} active={tab === "overtime"} onClick={() => go({ tab: "overtime" })} />
       </div>
@@ -240,7 +240,7 @@ export function TeamAttendanceConsole({
                       <Link href={`/attendance/${v.userId}`} className="block truncate font-medium hover:text-primary">
                         {v.userName}
                       </Link>
-                      <p className="truncate font-mono text-[11px] text-muted-foreground">
+                      <p className="truncate text-[11px] text-muted-foreground">
                         {v.shiftName ? `${v.shiftName} · ` : ""}
                         {v.dayStatus && v.dayStatus !== "WORKING" ? v.dayStatus.replace("_", " ").toLowerCase() : scheduleLabel(v)}
                       </p>
@@ -254,7 +254,7 @@ export function TeamAttendanceConsole({
                       {v.overtimeApprovedMinutes > 0 && <Chip tone="accent">OT {hm(v.overtimeApprovedMinutes)}</Chip>}
                     </div>
                     <ShiftTimeline v={v} compact />
-                    <p className="flex flex-wrap gap-x-4 font-mono text-[11px] text-muted-foreground">
+                    <p className="flex flex-wrap gap-x-4 text-[11px] text-muted-foreground">
                       <span>In {timeIn(v.effectiveCheckIn ?? v.actualCheckIn, tz)}</span>
                       <span>Out {timeIn(v.effectiveCheckOut ?? v.actualCheckOut, tz)}</span>
                       <span className={v.credit.bucket === "pending" ? "text-warning" : ""}>
@@ -313,7 +313,7 @@ export function TeamAttendanceConsole({
                           <DayBadge dayKey={v.date} today={today} />
                         </div>
                         <p className="text-xs text-muted-foreground">{reasonFor(v, tz)}</p>
-                        <p className="font-mono text-[11px] text-muted-foreground">
+                        <p className=" text-[11px] text-muted-foreground">
                           Schedule {scheduleLabel(v)} · checked in {timeIn(v.actualCheckIn, tz)}
                         </p>
                       </div>
@@ -430,7 +430,7 @@ function OvertimeRow({ o, today, currentUser }: { o: OvertimeView; today: string
           {o.exceedsDailyLimit && <Chip tone="danger">Over 10h/day</Chip>}
         </div>
         <p className="text-xs">{o.reason}</p>
-        <p className="font-mono text-[11px] text-muted-foreground">
+        <p className=" text-[11px] text-muted-foreground">
           Schedule {o.scheduledLabel ?? "none"}
           {o.askedByName ? ` · asked by ${o.askedByName}` : " · own request"}
           {o.workedAfterShiftMinutes !== null ? ` · actually worked ${hm(o.workedAfterShiftMinutes)} after the shift` : ""}

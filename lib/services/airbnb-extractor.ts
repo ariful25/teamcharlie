@@ -22,7 +22,7 @@ type ExtractedAirbnbListing = {
 // request and returns a raw, unstyled 504 instead.
 const FETCH_TIMEOUT_MS = 8_000;
 
-function cleanText(value: unknown) {
+export function cleanText(value: unknown) {
   if (typeof value !== "string") return null;
   const cleaned = value.replace(/\s+/g, " ").trim();
   return cleaned || null;
@@ -74,16 +74,21 @@ function firstNumberFromText(value: string, label: string) {
 // rather than a fixed array index, and returns null (never throws) if
 // Airbnb's markup has changed and the shape isn't there — callers fall back
 // to the regex/JSON-LD heuristics below in that case.
-function extractPdpPresentation(html: string): { node: any; pdpPresentation: any } | null {
+/** The raw hydration payload (data-deferred-state-0) — also used by
+ *  lib/listing-health for ratings, review stats and photos. */
+export function parseDeferredState(html: string): any | null {
   const match = html.match(/<script id="data-deferred-state-0"[^>]*>([\s\S]*?)<\/script>/);
   if (!match) return null;
-
-  let parsed: any;
   try {
-    parsed = JSON.parse(match[1]);
+    return JSON.parse(match[1]);
   } catch {
     return null;
   }
+}
+
+export function extractPdpPresentation(html: string): { node: any; pdpPresentation: any } | null {
+  const parsed = parseDeferredState(html);
+  if (!parsed) return null;
 
   const entries = parsed?.niobeClientData;
   if (!Array.isArray(entries)) return null;
@@ -97,7 +102,7 @@ function extractPdpPresentation(html: string): { node: any; pdpPresentation: any
   return null;
 }
 
-function htmlToPlainText(html: string) {
+export function htmlToPlainText(html: string) {
   const withBreaks = html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|li)>/gi, "\n")
@@ -109,7 +114,7 @@ function htmlToPlainText(html: string) {
 // has the full breakdown (60+ items across categories) when present,
 // including an explicit "Not included" group for amenities the listing
 // doesn't have — those come through with available: false and are dropped.
-function extractAmenities(pdpPresentation: any): string[] {
+export function extractAmenities(pdpPresentation: any): string[] {
   const groups = pdpPresentation?.amenities?.seeAllAmenitiesGroups ?? pdpPresentation?.amenities?.previewAmenitiesGroups ?? [];
   const names = new Set<string>();
   for (const group of groups) {
@@ -202,11 +207,12 @@ function isMeaningfulExtraction(listing: ExtractedAirbnbListing) {
   return otherSignals.length > 0;
 }
 
-export async function extractAirbnbListing(airbnbUrl: string): Promise<ExtractedAirbnbListing> {
+/** Fetches a public listing page, with a friendly error for every failure
+ *  mode (timeout, non-200). Shared with lib/listing-health. */
+export async function fetchListingHtml(airbnbUrl: string): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  let html: string;
   try {
     const res = await fetch(airbnbUrl, {
       headers: {
@@ -222,7 +228,7 @@ export async function extractAirbnbListing(airbnbUrl: string): Promise<Extracted
       throw new Error(`Airbnb returned HTTP ${res.status}. The listing may be private, removed, or temporarily blocking automated requests.`);
     }
 
-    html = await res.text();
+    return await res.text();
   } catch (err: any) {
     if (err?.name === "AbortError") {
       throw new Error("Airbnb did not respond in time. Try again in a moment, or fill in the listing details manually.");
@@ -231,7 +237,10 @@ export async function extractAirbnbListing(airbnbUrl: string): Promise<Extracted
   } finally {
     clearTimeout(timeout);
   }
+}
 
+export async function extractAirbnbListing(airbnbUrl: string): Promise<ExtractedAirbnbListing> {
+  const html = await fetchListingHtml(airbnbUrl);
   const jsonLd = extractJsonLd(html);
   const lodging = jsonLd.find((item) => {
     const type = item?.["@type"];

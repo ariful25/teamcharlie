@@ -42,6 +42,16 @@ are written down in `docs/attendance-rules.md`. Pure logic lives in
 Raw punches (`actualCheckIn/Out`) are never overwritten; approved times go in
 `effectiveCheckIn/Out` and every decision is audited (`AttendanceAudit`).
 
+## Listing Health
+
+`/listing-health` scores every Knowledge Base listing from its public Airbnb
+page (rating, category scores, star distribution, photos, amenities) — see
+`lib/listing-health/`. Review texts aren't on the public page: they come from
+CSV import or manual entry (`ListingReview`), never from Airbnb's private
+APIs. Scoring, review-theme analysis and CSV parsing are pure functions —
+run `npm run test:listing-health` after touching them. Health checks are
+throttled to one fetch per listing per 10 minutes.
+
 ## Design language — don't reinvent it per page
 
 Charlie HQ already has an established visual identity in `app/globals.css`

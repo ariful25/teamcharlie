@@ -33,7 +33,7 @@ export function EmployeeShifts({
             <li key={v.date} className="grid gap-2 px-5 py-3 md:grid-cols-[150px_1fr_auto] md:items-center">
               <div>
                 <DayBadge dayKey={v.date} today={today} />
-                <p className="mt-1 font-mono text-[11px] text-muted-foreground">{scheduleLabel(v)}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{scheduleLabel(v)}</p>
               </div>
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -44,7 +44,7 @@ export function EmployeeShifts({
                   {v.review === "APPROVED" && <Chip tone="success">Confirmed{v.reviewedByName ? ` by ${v.reviewedByName}` : ""}</Chip>}
                 </div>
                 <ShiftTimeline v={v} compact />
-                <p className="flex flex-wrap gap-x-3 font-mono text-[11px] text-muted-foreground">
+                <p className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
                   <span>In {timeIn(v.effectiveCheckIn ?? v.actualCheckIn, tz)}</span>
                   <span>Out {timeIn(v.effectiveCheckOut ?? v.actualCheckOut ?? v.reportedCheckOutAt, tz)}</span>
                   <span className={v.credit.bucket === "pending" ? "text-warning" : "text-foreground"}>

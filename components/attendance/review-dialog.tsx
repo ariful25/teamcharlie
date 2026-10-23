@@ -148,10 +148,10 @@ export function ReviewDialog({
           <div className="max-h-[75vh] space-y-5 overflow-y-auto pr-1 text-sm">
             {/* Which day — stated first and big, so nobody fixes the wrong one. */}
             <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Shift of</p>
+              <p className="text-xs font-medium text-primary">Shift of</p>
               <p className="font-display text-xl font-semibold">{dayLabel(v.date, "EEEE, d MMMM yyyy")}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="font-mono">{v.shiftName ? `${v.shiftName} · ` : ""}{scheduleLabel(v)}</span>
+                <span className="">{v.shiftName ? `${v.shiftName} · ` : ""}{scheduleLabel(v)}</span>
                 <StateChip state={v.state} />
                 {v.lateMinutes > 0 && <Chip tone="warning">Late {v.lateMinutes}m</Chip>}
                 {v.missedCheckIn && <Chip tone="warning">Missed check-in</Chip>}
@@ -195,7 +195,7 @@ export function ReviewDialog({
               <div className="space-y-3 rounded-2xl border border-info/30 bg-info/5 p-4">
                 <p>
                   {v.userName} asked to start this shift at{" "}
-                  <span className="font-mono font-semibold">{timeIn(v.checkInRequestedAt, tz)}</span> but was blocked by an earlier shift with no
+                  <span className=" font-semibold">{timeIn(v.checkInRequestedAt, tz)}</span> but was blocked by an earlier shift with no
                   check-out. Approving records that time as their check-in (resolve the earlier shift first).
                 </p>
                 <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className={inputClass} placeholder="Note (required to reject)" />
@@ -210,7 +210,7 @@ export function ReviewDialog({
               </div>
             ) : (
               <div className="space-y-4 rounded-2xl border border-border bg-muted/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Confirm the real times (both required)</p>
+                <p className="text-sm font-semibold text-foreground">Confirm the real times (both required)</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="space-y-1.5">
                     <span className="text-xs font-medium text-muted-foreground">Check-in</span>
@@ -298,7 +298,7 @@ export function ReviewDialog({
                 <ul className="mt-2 space-y-1.5">
                   {ctx!.audits.map((a) => (
                     <li key={a.id} className="flex flex-wrap gap-x-2">
-                      <span className="font-mono text-muted-foreground">{formatClientDateTime(new Date(a.createdAt), tz)}</span>
+                      <span className=" text-muted-foreground">{formatClientDateTime(new Date(a.createdAt), tz)}</span>
                       <span className="font-medium">{ACTION_LABEL[a.action] ?? a.action}</span>
                       <span className="text-muted-foreground">by {a.actorName}</span>
                       {a.note && <span className="w-full text-muted-foreground">“{a.note}”</span>}
@@ -318,8 +318,8 @@ function Fact({ label, value, tone }: { label: string; value: string; tone?: "da
   const color = tone === "danger" ? "text-danger" : tone === "warning" ? "text-warning" : tone === "info" ? "text-info" : tone === "accent" ? "text-accent" : "";
   return (
     <div className="rounded-xl border border-border/60 bg-muted/10 px-3 py-2">
-      <dt className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</dt>
-      <dd className={`mt-0.5 font-mono text-xs ${color}`}>{value}</dd>
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd className={`mt-0.5 text-xs ${color}`}>{value}</dd>
     </div>
   );
 }
@@ -327,8 +327,8 @@ function Fact({ label, value, tone }: { label: string; value: string; tone?: "da
 function Mini({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div className="rounded-xl border border-border/60 bg-background/40 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <p className={`font-mono text-sm font-semibold tabular-nums ${tone ?? ""}`}>{value}</p>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className={` text-sm font-semibold tabular-nums ${tone ?? ""}`}>{value}</p>
     </div>
   );
 }

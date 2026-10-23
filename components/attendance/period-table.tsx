@@ -10,7 +10,7 @@ export function PeriodTable({ rows, emptyLabel = "No attendance in this period."
     <div className="overflow-x-auto">
       <table className="w-full min-w-[860px] text-sm">
         <thead>
-          <tr className="border-b border-border/60 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <tr className="border-b border-border/60 text-left text-[11px] text-muted-foreground">
             <th className="px-5 py-2.5 font-medium">Employee</th>
             <th className="px-3 py-2.5 font-medium">Scheduled</th>
             <th className="px-3 py-2.5 font-medium text-primary">Paid regular</th>
@@ -23,7 +23,7 @@ export function PeriodTable({ rows, emptyLabel = "No attendance in this period."
             <th className="px-3 py-2.5 font-medium">Leave</th>
           </tr>
         </thead>
-        <tbody className="font-mono tabular-nums">
+        <tbody className=" tabular-nums">
           {rows.map((r) => (
             <tr key={r.userId} className="border-b border-border/40 last:border-0 hover:bg-muted/10">
               <td className="px-5 py-3 font-sans font-medium">

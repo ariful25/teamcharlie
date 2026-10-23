@@ -645,7 +645,9 @@ model PropertyKnowledgeItem {
   // this property was created before one existed).
   googleSheetSyncedAt DateTime?
 
-  syncLogs KnowledgeSyncLog[]
+  syncLogs        KnowledgeSyncLog[]
+  healthSnapshots ListingHealthSnapshot[]
+  reviews         ListingReview[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -934,4 +936,67 @@ model Notice {
   updatedAt DateTime @updatedAt
 
   @@index([teamId, archived, pinned, createdAt])
+}
+
+// ---- Listing Health (lib/listing-health) ----
+
+// One public-page check of a knowledge-base listing. Kept as history (not
+// overwritten) so rating and health trends are visible over time.
+model ListingHealthSnapshot {
+  id         String                @id @default(cuid())
+  propertyId String
+  property   PropertyKnowledgeItem @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  fetchedAt  DateTime              @default(now())
+  // false = the listing page couldn't be read (delisted, snoozed, blocked).
+  ok         Boolean
+  error      String?
+
+  title             String?
+  rating            Float?
+  reviewCount       Int?
+  cleanliness       Float?
+  accuracy          Float?
+  checkin           Float?
+  communication     Float?
+  location          Float?
+  value             Float?
+  // Share of reviews per star, e.g. {"5":0.74,"4":0.18,"3":0.05,"2":0.03,"1":0}.
+  starShares        Json?
+  // Airbnb's own review themes, e.g. [{"name":"Location","count":32}].
+  reviewTags        Json?
+  guestFavorite     Boolean  @default(false)
+  superhost         Boolean  @default(false)
+  photoCount        Int?
+  genericCaptions   Int?
+  descriptionLength Int?
+  amenities         String[] @default([])
+
+  healthScore  Int?
+  qualityScore Int?
+  // [{code, severity, title, detail, action}] — see lib/listing-health/score.ts
+  issues       Json?
+
+  @@index([propertyId, fetchedAt])
+}
+
+// A guest review imported from a CSV export (PMS/Guesty) or added by hand.
+// Airbnb's public page doesn't include review texts, so this is the source
+// for "what's wrong" analysis and the 1–4 star lists.
+model ListingReview {
+  id          String                @id @default(cuid())
+  propertyId  String
+  property    PropertyKnowledgeItem @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  source      String // IMPORT | MANUAL
+  reviewDate  DateTime?
+  rating      Int // 1–5
+  guestName   String?
+  comment     String
+  privateNote String?
+  // Duplicate guard for re-imports: hash of date + rating + comment.
+  fingerprint String
+  createdById String
+  createdAt   DateTime              @default(now())
+
+  @@unique([propertyId, fingerprint])
+  @@index([propertyId, rating])
 }

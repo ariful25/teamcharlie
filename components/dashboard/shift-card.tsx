@@ -72,10 +72,9 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass glow-border relative overflow-hidden rounded-2xl p-6">
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Your shift</p>
-        <span className="font-mono text-xs tabular-nums text-muted-foreground">{now === null ? "—" : formatClientTime(new Date(now), tz)}</span>
+        <p className="text-sm font-semibold text-foreground">Your shift</p>
+        <span className=" text-xs tabular-nums text-muted-foreground">{now === null ? "—" : formatClientTime(new Date(now), tz)}</span>
       </div>
 
       {state.kind === "ready" && (
@@ -86,11 +85,11 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
                 {dayLabel(state.next.date, "EEEE, d MMM")}
                 {state.next.shiftName ? ` · ${state.next.shiftName}` : ""}
               </p>
-              <p className="font-mono text-2xl font-semibold tabular-nums">
+              <p className=" text-2xl font-semibold tabular-nums">
                 {state.next.start} <span className="text-muted-foreground">→</span> {state.next.end}
               </p>
               {now !== null && now > new Date(state.next.startAt).getTime() && (
-                <Chip tone="warning" pulse className="mt-2">
+                <Chip tone="warning" className="mt-2">
                   Late by {hm((now - new Date(state.next.startAt).getTime()) / 60000)}
                 </Chip>
               )}
@@ -120,7 +119,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
                 <div className="flex items-end justify-between gap-2">
                   <div>
                     <StateChip state="WORKING" />
-                    <p className="mt-2 flex items-center gap-2 font-mono text-3xl font-semibold tabular-nums tracking-tight">
+                    <p className="mt-2 flex items-center gap-2 text-3xl font-semibold tabular-nums">
                       <Timer className="h-5 w-5 text-primary" /> {clock(elapsed)}
                     </p>
                   </div>
@@ -132,7 +131,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
                 {progress !== null && (
                   <div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-muted/40">
-                      <div className="h-full rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))]" style={{ width: `${progress}%` }} />
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
                     </div>
                     <p className="mt-1 flex justify-between text-[11px] text-muted-foreground">
                       <span>Shift ends {timeIn(state.shift.shiftEndAt, tz)}</span>
@@ -163,7 +162,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
       {state.kind === "auto_stopped" && (
         <div className="mt-3 space-y-3">
           <StateChip state="AUTO_STOPPED" />
-          <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-danger">
+          <p className=" text-3xl font-semibold tabular-nums text-danger">
             {clock(new Date(state.shift.autoClosedAt!).getTime() - new Date(state.shift.actualCheckIn!).getTime())}
           </p>
           <p className="text-xs text-muted-foreground">
@@ -180,11 +179,11 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
         <div className="mt-3 space-y-3">
           {state.request && state.request.id === state.blocking.id ? (
             <>
-              <Chip tone="info" pulse>
+              <Chip tone="info">
                 Waiting for approval
               </Chip>
               <p className="text-xs text-muted-foreground">
-                You asked to check in at <span className="font-mono text-foreground">{timeIn(state.request.checkInRequestedAt, tz)}</span>. A team lead
+                You asked to check in at <span className=" text-foreground">{timeIn(state.request.checkInRequestedAt, tz)}</span>. A team lead
                 will confirm it — you&apos;ll be able to check out once they do.
               </p>
             </>
@@ -199,7 +198,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
                 to confirm its times before you can check in again.
               </p>
               {state.request ? (
-                <Chip tone="info" pulse>
+                <Chip tone="info">
                   Check-in requested at {timeIn(state.request.checkInRequestedAt, tz)}
                 </Chip>
               ) : (
@@ -259,7 +258,7 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   return (
     <div className={`flex justify-between ${strong ? "font-medium" : "text-muted-foreground"}`}>
       <span>{label}</span>
-      <span className="font-mono tabular-nums">{value}</span>
+      <span className=" tabular-nums">{value}</span>
     </div>
   );
 }

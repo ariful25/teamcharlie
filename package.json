@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:attendance": "tsx scripts/test-attendance-rules.ts",
+    "test:listing-health": "tsx scripts/test-listing-health.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",

@@ -14,6 +14,7 @@ import {
   LogOut,
   Circle,
   FileSpreadsheet,
+  HeartPulse,
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/attendance", label: "Attendance", icon: Clock },
   { href: "/notices", label: "Notices", icon: StickyNote },
   { href: "/knowledge-base", label: "Knowledge Base", icon: FileSpreadsheet },
+  { href: "/listing-health", label: "Listing Health", icon: HeartPulse },
 ];
 
 export function Sidebar({

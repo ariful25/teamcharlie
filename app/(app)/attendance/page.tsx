@@ -63,8 +63,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{formatDateLong(now, tz)}</p>
-          <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">Attendance</h1>
+          <p className="text-xs font-medium text-primary">{formatDateLong(now, tz)}</p>
+          <h1 className="font-display text-2xl font-semibold md:text-3xl">Attendance</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Your shifts, hours and requests. Expected times come from the{" "}
             <Link href="/shift-schedule" className="text-primary hover:underline">

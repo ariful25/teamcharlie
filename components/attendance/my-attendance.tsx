@@ -49,7 +49,7 @@ export function MyAttendance({ shifts, overtime, leads, today }: { shifts: Recor
               <li key={v.date} className="grid gap-2 px-5 py-3 sm:grid-cols-[140px_1fr_auto] sm:items-center">
                 <div>
                   <DayBadge dayKey={v.date} today={today} />
-                  <p className="mt-1 font-mono text-[11px] text-muted-foreground">{scheduleLabel(v)}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{scheduleLabel(v)}</p>
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
@@ -59,7 +59,7 @@ export function MyAttendance({ shifts, overtime, leads, today }: { shifts: Recor
                     {v.review === "REJECTED" && <Chip tone="danger">Not accepted{v.reviewNote ? ` — ${v.reviewNote}` : ""}</Chip>}
                   </div>
                   <ShiftTimeline v={v} compact />
-                  <p className="flex flex-wrap gap-x-3 font-mono text-[11px] text-muted-foreground">
+                  <p className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
                     <span>In {timeIn(v.effectiveCheckIn ?? v.actualCheckIn, tz)}</span>
                     <span>Out {timeIn(v.effectiveCheckOut ?? v.actualCheckOut ?? v.reportedCheckOutAt, tz)}</span>
                     <span className={v.credit.bucket === "pending" ? "text-warning" : "text-foreground"}>
@@ -101,7 +101,7 @@ export function MyAttendance({ shifts, overtime, leads, today }: { shifts: Recor
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <DayBadge dayKey={o.date} today={today} />
-                    <Chip tone={o.status === "APPROVED" ? "accent" : o.status === "PENDING" ? "info" : "muted"} pulse={o.status === "PENDING"}>
+                    <Chip tone={o.status === "APPROVED" ? "accent" : o.status === "PENDING" ? "info" : "muted"}>
                       {o.status === "APPROVED"
                         ? `Approved ${hm(o.approvedMinutes ?? o.requestedMinutes)}`
                         : o.status === "PENDING"

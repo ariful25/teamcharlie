@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download, FileSpreadsheet, Info, Pencil, Plus, RefreshCcw, Trash2, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, HeartPulse, Info, Pencil, Plus, RefreshCcw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, statusTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -432,6 +432,12 @@ export function KnowledgeBaseManager({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <a
+            href={clientId ? `/listing-health?clientId=${clientId}` : "/listing-health"}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-medium transition hover:bg-muted/40"
+          >
+            <HeartPulse className="h-4 w-4" /> Listing Health
+          </a>
           {canManage && <BulkImportModal clients={clients} defaultClientId={clientId || undefined} />}
           {canManage && <PropertyFormModal clients={clients} defaultClientId={clientId || undefined} />}
           {canManage && <ExtractAllButton items={filteredItems} />}
