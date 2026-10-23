@@ -155,6 +155,17 @@ export async function notifyTasksOverdue(teamId: string, tasks: TaskForNotify[])
   );
 }
 
+/** Listing Health weekly-check alerts (rating drops, listings gone offline). */
+export async function notifyListingAlerts(teamId: string, lines: string[]) {
+  if (lines.length === 0) return;
+  const text = [`📉 Listing Health — ${lines.length} listing${lines.length === 1 ? "" : "s"} need attention`, "", ...lines.map((l) => `• ${l}`)].join("\n");
+  await fanOutTask(
+    teamId,
+    (t) => discordBot.sendTaskChannelText(text, t),
+    () => slack.sendTaskChannelText(text)
+  );
+}
+
 export async function notifyDailyDigest(teamId: string, user: NotifyUser, tasks: TaskForNotify[]) {
   await fanOutTask(
     teamId,

@@ -145,7 +145,7 @@ export function ListingHealthPortfolio({
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Listing Health</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Ratings, review problems and listing quality for every property in the Knowledge Base.
+            Ratings, review problems and listing quality for every property in the Knowledge Base. Checked listings are re-checked automatically every week.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

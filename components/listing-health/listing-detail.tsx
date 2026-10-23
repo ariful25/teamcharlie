@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import type { SnapshotView } from "@/lib/listing-health/queries";
 import { Bar, Rating, SEVERITY_TONE, Stars, categoryBarTone, scoreTone } from "./shared";
 import { AddReviewDialog, ImportReviewsDialog } from "./review-dialogs";
+import { FixTaskButton } from "./fix-task-button";
+import { AiAssistant, CheckinGuideCard, ReviewReply } from "./ai-panel";
 
 type Review = {
   id: string;
@@ -47,6 +49,11 @@ export function ListingDetail({
   themes,
   byStar,
   canManage,
+  secrets,
+  templateGuide,
+  ai,
+  linkedTasks,
+  people,
 }: {
   property: { id: string; internalName: string; listingName: string | null; airbnbUrl: string; clientId: string; clientName: string };
   latest: SnapshotView | null;
@@ -56,6 +63,17 @@ export function ListingDetail({
   themes: Theme[];
   byStar: Record<1 | 2 | 3 | 4 | 5, number>;
   canManage: boolean;
+  secrets: { doorCode: string | null; wifiName: string | null; wifiPassword: string | null };
+  templateGuide: string;
+  ai: {
+    ready: boolean;
+    insights: { content: any; model: string; createdAt: string } | null;
+    guide: { content: any; model: string; createdAt: string } | null;
+    copy: { content: any; model: string; createdAt: string } | null;
+    replies: Record<string, { text: string; createdAt: string }>;
+  };
+  linkedTasks: Record<string, { id: string; status: string }>;
+  people: { id: string; name: string }[];
 }) {
   const tz = useTeamTimezone();
   const router = useRouter();
@@ -141,7 +159,7 @@ export function ListingDetail({
               ) : (
                 <ul className="divide-y divide-border/60">
                   {s.issues.map((i) => (
-                    <li key={i.code} className="grid gap-1 py-3 text-sm md:grid-cols-[90px_1fr]">
+                    <li key={i.code} className="grid gap-1 py-3 text-sm md:grid-cols-[90px_1fr_auto] md:items-start">
                       <Badge tone={SEVERITY_TONE[i.severity]} className="h-fit w-fit">
                         {i.severity}
                       </Badge>
@@ -153,6 +171,9 @@ export function ListingDetail({
                           {i.action}
                         </p>
                       </div>
+                      {canManage && (
+                        <FixTaskButton propertyId={property.id} issueKey={i.code} label={i.title} linked={linkedTasks[i.code]} people={people} />
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -212,6 +233,18 @@ export function ListingDetail({
             </div>
           )}
 
+          <AiAssistant propertyId={property.id} ready={ai.ready} canManage={canManage} insights={ai.insights} copy={ai.copy} />
+
+          <CheckinGuideCard
+            propertyId={property.id}
+            ready={ai.ready}
+            canManage={canManage}
+            templateGuide={templateGuide}
+            aiGuide={ai.guide}
+            secrets={secrets}
+            checkinRating={s.ok ? s.categories.checkin : null}
+          />
+
           {s.reviewTags.length > 0 && (
             <Card>
               <CardHeader>
@@ -262,6 +295,11 @@ export function ListingDetail({
                     <span className="text-primary">Fix: </span>
                     {t.action}
                   </p>
+                  {canManage && (
+                    <div className="mt-2">
+                      <FixTaskButton propertyId={property.id} issueKey={`theme:${t.key}`} label={`${t.label} complaints`} linked={linkedTasks[`theme:${t.key}`]} people={people} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -333,6 +371,7 @@ export function ListingDetail({
                       {r.privateNote}
                     </p>
                   )}
+                  {r.rating <= 4 && <ReviewReply propertyId={property.id} reviewId={r.id} ready={ai.ready} canManage={canManage} reply={ai.replies[r.id]} />}
                 </li>
               ))}
             </ul>

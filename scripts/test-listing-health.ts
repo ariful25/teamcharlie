@@ -6,6 +6,8 @@ import { GENERIC_CAPTION } from "../lib/listing-health/parse";
 import { detectIssues, healthScore, qualityScore, starCounts } from "../lib/listing-health/score";
 import { analyzeReviews, complaintsIn, starBuckets } from "../lib/listing-health/reviews";
 import { mapColumns, parseCsv, parseRating, parseReviewsCsv, reviewFingerprint } from "../lib/listing-health/csv";
+import { redactCodes, templateCheckinGuide } from "../lib/listing-health/ai";
+import { extractJson } from "../lib/ai/providers";
 
 let passed = 0;
 function test(name: string, fn: () => void) {
@@ -162,6 +164,27 @@ test("rows without a rating or text are reported, not imported", () => {
 test("fingerprint ignores whitespace/case so re-imports don't duplicate", () => {
   const d = new Date("2026-09-01");
   assert.equal(reviewFingerprint({ rating: 4, comment: "Nice  place", reviewDate: d }), reviewFingerprint({ rating: 4, comment: "nice place ", reviewDate: d }));
+});
+
+console.log("Listing health — AI helpers");
+
+test("codes in free text are masked before anything goes to an AI provider", () => {
+  assert.equal(redactCodes("Lockbox 4821 on the left, gate code #73915."), "Lockbox [code] on the left, gate code #[code].");
+  assert.equal(redactCodes("Check-in after 4 PM, unit 12"), "Check-in after 4 PM, unit 12");
+  assert.equal(redactCodes(null), "");
+});
+
+test("JSON is extracted from fenced or chatty model replies", () => {
+  assert.deepEqual(extractJson<{ a: number }>('Sure!\n```json\n{"a": 1}\n```'), { a: 1 });
+  assert.deepEqual(extractJson<{ a: number }>('Here you go: {"a": 2} hope it helps'), { a: 2 });
+  assert.equal(extractJson("no json here"), null);
+});
+
+test("template guide uses placeholders, never the real code, and flags gaps", () => {
+  const guide = templateCheckinGuide({ listingName: "Jaeger Haus", internalName: "JH", checkInInfo: null, parkingInfo: "Street parking", checkoutInfo: null, wifiName: null, rules: null });
+  assert.ok(guide.includes("{{DOOR_CODE}}"));
+  assert.ok(guide.includes("Street parking"));
+  assert.ok(guide.includes("[team: add check-in steps]"));
 });
 
 console.log(`\n${passed} passed`);

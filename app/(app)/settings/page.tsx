@@ -11,6 +11,9 @@ import { TeamProfileForm } from "@/components/settings/team-profile-form";
 import { TeamWebhookPanel } from "@/components/settings/team-webhook-panel";
 import { InvitesPanel } from "@/components/settings/invites-panel";
 import { HOME_TEAM_SLUG } from "@/lib/brand";
+import { AiSettingsPanel } from "@/components/settings/ai-settings-panel";
+import { getTeamAiConfig } from "@/lib/ai/client";
+import { DEFAULT_MODELS } from "@/lib/ai/providers";
 
 export default async function SettingsPage() {
   const currentUser = await getCurrentUser();
@@ -20,7 +23,7 @@ export default async function SettingsPage() {
   const canManageNotifications = permissions.canManageNotificationSettings(currentUser.role);
 
   const [team, users, shiftTypes, checklistItems, invites] = await Promise.all([
-    prisma.team.findUniqueOrThrow({ where: { id: currentUser.teamId }, include: { settings: { select: { discordWebhookUrl: true, autoCheckoutHours: true } } } }),
+    prisma.team.findUniqueOrThrow({ where: { id: currentUser.teamId }, include: { settings: { select: { discordWebhookUrl: true, autoCheckoutHours: true, anthropicModel: true, openaiModel: true } } } }),
     prisma.user.findMany({ where: { teamId: currentUser.teamId }, orderBy: { name: "asc" } }),
     prisma.shiftType.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { startTime: "asc" } }),
     prisma.checklistItem.findMany({
@@ -35,6 +38,30 @@ export default async function SettingsPage() {
         })
       : Promise.resolve([]),
   ]);
+
+  const [aiConfig, aiUsage] = canManageNotifications
+    ? await Promise.all([
+        getTeamAiConfig(currentUser.teamId),
+        prisma.aiUsage.groupBy({
+          by: ["feature", "ok"],
+          where: { teamId: currentUser.teamId, createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+          _count: { _all: true },
+          _sum: { inputTokens: true, outputTokens: true },
+        }),
+      ])
+    : [null, []];
+  const usage = {
+    calls: aiUsage.reduce((s, u) => s + u._count._all, 0),
+    failed: aiUsage.filter((u) => !u.ok).reduce((s, u) => s + u._count._all, 0),
+    inputTokens: aiUsage.reduce((s, u) => s + (u._sum.inputTokens ?? 0), 0),
+    outputTokens: aiUsage.reduce((s, u) => s + (u._sum.outputTokens ?? 0), 0),
+    byFeature: Object.values(
+      aiUsage.reduce<Record<string, { feature: string; calls: number }>>((acc, u) => {
+        acc[u.feature] = { feature: u.feature, calls: (acc[u.feature]?.calls ?? 0) + u._count._all };
+        return acc;
+      }, {})
+    ),
+  };
 
   // The env-configured Discord/Slack channels belong to the home team only
   // (lib/notifications.ts); every other team configures its own webhook.
@@ -65,6 +92,27 @@ export default async function SettingsPage() {
           />
         </CardContent>
       </Card>
+
+      {aiConfig && (
+        <Card>
+          <CardHeader>
+            <CardTitle>AI</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AiSettingsPanel
+              enabled={aiConfig.enabled}
+              provider={aiConfig.provider}
+              anthropicModel={team.settings?.anthropicModel ?? ""}
+              openaiModel={team.settings?.openaiModel ?? ""}
+              defaultModels={DEFAULT_MODELS}
+              hasAnthropicKey={aiConfig.hasAnthropicKey}
+              hasOpenAiKey={aiConfig.hasOpenAiKey}
+              dailyLimit={aiConfig.dailyLimit}
+              usage={usage}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {!isHomeTeam && canManageNotifications && (
         <Card>

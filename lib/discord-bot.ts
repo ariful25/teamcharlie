@@ -131,6 +131,11 @@ export async function sendTaskStatusChanged(
 
 // Batched into one message (not one per task) since this runs off the
 // throttled overdue sweep and could otherwise fire a burst of messages.
+/** A plain message to the team's task channel (e.g. Listing Health alerts). */
+export async function sendTaskChannelText(content: string, target?: TaskTarget) {
+  return postToTaskChannel({ content: content.slice(0, 1900) }, target);
+}
+
 export async function sendTasksOverdue(tasks: TaskForMessage[], target?: TaskTarget) {
   if (tasks.length === 0) return { ok: true } as DiscordResult;
   const content = [

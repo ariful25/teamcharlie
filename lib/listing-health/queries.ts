@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import type { CategoryKey } from "./parse";
 import { CATEGORY_LABEL, missingAmenities, starCounts, type Issue } from "./score";
 import { analyzeReviews, starBuckets, themesOf } from "./reviews";
+import { isAiReady } from "@/lib/ai/client";
+import { templateCheckinGuide } from "./ai";
 
 // Read side of Listing Health — plain JSON for client components.
 
@@ -184,16 +186,60 @@ function genericIssueTitle(i: Issue) {
 export async function getListingDetail(teamId: string, propertyId: string) {
   const property = await prisma.propertyKnowledgeItem.findFirst({
     where: { id: propertyId, client: { teamId } },
-    select: { id: true, internalName: true, listingName: true, airbnbUrl: true, clientId: true, client: { select: { name: true } }, rules: true, checkInInfo: true },
+    select: {
+      id: true,
+      internalName: true,
+      listingName: true,
+      airbnbUrl: true,
+      clientId: true,
+      client: { select: { name: true } },
+      rules: true,
+      checkInInfo: true,
+      parkingInfo: true,
+      checkoutInfo: true,
+      wifiName: true,
+      wifiPassword: true,
+      doorCode: true,
+    },
   });
   if (!property) return null;
-  const [snapshots, reviews] = await Promise.all([
+  const [snapshots, reviews, notes, tasks, people, aiReady] = await Promise.all([
     prisma.listingHealthSnapshot.findMany({ where: { propertyId }, orderBy: { fetchedAt: "desc" }, take: 12 }),
     prisma.listingReview.findMany({ where: { propertyId }, orderBy: [{ reviewDate: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }] }),
+    prisma.listingAiNote.findMany({ where: { propertyId }, orderBy: { createdAt: "desc" }, take: 200 }),
+    prisma.task.findMany({
+      where: { teamId, sourceRef: { startsWith: `lh:${propertyId}:` }, deletedAt: null },
+      select: { id: true, sourceRef: true, status: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.findMany({ where: { teamId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    isAiReady(teamId),
   ]);
+  const latestNote = (kind: string) => notes.find((n) => n.kind === kind) ?? null;
+  const noteView = (n: (typeof notes)[number] | null) => (n ? { content: n.content as any, model: n.model, createdAt: n.createdAt.toISOString() } : null);
+  const replies: Record<string, { text: string; createdAt: string }> = {};
+  for (const n of notes) if (n.kind === "REVIEW_REPLY" && n.reviewId && !replies[n.reviewId]) replies[n.reviewId] = { text: (n.content as any)?.text ?? "", createdAt: n.createdAt.toISOString() };
+  const linkedTasks: Record<string, { id: string; status: string }> = {};
+  for (const t of tasks) {
+    const key = t.sourceRef!.slice(`lh:${propertyId}:`.length);
+    if (!linkedTasks[key]) linkedTasks[key] = { id: t.id, status: t.status };
+  }
   const latest = snapshots[0] ? view(snapshots[0]) : null;
   return {
     property: { id: property.id, internalName: property.internalName, listingName: property.listingName, airbnbUrl: property.airbnbUrl, clientId: property.clientId, clientName: property.client.name },
+    // Real values for the {{DOOR_CODE}}/{{WIFI_*}} placeholders — filled in on
+    // the page only, never sent to the AI.
+    secrets: { doorCode: property.doorCode, wifiName: property.wifiName, wifiPassword: property.wifiPassword },
+    templateGuide: templateCheckinGuide(property),
+    ai: {
+      ready: aiReady,
+      insights: noteView(latestNote("INSIGHTS")),
+      guide: noteView(latestNote("CHECKIN_GUIDE")),
+      copy: noteView(latestNote("COPY")),
+      replies,
+    },
+    linkedTasks,
+    people,
     latest,
     missing: latest ? missingAmenities(latest.amenities) : null,
     history: snapshots.filter((s) => s.ok).map((s) => ({ fetchedAt: s.fetchedAt.toISOString(), rating: s.rating, reviewCount: s.reviewCount, healthScore: s.healthScore })),

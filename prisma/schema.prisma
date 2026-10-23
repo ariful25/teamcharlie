@@ -248,6 +248,31 @@ model TeamSettings {
   // review — see docs/attendance-rules.md.
   autoCheckoutHours Int @default(10)
 
+  // ---- AI (lib/ai) — the team's own keys, encrypted at rest (lib/crypto.ts),
+  // never sent back to the browser.
+  aiEnabled       Boolean @default(false)
+  aiProvider      String  @default("ANTHROPIC") // ANTHROPIC | OPENAI
+  anthropicKeyEnc String?
+  openaiKeyEnc    String?
+  anthropicModel  String?
+  openaiModel     String?
+  aiDailyLimit    Int     @default(200)
+
+  // ---- Leave allowances per calendar year (days).
+  paidLeavePerYear Int @default(10)
+  sickLeavePerYear Int @default(14)
+
+  // ---- Payroll rules (lib/payroll/calc.ts). Defaults follow the team's
+  // overtime form: 1.5x normal days, 2x public holidays.
+  currency             String @default("BDT")
+  otMultiplier         Float  @default(1.5)
+  holidayOtMultiplier  Float  @default(2)
+  otBase               String @default("BASIC") // BASIC | GROSS
+  otHoursPerMonth      Int    @default(208)
+  dailyRateDivisor     Int    @default(30)
+  // Every N late days deducts one day's pay; 0 = off.
+  lateDaysPerDeduction Int    @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -299,6 +324,9 @@ model User {
   assignedTasks     Task[]             @relation("TaskAssignee")
   attendanceRecords AttendanceRecord[]
   overtimeRequests  OvertimeRequest[]  @relation("OvertimeRequests")
+  leaveRequests     LeaveRequest[]     @relation("LeaveRequests")
+  salary            EmployeeSalary?
+  payrollLines      PayrollLine[]
   postedNotices     Notice[]           @relation("NoticeAuthor")
   shiftAssignments  ShiftAssignment[]
 
@@ -564,6 +592,10 @@ model Task {
   deletedAt DateTime?
   deletedBy String?
 
+  // Where an auto-created task came from, e.g. "lh:<propertyId>:CATEGORY_VALUE"
+  // (Listing Health fix-it task) — used to avoid creating it twice.
+  sourceRef String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -572,6 +604,7 @@ model Task {
   // concurrent requests) — Postgres treats NULL as distinct from NULL, so
   // this only constrains actual generated instances, never one-off tasks.
   @@unique([recurringTemplateId, date])
+  @@index([teamId, sourceRef])
   @@index([teamId, date])
   @@index([clientId])
   @@index([assignedUserId])
@@ -648,6 +681,7 @@ model PropertyKnowledgeItem {
   syncLogs        KnowledgeSyncLog[]
   healthSnapshots ListingHealthSnapshot[]
   reviews         ListingReview[]
+  aiNotes         ListingAiNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -973,6 +1007,8 @@ model ListingHealthSnapshot {
 
   healthScore  Int?
   qualityScore Int?
+  // Set when the weekly check sent an alert about this snapshot.
+  alertSentAt  DateTime?
   // [{code, severity, title, detail, action}] — see lib/listing-health/score.ts
   issues       Json?
 
@@ -999,4 +1035,133 @@ model ListingReview {
 
   @@unique([propertyId, fingerprint])
   @@index([propertyId, rating])
+}
+
+// ---- AI (lib/ai) ----
+
+// Every AI call, for cost visibility and the per-team daily limit.
+model AiUsage {
+  id           String   @id @default(cuid())
+  teamId       String
+  userId       String
+  feature      String
+  provider     String
+  model        String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  ok           Boolean
+  error        String?
+  createdAt    DateTime @default(now())
+
+  @@index([teamId, createdAt])
+}
+
+// Saved AI output for a listing (insights, check-in guide, copy ideas, a
+// review reply) so it isn't regenerated — and paid for — on every page view.
+model ListingAiNote {
+  id          String                @id @default(cuid())
+  propertyId  String
+  property    PropertyKnowledgeItem @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  kind        String // INSIGHTS | CHECKIN_GUIDE | COPY | REVIEW_REPLY
+  reviewId    String?
+  content     Json
+  provider    String
+  model       String
+  createdById String
+  createdAt   DateTime              @default(now())
+
+  @@index([propertyId, kind, createdAt])
+}
+
+// ---- Leave ----
+
+enum LeaveType {
+  PAID
+  UNPAID
+  SICK
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model LeaveRequest {
+  id           String      @id @default(cuid())
+  teamId       String
+  userId       String
+  user         User        @relation("LeaveRequests", fields: [userId], references: [id])
+  type         LeaveType
+  startDate    DateTime // calendar days (UTC midnight), inclusive
+  endDate      DateTime
+  days         Int
+  reason       String
+  status       LeaveStatus @default(PENDING)
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?
+  // What the schedule said for each day before approval, so revoking the
+  // leave restores it exactly: [{date, existed, status, shiftTypeId, customStart, customEnd}].
+  replaced     Json?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([teamId, status])
+  @@index([userId, startDate])
+}
+
+// ---- Payroll (lib/payroll) ----
+
+model EmployeeSalary {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  // Whole currency units (e.g. taka) per month.
+  monthlyGross Int
+  basicPercent Int      @default(60)
+  updatedById  String
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
+enum PayrollStatus {
+  DRAFT
+  FINALIZED
+}
+
+// A month's payroll. While DRAFT it is recalculated on view; FINALIZED
+// freezes the lines below so later attendance edits never change paid pay.
+model PayrollRun {
+  id          String        @id @default(cuid())
+  teamId      String
+  year        Int
+  month       Int // 0–11
+  status      PayrollStatus @default(DRAFT)
+  finalizedBy String?
+  finalizedAt DateTime?
+  lines       PayrollLine[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([teamId, year, month])
+}
+
+model PayrollLine {
+  id         String     @id @default(cuid())
+  runId      String
+  run        PayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User       @relation(fields: [userId], references: [id])
+  gross      Int
+  basic      Int
+  otPay      Int
+  deductions Int
+  adjustment Int        @default(0)
+  net        Int
+  // Full breakdown (hours, days, rates, notes) — see PayrollBreakdown.
+  details    Json
+
+  @@unique([runId, userId])
 }

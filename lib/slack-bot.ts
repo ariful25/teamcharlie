@@ -193,6 +193,11 @@ export async function sendTaskStatusChanged(task: TaskForMessage, status: "IN_PR
   return postMessage(channelFor(undefined), text);
 }
 
+/** A plain message to the task channel (e.g. Listing Health alerts). */
+export async function sendTaskChannelText(text: string) {
+  return postMessage(channelFor(undefined), text);
+}
+
 export async function sendTasksOverdue(tasks: TaskForMessage[]) {
   if (tasks.length === 0) return { ok: true } as SlackResult;
   const text = [
