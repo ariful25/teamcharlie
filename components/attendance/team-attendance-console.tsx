@@ -14,10 +14,12 @@ import { cn } from "@/lib/utils";
 import type { OvertimeView, RecordView, ShiftState } from "@/lib/queries/attendance";
 import { ReviewDialog, type ReviewTarget } from "./review-dialog";
 import { OvertimeDialog } from "./overtime-dialog";
+import { LeaveBoard } from "./leave-panel";
+import type { LeaveView } from "@/lib/leave/service";
 import { Chip, DayBadge, Panel, ShiftTimeline, StatTile, StateChip, TimelineLegend, dayLabel, hm, scheduleLabel, timeIn } from "./ui";
 
 type Option = { id: string; name: string };
-type Tab = "roster" | "review" | "overtime";
+type Tab = "roster" | "review" | "overtime" | "leave";
 type RosterFilter = "ALL" | "WORKING" | "LATE" | "NOT_IN" | "REVIEW" | "OFF";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -60,6 +62,7 @@ export function TeamAttendanceConsole({
   roster,
   queue,
   overtime,
+  leave,
   employees,
   leads,
   currentUser,
@@ -70,6 +73,7 @@ export function TeamAttendanceConsole({
   roster: RecordView[];
   queue: RecordView[];
   overtime: { pending: OvertimeView[]; decided: OvertimeView[] };
+  leave: { pending: LeaveView[]; recent: LeaveView[] };
   employees: Option[];
   leads: Option[];
   currentUser: { id: string; role: string };
@@ -186,6 +190,7 @@ export function TeamAttendanceConsole({
             { id: "roster", label: `Roster · ${dayLabel(day)}`, icon: Users },
             { id: "review", label: `Needs review (${queue.length})`, icon: ShieldAlert },
             { id: "overtime", label: `Overtime (${overtime.pending.length})`, icon: Clock3 },
+            { id: "leave", label: `Leave (${leave.pending.length})`, icon: CalendarDays },
           ] as const
         ).map((t) => (
           <button
@@ -378,6 +383,8 @@ export function TeamAttendanceConsole({
           </Panel>
         </div>
       )}
+
+      {tab === "leave" && <LeaveBoard pending={leave.pending} recent={leave.recent} currentUser={currentUser} />}
 
       <ReviewDialog
         target={reviewTarget}

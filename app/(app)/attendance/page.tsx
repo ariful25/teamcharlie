@@ -21,6 +21,8 @@ import { PeriodTable } from "@/components/attendance/period-table";
 import { MonthSelector } from "@/components/attendance/month-selector";
 import { WeekSelector } from "@/components/attendance/week-selector";
 import { Panel, StatTile } from "@/components/attendance/ui";
+import { LeavePanel } from "@/components/attendance/leave-panel";
+import { leaveBalances, leaveViews } from "@/lib/leave/service";
 import { hm } from "@/lib/attendance/format";
 
 export default async function AttendancePage({ searchParams }: { searchParams: { year?: string; month?: string; weekStart?: string } }) {
@@ -39,7 +41,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: {
   const selectedMonth = monthRange(year, month);
   const onlyMe = isLead ? undefined : currentUser.id;
 
-  const [shiftState, mine, myOvertime, myWeek, myMonth, weekRows, monthRows, queue, leads, checklist] = await Promise.all([
+  const [shiftState, mine, myOvertime, myWeek, myMonth, weekRows, monthRows, queue, leads, checklist, balances, myLeave] = await Promise.all([
     getShiftCardState(currentUser.id),
     getEmployeeShifts(currentUser.teamId, currentUser.id, 14),
     getMyOvertime(currentUser.id),
@@ -54,6 +56,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: {
       select: { id: true, name: true },
     }),
     prisma.checklistItem.findMany({ where: { teamId: currentUser.teamId, type: "CHECKOUT", active: true }, orderBy: [{ order: "asc" }, { createdAt: "asc" }] }),
+    leaveBalances(currentUser.id, currentUser.teamId, today.getUTCFullYear()),
+    leaveViews(currentUser.teamId, { userId: currentUser.id }, 10),
   ]);
 
   const w = myWeek[0];
@@ -105,6 +109,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: {
       </div>
 
       <MyAttendance shifts={mine?.shifts ?? []} overtime={myOvertime} leads={leads} today={dayKey(today)} />
+
+      <LeavePanel balances={balances} requests={myLeave} today={dayKey(today)} />
 
       <Panel title={isLead ? "Weekly hours — team" : "Weekly hours"} action={<WeekSelector weekStart={week.start} />}>
         <PeriodTable rows={weekRows} emptyLabel="No attendance this week." linkRows={isLead} />

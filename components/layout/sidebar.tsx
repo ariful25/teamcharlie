@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
   HeartPulse,
   ShieldCheck,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconTooltip } from "@/components/ui/tooltip";
@@ -89,6 +90,21 @@ export function Sidebar({
           >
             <ShieldCheck className="h-4 w-4" />
             Team Attendance
+          </Link>
+        )}
+
+        {permissions.canManagePayroll(user.role as "ADMIN" | "TEAM_LEAD" | "EMPLOYEE") && (
+          <Link
+            href="/payroll"
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+              pathname?.startsWith("/payroll")
+                ? "bg-primary/15 text-primary glow-border"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            )}
+          >
+            <Wallet className="h-4 w-4" />
+            Payroll
           </Link>
         )}
 

@@ -52,6 +52,18 @@ APIs. Scoring, review-theme analysis and CSV parsing are pure functions —
 run `npm run test:listing-health` after touching them. Health checks are
 throttled to one fetch per listing per 10 minutes.
 
+## AI, leave and payroll
+
+- AI: every call goes through `runAi()` (`lib/ai/client.ts`) — team's own
+  Anthropic/OpenAI key (encrypted via `lib/crypto.ts`), on/off switch, daily
+  limit, `AiUsage` log. Never send door codes, Wi-Fi details or internal notes
+  to a provider (`redactCodes`, `{{DOOR_CODE}}` placeholders in
+  `lib/listing-health/ai.ts`).
+- Leave (`lib/leave/service.ts`): approval writes leave statuses onto
+  `ShiftAssignment` and stores what it replaced so revoking restores it.
+- Payroll (`lib/payroll/`): pure maths in `calc.ts` (`npm run test:payroll`);
+  a month can't be finalized while shifts still need review.
+
 ## Design language — don't reinvent it per page
 
 Charlie HQ already has an established visual identity in `app/globals.css`

@@ -207,7 +207,9 @@ export function CheckinGuideCard({
   const [reveal, setReveal] = useState(false);
   const raw = aiGuide?.content.text ?? templateGuide;
   const fill = (text: string, show: boolean) =>
-    text
+    // Hidden mode also masks codes typed into the Knowledge Base free text
+    // ("lockbox code 4821"), not just the placeholders.
+    (show ? text : text.replace(/\b\d{4,8}\b/g, "••••"))
       .replace(/\{\{DOOR_CODE\}\}/g, show ? secrets.doorCode || "[team: add door code]" : "••••")
       .replace(/\{\{WIFI_NAME\}\}/g, show ? secrets.wifiName || "[team: add Wi-Fi name]" : "••••")
       .replace(/\{\{WIFI_PASSWORD\}\}/g, show ? secrets.wifiPassword || "[team: add Wi-Fi password]" : "••••");

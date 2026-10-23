@@ -132,4 +132,6 @@ export const permissions = {
   // moderated feed. Pinning (keeping an announcement above the regular
   // notes) is the one privileged action, same tier as shift scheduling.
   canPinNotices: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
+  // Salaries and pay are admin-only.
+  canManagePayroll: (role: AppRole) => role === "ADMIN",
 };

@@ -8,6 +8,7 @@ import { getTeamTimezone } from "@/lib/team-timezone";
 import { dayKey, startOfDayUTC } from "@/lib/time";
 import { getOvertimeBoard, getReviewQueue, getTeamDay } from "@/lib/queries/attendance";
 import { TeamAttendanceConsole } from "@/components/attendance/team-attendance-console";
+import { leaveViews } from "@/lib/leave/service";
 
 export default async function TeamAttendancePage({ searchParams }: { searchParams: { day?: string; tab?: string } }) {
   const currentUser = await getCurrentUser();
@@ -16,13 +17,15 @@ export default async function TeamAttendancePage({ searchParams }: { searchParam
   const tz = await getTeamTimezone(currentUser.teamId);
   const today = startOfDayUTC(new Date(), tz);
   const day = searchParams.day && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.day) ? new Date(`${searchParams.day}T00:00:00.000Z`) : today;
-  const tab = searchParams.tab === "review" || searchParams.tab === "overtime" ? searchParams.tab : "roster";
+  const tab = searchParams.tab === "review" || searchParams.tab === "overtime" || searchParams.tab === "leave" ? searchParams.tab : "roster";
 
-  const [teamDay, queue, overtime, people] = await Promise.all([
+  const [teamDay, queue, overtime, people, leavePending, leaveRecent] = await Promise.all([
     getTeamDay(currentUser.teamId, day),
     getReviewQueue(currentUser.teamId),
     getOvertimeBoard(currentUser.teamId),
     prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, role: true } }),
+    leaveViews(currentUser.teamId, { status: "PENDING" }),
+    leaveViews(currentUser.teamId, { status: { in: ["APPROVED", "REJECTED", "CANCELLED"] }, updatedAt: { gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) } }, 40),
   ]);
 
   return (
@@ -44,6 +47,7 @@ export default async function TeamAttendancePage({ searchParams }: { searchParam
         roster={teamDay.rows}
         queue={queue}
         overtime={overtime}
+        leave={{ pending: leavePending, recent: leaveRecent }}
         employees={people.map((p) => ({ id: p.id, name: p.name }))}
         leads={people.filter((p) => p.role === "ADMIN" || p.role === "TEAM_LEAD").map((p) => ({ id: p.id, name: p.name }))}
         currentUser={{ id: currentUser.id, role: currentUser.role }}
