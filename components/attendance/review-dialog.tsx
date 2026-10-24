@@ -160,12 +160,9 @@ export function ReviewDialog({
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="grid items-center gap-5 sm:grid-cols-[auto_1fr]">
               <ShiftTimeline v={v} />
-              <TimelineLegend />
-            </div>
-
-            <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <dl className="grid grid-cols-2 gap-3">
               <Fact label="Checked in" value={timeIn(v.actualCheckIn, tz)} />
               <Fact label="Checked out" value={timeIn(v.actualCheckOut, tz)} />
               {v.autoClosedAt && <Fact label="Auto-stopped at" value={formatClientDateTime(new Date(v.autoClosedAt), tz)} tone="danger" />}
@@ -175,7 +172,9 @@ export function ReviewDialog({
               {v.claimedCheckOut && <Fact label="Claims finished" value={formatClientDateTime(new Date(v.claimedCheckOut), tz)} tone="warning" />}
               {v.overtimeApprovedMinutes > 0 && <Fact label="Approved overtime" value={hm(v.overtimeApprovedMinutes)} tone="accent" />}
               {v.overtimePendingMinutes > 0 && <Fact label="Overtime requested" value={`${hm(v.overtimePendingMinutes)} (pending)`} />}
-            </dl>
+              </dl>
+            </div>
+            <TimelineLegend />
             {v.claimReason && (
               <p className="rounded-xl border border-border bg-muted/20 px-3 py-2 text-xs">
                 <span className="font-medium">Employee&apos;s note: </span>
@@ -257,7 +256,7 @@ export function ReviewDialog({
                             <Circle className="h-3.5 w-3.5 shrink-0 text-warning" />
                           )}
                           <span className={t.status === "COMPLETED" ? "text-muted-foreground line-through" : ""}>{t.title}</span>
-                          <span className="ml-auto text-[10px] uppercase text-muted-foreground">{t.status.replace("_", " ")}</span>
+                          <span className="ml-auto text-[10px] text-muted-foreground">{t.status.replace("_", " ")}</span>
                         </li>
                       ))}
                     </ul>

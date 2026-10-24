@@ -91,7 +91,7 @@ function SyncLogModal({ clientId }: { clientId: string }) {
                 ) : (
                   <p className="mt-1 text-muted-foreground">{log.message ?? log.action}</p>
                 )}
-                <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground/70">{log.source}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground/70">{log.source}</p>
               </div>
             ))}
           </div>

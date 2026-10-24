@@ -31,7 +31,7 @@ export function BrandPanel() {
         transition={{ duration: 0.6 }}
         className="relative z-10 max-w-md"
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Team Operations, Simplified</p>
+        <p className="text-xs font-semibold text-primary">Team Operations, Simplified</p>
         <h2 className="mt-4 font-display text-4xl font-semibold leading-tight tracking-tight">
           Great teams run on great operations.
         </h2>

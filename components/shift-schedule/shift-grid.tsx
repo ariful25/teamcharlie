@@ -46,7 +46,7 @@ export function ShiftGrid({
   }, [days, groupedByShift, unassignedRows]);
 
   const dayHeader = (
-    <div className="grid grid-cols-[180px_120px_repeat(7,1fr)] gap-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="grid grid-cols-[180px_120px_repeat(7,1fr)] gap-2 px-2 text-[11px] font-semibold text-muted-foreground">
       <div>Player</div>
       <div>Note</div>
       {days.map((d, i) => (

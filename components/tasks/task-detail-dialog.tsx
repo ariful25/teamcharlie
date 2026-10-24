@@ -330,23 +330,23 @@ export function TaskDetailDialog({
 
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Date</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Date</p>
                 <p className="mt-0.5">{formatDayLong(new Date(task.date))}</p>
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Time</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Time</p>
                 <p className="mt-0.5">{task.startTime ?? "—"}–{task.dueTime ?? "—"}</p>
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Client</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Client</p>
                 <p className="mt-0.5">{task.client?.name ?? "—"}{task.propertyName ? ` · ${task.propertyName}` : ""}</p>
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Category</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Category</p>
                 <p className="mt-0.5">{task.category?.name ?? "Uncategorized"}</p>
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Assigned</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Assigned</p>
                 <p className="mt-0.5">
                   {task.assignedUser?.name ?? "Unassigned"}
                   {task.shiftType ? <span className="text-muted-foreground"> · {task.shiftType.name} shift</span> : null}
@@ -356,13 +356,13 @@ export function TaskDetailDialog({
 
             {task.status === "BLOCKED" && task.blockedReason && (
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Blocked reason</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Blocked reason</p>
                 <p className="mt-1 whitespace-pre-wrap rounded-lg bg-danger/10 px-3 py-2 text-danger">{task.blockedReason}</p>
               </div>
             )}
 
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Notes</p>
+              <p className="text-[11px] font-medium text-muted-foreground">Notes</p>
               {task.notes ? (
                 <p className="mt-1 whitespace-pre-wrap rounded-lg bg-muted/40 px-3 py-2">{task.notes}</p>
               ) : (

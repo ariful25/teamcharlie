@@ -11,7 +11,7 @@ export function Field({
 }) {
   return (
     <div className={cn("space-y-1.5", className)}>
-      <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</label>
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
       {children}
     </div>
   );

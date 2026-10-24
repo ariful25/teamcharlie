@@ -287,7 +287,7 @@ export function DateTimePicker({ name, value, defaultValue, onChange, min, max, 
       <div className="flex flex-col gap-4 sm:flex-row">
         <Calendar selected={date} min={min?.slice(0, 10)} max={max?.slice(0, 10)} onSelect={(key) => set(`${key}T${time}`)} />
         <div className="flex flex-col justify-center gap-2 border-border/60 sm:border-l sm:pl-4">
-          <span className="text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Time</span>
+          <span className="text-center text-[11px] font-medium text-muted-foreground">Time</span>
           <TimeFields value={time} onChange={(t) => set(`${date || ymdKey(todayYmd())}T${t}`)} />
         </div>
       </div>

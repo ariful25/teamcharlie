@@ -88,7 +88,7 @@ export default async function DashboardPage() {
         <div className="space-y-6 lg:col-span-2">
           {/* Client status */}
           <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
               Client Status
             </h2>
             {clientStats.length === 0 ? (

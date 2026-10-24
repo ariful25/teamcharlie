@@ -326,6 +326,12 @@ model User {
   overtimeRequests  OvertimeRequest[]  @relation("OvertimeRequests")
   leaveRequests     LeaveRequest[]     @relation("LeaveRequests")
   salary            EmployeeSalary?
+
+  profile           EmployeeProfile?   @relation("ProfileOf")
+  directReports     EmployeeProfile[]  @relation("ManagerOf")
+  emergencyContacts EmergencyContact[]
+  documents         EmployeeDocument[] @relation("DocumentsOf")
+  peopleEvents      EmployeeEvent[]    @relation("EventsOf")
   payrollLines      PayrollLine[]
   postedNotices     Notice[]           @relation("NoticeAuthor")
   shiftAssignments  ShiftAssignment[]
@@ -1164,4 +1170,113 @@ model PayrollLine {
   details    Json
 
   @@unique([runId, userId])
+}
+
+// ---- People: employee profiles ------------------------------------------
+// One profile per user. Job fields are admin-edited and every change is
+// logged as an EmployeeEvent; contact/personal fields can also be edited by
+// the person themselves. Personal fields are visible to the person and
+// admins only (lib/people/access.ts).
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
+enum WorkLocation {
+  REMOTE
+  OFFICE
+  HYBRID
+}
+
+enum EmployeeEventKind {
+  JOINED
+  JOB_CHANGE
+  PRAISE
+  NOTE
+  WARNING
+}
+
+model EmployeeProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation("ProfileOf", fields: [userId], references: [id])
+
+  // Job
+  employeeCode     String?
+  jobTitle         String?
+  department       String?
+  managerId        String?
+  manager          User?          @relation("ManagerOf", fields: [managerId], references: [id])
+  employmentType   EmploymentType @default(FULL_TIME)
+  workLocation     WorkLocation   @default(REMOTE)
+  startDate        DateTime? // calendar day (UTC midnight)
+  probationEndDate DateTime?
+
+  // About (visible to the team)
+  preferredName String?
+  bio           String?
+  skills        String[] @default([])
+  languages     String[] @default([])
+  phone         String?
+  whatsapp      String?
+
+  // Personal (the person + admins)
+  personalEmail String?
+  dateOfBirth   DateTime?
+  address       String?
+  bloodGroup    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([managerId])
+}
+
+model EmergencyContact {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  name         String
+  relationship String
+  phone        String
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Links to files kept elsewhere (Google Drive etc.) — TeamHQ stores no files.
+model EmployeeDocument {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation("DocumentsOf", fields: [userId], references: [id])
+  title     String
+  kind      String // "Contract", "ID", "Certificate", "Policy", "Other"
+  url       String
+  expiresAt DateTime?
+  addedById String
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model EmployeeEvent {
+  id        String            @id @default(cuid())
+  teamId    String
+  userId    String
+  user      User              @relation("EventsOf", fields: [userId], references: [id])
+  kind      EmployeeEventKind
+  title     String
+  detail    String?
+  // Job changes: [{field, from, to}]
+  changes   Json?
+  // Notes and warnings are admin-only; praise and job history are visible to the person.
+  private   Boolean           @default(false)
+  actorId   String
+  createdAt DateTime          @default(now())
+
+  @@index([userId, createdAt])
+  @@index([teamId])
 }

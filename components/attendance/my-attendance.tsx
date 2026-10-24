@@ -51,14 +51,15 @@ export function MyAttendance({ shifts, overtime, leads, today }: { shifts: Recor
                   <DayBadge dayKey={v.date} today={today} />
                   <p className="mt-1 text-[11px] text-muted-foreground">{scheduleLabel(v)}</p>
                 </div>
-                <div className="space-y-1.5">
+                <div className="flex items-center gap-4">
+                  <ShiftTimeline v={v} compact />
+                  <div className="min-w-0 flex-1 space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <StateChip state={v.state} />
                     {v.lateMinutes > 0 && <Chip tone="warning">Late {hm(v.lateMinutes)}</Chip>}
                     {v.review === "APPROVED" && <Chip tone="success">Confirmed{v.reviewedByName ? ` by ${v.reviewedByName}` : ""}</Chip>}
                     {v.review === "REJECTED" && <Chip tone="danger">Not accepted{v.reviewNote ? ` — ${v.reviewNote}` : ""}</Chip>}
                   </div>
-                  <ShiftTimeline v={v} compact />
                   <p className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
                     <span>In {timeIn(v.effectiveCheckIn ?? v.actualCheckIn, tz)}</span>
                     <span>Out {timeIn(v.effectiveCheckOut ?? v.actualCheckOut ?? v.reportedCheckOutAt, tz)}</span>
@@ -67,6 +68,7 @@ export function MyAttendance({ shifts, overtime, leads, today }: { shifts: Recor
                     </span>
                     {v.credit.extraMinutes > 0 && <span className="text-danger">+{hm(v.credit.extraMinutes)} not approved</span>}
                   </p>
+                  </div>
                 </div>
                 <div className="flex justify-end">
                   {FIXABLE.has(v.state) && v.review !== "APPROVED" && (

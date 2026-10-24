@@ -130,7 +130,7 @@ export function AddClientWizard() {
             </div>
           ))}
         </div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="mb-3 text-xs font-semibold text-muted-foreground">
           Step {step + 1} of {STEPS.length} — {STEPS[step]}
         </p>
 
@@ -226,16 +226,16 @@ export function AddClientWizard() {
         {step === 5 && (
           <div className="space-y-3 text-sm">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Client</p>
+              <p className="text-xs font-semibold text-muted-foreground">Client</p>
               <p className="mt-1 font-medium">{name || "—"}</p>
               <p className="text-xs text-muted-foreground">{STATUS_OPTIONS.find((o) => o.value === status)?.label}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Modules</p>
+              <p className="text-xs font-semibold text-muted-foreground">Modules</p>
               <p className="mt-1 text-xs text-muted-foreground">{ALWAYS_ON_MODULES.join(", ")} — all enabled</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Integrations</p>
+              <p className="text-xs font-semibold text-muted-foreground">Integrations</p>
               {selectedIntegrations.size === 0 ? (
                 <p className="mt-1 text-xs text-muted-foreground">None selected — can be added later.</p>
               ) : (
@@ -249,7 +249,7 @@ export function AddClientWizard() {
               )}
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Google Knowledge Base</p>
+              <p className="text-xs font-semibold text-muted-foreground">Google Knowledge Base</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {createGoogleSheet ? "Spreadsheet will be created automatically" : "Not created — can be added later"}
               </p>

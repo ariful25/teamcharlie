@@ -17,6 +17,7 @@ import {
   HeartPulse,
   ShieldCheck,
   Wallet,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconTooltip } from "@/components/ui/tooltip";
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/shift-schedule", label: "Shift Schedule", icon: CalendarClock },
   { href: "/tasks", label: "Tasks", icon: ListChecks },
   { href: "/attendance", label: "Attendance", icon: Clock },
+  { href: "/people", label: "People", icon: Users },
   { href: "/notices", label: "Notices", icon: StickyNote },
   { href: "/knowledge-base", label: "Knowledge Base", icon: FileSpreadsheet },
   { href: "/listing-health", label: "Listing Health", icon: HeartPulse },
@@ -112,7 +114,7 @@ export function Sidebar({
           <Link
             href="/clients"
             className={cn(
-              "block px-3 pb-1.5 text-[11px] font-medium uppercase tracking-wider transition-colors",
+              "block px-3 pb-1.5 text-[11px] font-medium transition-colors",
               pathname === "/clients"
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"

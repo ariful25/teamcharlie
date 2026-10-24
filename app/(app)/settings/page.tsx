@@ -1,7 +1,8 @@
 import { permissions } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Suspense } from "react";
+import { SettingsShell, type SettingsSection } from "@/components/settings/settings-shell";
 import { NotificationSettingsPanel } from "@/components/settings/notification-settings-panel";
 import { ShiftTypesPanel } from "@/components/settings/shift-types-panel";
 import { AddUserModal } from "@/components/settings/add-user-modal";
@@ -10,7 +11,7 @@ import { CheckoutChecklistPanel } from "@/components/settings/checkout-checklist
 import { TeamProfileForm } from "@/components/settings/team-profile-form";
 import { TeamWebhookPanel } from "@/components/settings/team-webhook-panel";
 import { InvitesPanel } from "@/components/settings/invites-panel";
-import { HOME_TEAM_SLUG } from "@/lib/brand";
+import { HOME_TEAM_SLUG, PRODUCT_NAME } from "@/lib/brand";
 import { AiSettingsPanel } from "@/components/settings/ai-settings-panel";
 import { getTeamAiConfig } from "@/lib/ai/client";
 import { DEFAULT_MODELS } from "@/lib/ai/providers";
@@ -72,166 +73,175 @@ export default async function SettingsPage() {
   const slackCheckinConfigured = !!(process.env.SLACK_BOT_TOKEN && (process.env.SLACK_CHECKIN_CHANNEL_ID || process.env.SLACK_TASK_CHANNEL_ID));
   const slackCheckoutConfigured = !!(process.env.SLACK_BOT_TOKEN && (process.env.SLACK_CHECKOUT_CHANNEL_ID || process.env.SLACK_TASK_CHANNEL_ID));
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Team configuration, members, and notifications.</p>
-      </div>
+  const activeUsers = users.filter((u) => u.active);
+  const aiReady = !!aiConfig?.enabled && (aiConfig.provider === "OPENAI" ? aiConfig.hasOpenAiKey : aiConfig.hasAnthropicKey);
+  const integrationStatus = (a: boolean, b: boolean): SettingsSection["status"] =>
+    a && b ? { text: "Connected", tone: "ok" } : a || b ? { text: "Partial", tone: "warn" } : { text: "Not set up", tone: "off" };
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Team Settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <TeamProfileForm
-            name={team.name}
-            timezone={team.timezone}
-            autoCheckoutHours={team.settings?.autoCheckoutHours ?? 10}
-            canEdit={canManageNotifications}
-          />
-        </CardContent>
-      </Card>
-
-      {aiConfig && (
-        <Card>
-          <CardHeader>
-            <CardTitle>AI</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AiSettingsPanel
-              enabled={aiConfig.enabled}
-              provider={aiConfig.provider}
-              anthropicModel={team.settings?.anthropicModel ?? ""}
-              openaiModel={team.settings?.openaiModel ?? ""}
-              defaultModels={DEFAULT_MODELS}
-              hasAnthropicKey={aiConfig.hasAnthropicKey}
-              hasOpenAiKey={aiConfig.hasOpenAiKey}
-              dailyLimit={aiConfig.dailyLimit}
-              usage={usage}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {!isHomeTeam && canManageNotifications && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Discord Notifications</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TeamWebhookPanel configured={!!team.settings?.discordWebhookUrl} />
-          </CardContent>
-        </Card>
-      )}
-
-      {isHomeTeam && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Discord Integration</CardTitle>
-            </CardHeader>
-            <CardContent>
+  const sections: SettingsSection[] = [
+    {
+      id: "team",
+      group: "Workspace",
+      label: "Team",
+      description: "Your team's name, the timezone every shift and report uses, and when a forgotten check-out stops the timer.",
+      status: { text: team.timezone.split("/").pop()!.replace("_", " "), tone: "info" },
+      content: (
+        <TeamProfileForm
+          name={team.name}
+          timezone={team.timezone}
+          autoCheckoutHours={team.settings?.autoCheckoutHours ?? 10}
+          canEdit={canManageNotifications}
+        />
+      ),
+    },
+    {
+      id: "shifts",
+      group: "Workspace",
+      label: "Shift types",
+      description: "The shift blocks used across the Shift Schedule. Add or change one whenever your rotation changes.",
+      status: { text: String(shiftTypes.length), tone: "info" },
+      content: <ShiftTypesPanel shiftTypes={shiftTypes} />,
+    },
+    ...(canManageChecklists
+      ? [
+          {
+            id: "checklist",
+            group: "Workspace" as const,
+            label: "Checkout checklist",
+            description: "Every employee ticks these before they can check out.",
+            status: { text: String(checklistItems.length), tone: checklistItems.length ? ("info" as const) : ("off" as const) },
+            content: <CheckoutChecklistPanel items={checklistItems.map((c) => ({ id: c.id, label: c.label }))} />,
+          },
+        ]
+      : []),
+    {
+      id: "members",
+      group: "People",
+      label: "Members",
+      description: canManageUsers ? "Everyone on the team: roles, shifts, and who can sign in." : "Everyone on the team.",
+      status: { text: `${activeUsers.length} active`, tone: "info" },
+      action: canManageUsers ? <AddUserModal shiftTypes={shiftTypes.map((s) => ({ id: s.id, name: s.name }))} /> : undefined,
+      content: canManageUsers ? (
+        <div className="-mx-6 -mb-6 -mt-2">
+          <UsersManagementTable users={users} currentUserId={currentUser.id} showSlack={isHomeTeam} />
+        </div>
+      ) : (
+        <ul className="divide-y divide-border/60">
+          {activeUsers.map((u) => (
+            <li key={u.id} className="flex items-center justify-between py-3 text-sm">
+              <div>
+                <p className="font-medium">{u.name}</p>
+                <p className="text-xs text-muted-foreground">{u.email}</p>
+              </div>
+              <span className="text-xs capitalize text-muted-foreground">{u.role.replace("_", " ").toLowerCase()}</span>
+            </li>
+          ))}
+        </ul>
+      ),
+    },
+    ...(canManageUsers
+      ? [
+          {
+            id: "invites",
+            group: "People" as const,
+            label: "Invites",
+            description: "Send an invite link so a teammate can create their own account and join this team.",
+            status: invites.length ? { text: `${invites.length} pending`, tone: "warn" as const } : undefined,
+            content: <InvitesPanel invites={invites.map((i) => ({ ...i, expiresAt: i.expiresAt.toISOString() }))} />,
+          },
+        ]
+      : []),
+    ...(aiConfig
+      ? [
+          {
+            id: "ai",
+            group: "Integrations" as const,
+            label: "AI",
+            description: "Connect your own Anthropic or OpenAI key for listing insights, guest replies and check-in guides.",
+            status: aiReady ? { text: "Connected", tone: "ok" as const } : { text: "Off", tone: "off" as const },
+            content: (
+              <AiSettingsPanel
+                enabled={aiConfig.enabled}
+                provider={aiConfig.provider}
+                anthropicModel={team.settings?.anthropicModel ?? ""}
+                openaiModel={team.settings?.openaiModel ?? ""}
+                defaultModels={DEFAULT_MODELS}
+                hasAnthropicKey={aiConfig.hasAnthropicKey}
+                hasOpenAiKey={aiConfig.hasOpenAiKey}
+                dailyLimit={aiConfig.dailyLimit}
+                usage={usage}
+              />
+            ),
+          },
+        ]
+      : []),
+    ...(!isHomeTeam && canManageNotifications
+      ? [
+          {
+            id: "discord",
+            group: "Integrations" as const,
+            label: "Discord",
+            description: "Post check-ins, check-outs and alerts to a Discord channel.",
+            status: team.settings?.discordWebhookUrl ? { text: "Connected", tone: "ok" as const } : { text: "Not set up", tone: "off" as const },
+            content: <TeamWebhookPanel configured={!!team.settings?.discordWebhookUrl} />,
+          },
+        ]
+      : []),
+    ...(isHomeTeam
+      ? [
+          {
+            id: "discord",
+            group: "Integrations" as const,
+            label: "Discord",
+            description: "Check-in and check-out posts to your Discord channels.",
+            status: integrationStatus(discordCheckinConfigured, discordCheckoutConfigured),
+            content: (
               <NotificationSettingsPanel
                 testEndpoint="/api/settings/discord-test"
                 checkinConfigured={discordCheckinConfigured}
                 checkoutConfigured={discordCheckoutConfigured}
                 helpText={
                   <>
-                    Webhook URLs are configured via server environment variables (<code>DISCORD_CHECKIN_WEBHOOK_URL</code>,{" "}
-                    <code>DISCORD_CHECKOUT_WEBHOOK_URL</code>) and are never displayed here once set, for security.
+                    Webhook URLs are set as server environment variables (<code>DISCORD_CHECKIN_WEBHOOK_URL</code>,{" "}
+                    <code>DISCORD_CHECKOUT_WEBHOOK_URL</code>) and never shown here once set.
                   </>
                 }
               />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Slack Integration</CardTitle>
-            </CardHeader>
-            <CardContent>
+            ),
+          },
+          {
+            id: "slack",
+            group: "Integrations" as const,
+            label: "Slack",
+            description: "Check-in and check-out posts to your Slack channels.",
+            status: integrationStatus(slackCheckinConfigured, slackCheckoutConfigured),
+            content: (
               <NotificationSettingsPanel
                 testEndpoint="/api/settings/slack-test"
                 checkinConfigured={slackCheckinConfigured}
                 checkoutConfigured={slackCheckoutConfigured}
                 helpText={
                   <>
-                    Configured via server environment variables (<code>SLACK_BOT_TOKEN</code>,{" "}
-                    <code>SLACK_CHECKIN_CHANNEL_ID</code>, <code>SLACK_CHECKOUT_CHANNEL_ID</code>) and never displayed
-                    here once set, for security.
+                    Set as server environment variables (<code>SLACK_BOT_TOKEN</code>, <code>SLACK_CHECKIN_CHANNEL_ID</code>,{" "}
+                    <code>SLACK_CHECKOUT_CHANNEL_ID</code>) and never shown here once set.
                   </>
                 }
               />
-            </CardContent>
-          </Card>
+            ),
+          },
+        ]
+      : []),
+  ];
 
-        </>
-      )}
-
-      {canManageChecklists && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Checkout Checklist</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Shown to every employee before they can confirm checkout. Add, edit, or remove items any time.
-            </p>
-            <CheckoutChecklistPanel items={checklistItems.map((c) => ({ id: c.id, label: c.label }))} />
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Shift Types</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-3 text-sm text-muted-foreground">
-            The shift blocks used across the Shift Schedule. Fully editable — add a new
-            one any time your team&apos;s rotation changes.
-          </p>
-          <ShiftTypesPanel shiftTypes={shiftTypes} />
-        </CardContent>
-      </Card>
-
-      {canManageUsers && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Invite Teammates</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <InvitesPanel invites={invites.map((i) => ({ ...i, expiresAt: i.expiresAt.toISOString() }))} />
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Users</CardTitle>
-          {canManageUsers && <AddUserModal shiftTypes={shiftTypes.map((s) => ({ id: s.id, name: s.name }))} />}
-        </CardHeader>
-        <CardContent className="p-0 pb-2">
-          {canManageUsers ? (
-            <UsersManagementTable users={users} currentUserId={currentUser.id} showSlack={isHomeTeam} />
-          ) : (
-            <div className="space-y-2 px-5 pb-4">
-              {users
-                .filter((u) => u.active)
-                .map((u) => (
-                  <div key={u.id} className="flex items-center justify-between border-t border-border/60 py-3 text-sm first:border-0">
-                    <div>
-                      <p className="font-medium">{u.name}</p>
-                      <p className="text-xs text-muted-foreground">{u.email}</p>
-                    </div>
-                    <span className="text-xs capitalize text-muted-foreground">{u.role.replace("_", " ").toLowerCase()}</span>
-                  </div>
-                ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">How your team works in {PRODUCT_NAME}: schedule rules, people and connected tools.</p>
+      </div>
+      <Suspense>
+        <SettingsShell teamName={team.name} sections={sections} />
+      </Suspense>
     </div>
   );
 }

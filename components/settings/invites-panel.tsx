@@ -115,7 +115,7 @@ export function InvitesPanel({ invites }: { invites: Invite[] }) {
 
       {invites.length > 0 && (
         <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Pending invites</p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Pending invites</p>
           <ul className="divide-y divide-border/60 rounded-xl border border-border">
             {invites.map((inv) => (
               <li key={inv.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">

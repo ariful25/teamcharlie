@@ -28,7 +28,7 @@ export function AuthField({
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <label htmlFor={id} className="mb-1.5 block text-xs font-medium text-muted-foreground">
         {label}
       </label>
       <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2.5 transition focus-within:glow-border">

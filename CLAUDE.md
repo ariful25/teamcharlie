@@ -64,7 +64,25 @@ throttled to one fetch per listing per 10 minutes.
 - Payroll (`lib/payroll/`): pure maths in `calc.ts` (`npm run test:payroll`);
   a month can't be finalized while shifts still need review.
 
+## People
+
+`/people` is the directory (cards + org chart) and `/people/[userId]` the
+profile (job, about, personal, emergency contacts, document links, time &
+leave, history). Who sees/edits what is one pure function,
+`profileAccess()` in `lib/people/access.ts` — run `npm run test:people` after
+touching it. Hidden fields are omitted server-side in `lib/people/queries.ts`,
+never just hidden in the UI. Job-field changes are logged as
+`EmployeeEvent`s automatically.
+
 ## Design language — don't reinvent it per page
+
+- Type: IBM Plex Sans for UI text, Archivo (slightly expanded via
+  `font-stretch`) for headings and big figures — never Inter/Geist. Sizes
+  are golden-ratio steps in `tailwind.config.ts`; two-pane layouts split
+  1 : 1.618. Labels are sentence case, never tracked all-caps.
+- Shifts are shown as a 24-hour dial (`components/attendance/shift-dial.tsx`),
+  people as a ringed avatar (`components/people/person-avatar.tsx`) — reuse
+  these rather than adding progress bars.
 
 Charlie HQ already has an established visual identity in `app/globals.css`
 and `tailwind.config.ts`. Reuse these tokens; don't hardcode new colors.

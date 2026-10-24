@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: dark;
   --background: 222 47% 6%;
   --foreground: 210 40% 96%;
   --card: 222 40% 9%;
@@ -52,4 +53,20 @@ body {
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Archivo's width axis: headings sit slightly expanded for a firmer,
+   signage-like voice; hero figures a touch wider still. */
+.font-display {
+  font-stretch: 112%;
+  letter-spacing: -0.012em;
+}
+h1.font-display,
+.text-4xl.font-display,
+.text-3xl.font-display {
+  font-stretch: 118%;
+  letter-spacing: -0.02em;
+}
+.tabular-nums {
+  font-feature-settings: "tnum" 1;
 }

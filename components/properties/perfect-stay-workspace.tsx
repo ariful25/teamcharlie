@@ -397,7 +397,7 @@ export function PerfectStayWorkspace({
       </Card>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Properties</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground">Properties</h2>
         {canManage && <PropertyModal clientId={client.id} />}
       </div>
 
@@ -464,7 +464,7 @@ export function PerfectStayWorkspace({
                         </div>
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center justify-between">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tenancy</p>
+                            <p className="text-xs font-semibold text-muted-foreground">Tenancy</p>
                             {canManage && <TenancyModal units={allUnits} unitId={unit.id} />}
                           </div>
                           {tenancies.length === 0 ? (

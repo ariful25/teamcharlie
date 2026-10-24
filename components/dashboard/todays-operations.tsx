@@ -65,14 +65,11 @@ export function TodaysOperations({ rows }: { rows: OperationRow[] }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b border-border text-left text-[11px] text-muted-foreground">
                   <th className="px-5 py-2 font-medium">Time</th>
-                  <th className="px-5 py-2 font-medium">Task</th>
-                  <th className="px-5 py-2 font-medium">Client</th>
-                  <th className="px-5 py-2 font-medium">Category</th>
-                  <th className="px-5 py-2 font-medium">Assigned</th>
-                  <th className="px-5 py-2 font-medium">Priority</th>
-                  <th className="px-5 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 font-medium">Task</th>
+                  <th className="px-3 py-2 font-medium">Priority</th>
+                  <th className="px-3 py-2 font-medium">Status</th>
                   <th className="px-5 py-2 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -82,17 +79,19 @@ export function TodaysOperations({ rows }: { rows: OperationRow[] }) {
                   return (
                     <tr key={row.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
                       <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{row.time ?? "—"}</td>
-                      <td className="px-5 py-3 font-medium">{row.title}</td>
-                      <td className="px-5 py-3 text-muted-foreground">{row.clientName ?? "—"}</td>
-                      <td className="px-5 py-3 text-muted-foreground">{row.category ?? "—"}</td>
-                      <td className="px-5 py-3 text-muted-foreground">{row.assignedTo ?? "Unassigned"}</td>
-                      <td className="px-5 py-3">
+                      <td className="min-w-[15rem] px-3 py-3">
+                        <p className="font-medium leading-snug">{row.title}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {[row.clientName, row.category, row.assignedTo ?? "Unassigned"].filter(Boolean).join(" · ")}
+                        </p>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3">
                         <Badge tone={priorityTone(row.priority)}>{row.priority}</Badge>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="whitespace-nowrap px-3 py-3">
                         <Badge tone={statusTone(status)}>
                           {status === "OVERDUE" && row.overdueBy ? (
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 whitespace-nowrap">
                               <Clock3 className="h-3 w-3" /> {row.overdueBy} overdue
                             </span>
                           ) : (
@@ -100,7 +99,7 @@ export function TodaysOperations({ rows }: { rows: OperationRow[] }) {
                           )}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="whitespace-nowrap px-3 py-3">
                         {status !== "COMPLETED" && (
                           <button
                             disabled={isPending}

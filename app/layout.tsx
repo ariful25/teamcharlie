@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { GeistSans } from "geist/font/sans";
+import { Archivo, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Providers } from "./providers";
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/brand";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+// Typography: IBM Plex Sans for UI text and figures (built for data-dense
+// interfaces, unambiguous 0/O and 1/l/I), Archivo at a slightly expanded
+// width for headings and hero numbers. Sizes follow golden-ratio steps —
+// see fontSize in tailwind.config.ts.
+const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-plex" });
+const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo" });
 
 // VERCEL_PROJECT_PRODUCTION_URL is Vercel's stable production domain (unlike
 // VERCEL_URL, which changes per-deployment) — falls back to localhost so
@@ -43,7 +47,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${GeistSans.variable} font-sans antialiased`}>
+      <body className={`${plex.variable} ${archivo.variable} font-sans antialiased`}>
         <Providers>
           {children}
           <Toaster theme="dark" position="top-right" richColors />

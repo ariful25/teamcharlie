@@ -67,7 +67,7 @@ export function StatCard({
             <Icon className="h-4 w-4" />
           </div>
         </div>
-        <div className="mt-3 text-2xl font-semibold tabular-nums">
+        <div className="mt-3 font-display text-3xl font-semibold tabular-nums">
           <AnimatedCounter value={value} />
           {suffix && <span className="ml-1 text-base text-muted-foreground">{suffix}</span>}
         </div>

@@ -230,7 +230,7 @@ export function TeamAttendanceConsole({
           ) : (
             <ul className="divide-y divide-border/60">
               {filtered.map((v) => (
-                <li key={v.userId} className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(180px,1.2fr)_minmax(220px,2fr)_auto] md:items-center">
+                <li key={v.userId} className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(180px,1fr)_minmax(220px,1.618fr)_7rem] md:items-center">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-semibold text-primary glow-border">
                       {v.userName.charAt(0)}
@@ -245,14 +245,15 @@ export function TeamAttendanceConsole({
                       </p>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex items-center gap-4">
+                    <ShiftTimeline v={v} compact />
+                    <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <StateChip state={v.state} />
                       {v.lateMinutes > 0 && <Chip tone="warning">Late {hm(v.lateMinutes)}</Chip>}
                       {v.credit.extraMinutes > 0 && <Chip tone="danger">+{hm(v.credit.extraMinutes)} unapproved</Chip>}
                       {v.overtimeApprovedMinutes > 0 && <Chip tone="accent">OT {hm(v.overtimeApprovedMinutes)}</Chip>}
                     </div>
-                    <ShiftTimeline v={v} compact />
                     <p className="flex flex-wrap gap-x-4 text-[11px] text-muted-foreground">
                       <span>In {timeIn(v.effectiveCheckIn ?? v.actualCheckIn, tz)}</span>
                       <span>Out {timeIn(v.effectiveCheckOut ?? v.actualCheckOut, tz)}</span>
@@ -261,6 +262,7 @@ export function TeamAttendanceConsole({
                         {hm(v.credit.regularMinutes + v.credit.overtimeMinutes)}
                       </span>
                     </p>
+                    </div>
                   </div>
                   <div className="flex justify-end">
                     {/* No action on a shift that's still running — "Correct" would end it. */}

@@ -41,7 +41,7 @@ export function TimezoneSelect({
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <label htmlFor={id} className="mb-1.5 block text-xs font-medium text-muted-foreground">
         {label}
       </label>
       <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClass} py-2.5`}>

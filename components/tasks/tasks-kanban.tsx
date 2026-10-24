@@ -141,7 +141,7 @@ function Column({
   return (
     <div className="flex min-w-[260px] flex-1 flex-col gap-3">
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-xs font-semibold text-muted-foreground">{label}</p>
         <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{tasks.length}</span>
       </div>
       <div

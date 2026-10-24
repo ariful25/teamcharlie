@@ -26,7 +26,7 @@ export function ClientStatusCard({
         className="glass rounded-2xl p-5 shadow-card transition-shadow hover:shadow-glow-sm cursor-pointer"
       >
         <div className="flex items-start justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wide">{name}</h3>
+          <h3 className="text-sm font-semibold">{name}</h3>
           <Badge tone={statusTone(status)}>{status.charAt(0) + status.slice(1).toLowerCase().replace("_", " ")}</Badge>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 text-center">

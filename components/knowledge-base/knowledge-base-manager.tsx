@@ -177,7 +177,7 @@ function PropertyFormModal({
           </Field>
 
           <div className="col-span-2 mt-2 border-t border-border pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Airbnb Information</p>
+            <p className="text-xs font-semibold text-muted-foreground">Airbnb Information</p>
           </div>
           <Field label="Listing Name" className="col-span-2">
             <input name="listingName" defaultValue={existing?.listingName ?? ""} className={inputClass} />
@@ -211,7 +211,7 @@ function PropertyFormModal({
           </Field>
 
           <div className="col-span-2 mt-2 border-t border-border pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Operational Information</p>
+            <p className="text-xs font-semibold text-muted-foreground">Operational Information</p>
           </div>
           <Field label="WiFi Name">
             <input name="wifiName" defaultValue={existing?.wifiName ?? ""} placeholder="Type N/A if this property has no WiFi" className={inputClass} />
@@ -481,7 +481,7 @@ export function KnowledgeBaseManager({
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-sm">
-                <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <thead className="border-b border-border text-left text-xs text-muted-foreground">
                   <tr>
                     <th className="px-5 py-3 font-medium">Property</th>
                     <th className="px-5 py-3 font-medium">Client</th>
