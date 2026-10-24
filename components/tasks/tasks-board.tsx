@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, LayoutGrid, List as ListIcon, History } from "lucide-react";
+import { Search, LayoutGrid, List as ListIcon, History, CheckCircle2, ChevronDown, Clock3 } from "lucide-react";
+import { boardPhase } from "@/lib/tasks/visibility";
+import { useTeamTimezone } from "@/components/providers/team-timezone";
+import { formatTime } from "@/lib/time";
+import { cn } from "@/lib/utils";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { TaskCard } from "./task-card";
@@ -33,9 +37,34 @@ export function TasksBoard({
   const [assignedUserId, setAssignedUserId] = useState("");
   const [category, setCategory] = useState(searchParams.get("category") ?? "");
   const [myTasksOnly, setMyTasksOnly] = useState(false);
+  const [showDone, setShowDone] = useState(searchParams.get("status") === "COMPLETED");
+  const [laterOpen, setLaterOpen] = useState(false);
+  const tz = useTeamTimezone();
+
+  // Ticks so completed tasks leave after their 5-minute window and shift
+  // tasks arrive when the shift starts, without anyone reloading the page.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const phaseOf = (t: any) => boardPhase(t, now);
+  const doneToday = tasks.filter((t) => t.status === "COMPLETED");
+  const later = tasks.filter((t) => phaseOf(t) === "later").sort((a, b) => a.releaseAt.localeCompare(b.releaseAt));
+  const laterGroups = later.reduce<{ key: string; label: string; count: number }[]>((acc, t) => {
+    const label = `${t.shiftType?.name ?? "Shift"} · ${formatTime(new Date(t.releaseAt), tz)}`;
+    const g = acc.find((x) => x.key === t.releaseAt);
+    if (g) g.count++;
+    else acc.push({ key: t.releaseAt, label, count: 1 });
+    return acc;
+  }, []);
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
+      const phase = phaseOf(t);
+      if (phase === "later") return false;
+      if (phase === "done" && !showDone && !(view === "list" && status === "COMPLETED")) return false;
       if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
       // The board view already partitions by status via its columns —
       // applying the status dropdown on top of it would just empty out
@@ -47,7 +76,8 @@ export function TasksBoard({
       if (category && t.category?.name !== category) return false;
       return true;
     });
-  }, [tasks, search, status, clientId, assignedUserId, category, myTasksOnly, currentUserId, view]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, search, status, clientId, assignedUserId, category, myTasksOnly, currentUserId, view, now, showDone]);
 
   return (
     <div className="space-y-3">
@@ -129,6 +159,18 @@ export function TasksBoard({
           />
         </div>
         <div className="flex items-center gap-2">
+          {doneToday.length > 0 && (
+            <Button
+              variant="ghost"
+              className="h-10"
+              aria-pressed={showDone}
+              onClick={() => setShowDone((v) => !v)}
+              title={showDone ? "Hide tasks completed earlier today" : "Show everything completed today"}
+            >
+              <CheckCircle2 className={cn("h-4 w-4", showDone ? "text-success" : "text-muted-foreground")} />
+              {showDone ? "Hide completed" : `${doneToday.length} done today`}
+            </Button>
+          )}
           <Link href="/tasks/history">
             <Button variant="outline" className="h-10">
               <History className="h-4 w-4" /> History
@@ -142,6 +184,36 @@ export function TasksBoard({
           />
         </div>
       </div>
+
+      {later.length > 0 && (
+        <div className="glass rounded-2xl text-sm shadow-card">
+          <button
+            type="button"
+            onClick={() => setLaterOpen((v) => !v)}
+            aria-expanded={laterOpen}
+            className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 text-left"
+          >
+            <Clock3 className="h-4 w-4 text-primary" />
+            <span className="font-medium">
+              {later.length} recurring task{later.length === 1 ? "" : "s"} start{later.length === 1 ? "s" : ""} with a later shift
+            </span>
+            <span className="text-xs text-muted-foreground">{laterGroups.map((g) => `${g.label} (${g.count})`).join(" · ")}</span>
+            <ChevronDown className={cn("ml-auto h-4 w-4 text-muted-foreground transition-transform", laterOpen && "rotate-180")} />
+          </button>
+          {laterOpen && (
+            <ul className="divide-y divide-border/60 border-t border-border/60">
+              {later.map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-3 px-5 py-2.5">
+                  <span className="min-w-0 truncate">{t.title}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {t.shiftType?.name} · from {formatTime(new Date(t.releaseAt), tz)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-border p-10 text-center text-sm text-muted-foreground">

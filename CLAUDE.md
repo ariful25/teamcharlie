@@ -64,6 +64,15 @@ throttled to one fetch per listing per 10 minutes.
 - Payroll (`lib/payroll/`): pure maths in `calc.ts` (`npm run test:payroll`);
   a month can't be finalized while shifts still need review.
 
+## Task board visibility
+
+`lib/tasks/visibility.ts` decides what's on the board (`npm run test:tasks`):
+completed tasks stay 5 minutes (undo window) then move to History;
+recurring tasks that belong to a shift appear when that shift starts and
+are never marked overdue before then; one-off tasks and shift-less
+recurring tasks are there from the start of the team's day. The dashboard's
+operations table uses the same rules; its stats still count the whole day.
+
 ## People
 
 `/people` is the directory (cards + org chart) and `/people/[userId]` the

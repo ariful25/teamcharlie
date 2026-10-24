@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfDayUTC } from "@/lib/time";
+import { releaseAt } from "@/lib/tasks/visibility";
 
 export async function getTasksPageData(teamId: string) {
-  const today = startOfDayUTC(new Date(), await getTeamTimezone(teamId));
-  const [tasks, clients, employees, categories, shiftTypes] = await Promise.all([
+  const tz = await getTeamTimezone(teamId);
+  const today = startOfDayUTC(new Date(), tz);
+  const [rows, clients, employees, categories, shiftTypes] = await Promise.all([
     prisma.task.findMany({
       where: {
         teamId,
@@ -29,6 +31,9 @@ export async function getTasksPageData(teamId: string) {
     prisma.shiftType.findMany({ where: { teamId, active: true }, orderBy: { startTime: "asc" } }),
   ]);
 
+  // releaseAt tells the board when a shift's recurring task joins it; the
+  // board itself hides "later" and long-completed tasks (lib/tasks/visibility).
+  const tasks = rows.map((t) => ({ ...t, releaseAt: releaseAt(t, tz)?.toISOString() ?? null }));
   return { tasks, clients, employees, categories, shiftTypes };
 }
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC, dayOfWeekInTz, combineDateAndTime } from "@/lib/time";
+import { releaseAt } from "@/lib/tasks/visibility";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { notifyTasksOverdue } from "@/lib/notifications";
 
@@ -152,12 +153,16 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
       // completed, so leaving it in here would flip it to OVERDUE forever.
       isRecurringTemplate: false,
     },
-    include: { client: true, assignedUser: true },
+    include: { client: true, assignedUser: true, shiftType: true },
   });
 
   const newlyOverdue: typeof candidates = [];
   for (const t of candidates) {
     if (!t.dueTime) continue;
+    // A shift's recurring task isn't on anyone's board until the shift
+    // starts, so it can't be overdue before then (lib/tasks/visibility).
+    const released = releaseAt(t, tz);
+    if (released && released.getTime() > referenceDate.getTime()) continue;
     // Each task's own date, not the reference day — a task from three days
     // ago is compared against its own due time on its own day, not today's.
     const due = combineDateAndTime(t.date, t.dueTime, tz);

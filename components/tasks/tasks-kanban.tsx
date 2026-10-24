@@ -214,7 +214,7 @@ export function TasksKanban({
   // Optimistic per-task overrides (status + blockedReason), same pattern as
   // components/dashboard/todays-operations.tsx — `tasks` only changes on
   // router.refresh(), so a drag needs its own local state to move instantly.
-  const [overrides, setOverrides] = useState<Record<string, { status?: string; blockedReason?: string | null }>>({});
+  const [overrides, setOverrides] = useState<Record<string, { status?: string; blockedReason?: string | null; completedAt?: string | null }>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingBlock, setPendingBlock] = useState<{ id: string; previousStatus: string } | null>(null);
 
@@ -274,7 +274,9 @@ export function TasksKanban({
     if (overStatus === currentStatus) return;
 
     const previousStatus = currentStatus;
-    setOverrides((prev) => ({ ...prev, [taskId]: { status: overStatus } }));
+    // completedAt starts the board's 5-minute undo window right away.
+    const completedAt = overStatus === "COMPLETED" ? new Date().toISOString() : null;
+    setOverrides((prev) => ({ ...prev, [taskId]: { status: overStatus, completedAt } }));
 
     if (overStatus === "BLOCKED") {
       // Card moves instantly; the reason dialog follows without blocking the
@@ -286,7 +288,7 @@ export function TasksKanban({
     // Leaving BLOCKED for any other column clears a stale reason.
     const clearReason = previousStatus === "BLOCKED" ? { blockedReason: null } : {};
     if (Object.keys(clearReason).length) {
-      setOverrides((prev) => ({ ...prev, [taskId]: { status: overStatus, blockedReason: null } }));
+      setOverrides((prev) => ({ ...prev, [taskId]: { status: overStatus, blockedReason: null, completedAt } }));
     }
     patchTask(taskId, { status: overStatus, ...clearReason });
   }

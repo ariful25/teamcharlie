@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfDayUTC, formatTime, combineDateAndTime } from "@/lib/time";
 import { differenceInMinutes } from "date-fns";
+import { boardPhase, releaseAt } from "@/lib/tasks/visibility";
 
 export async function getDashboardData(teamId: string) {
   const tz = await getTeamTimezone(teamId);
@@ -56,7 +57,13 @@ export async function getDashboardData(teamId: string) {
 
   // Full set, not just today's — a carried-over overdue task needs to show
   // up here too, or it'd be marked OVERDUE but invisible on the dashboard.
-  const operationRows = allTasks.map((t) => {
+  // Same visibility as the task board: no long-completed tasks, no shift
+  // tasks before their shift starts. Stats above still count the whole day.
+  const now = Date.now();
+  const onBoard = allTasks.filter(
+    (t) => boardPhase({ status: t.status, completedAt: t.completedAt, releaseAt: releaseAt(t, tz) }, now) === "board"
+  );
+  const operationRows = onBoard.map((t) => {
     let overdueBy: string | null = null;
     if (t.status === "OVERDUE" && t.dueTime) {
       // t's own date, not today's — a task overdue since 3 days ago must be
