@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import type { PublicListingSnapshot } from "../lib/listing-health/parse";
-import { GENERIC_CAPTION } from "../lib/listing-health/parse";
+import { GENERIC_CAPTION, parsePublicListing, ratingFromOgTitle, titleFromDocument } from "../lib/listing-health/parse";
 import { detectIssues, healthScore, qualityScore, starCounts } from "../lib/listing-health/score";
 import { analyzeReviews, complaintsIn, starBuckets } from "../lib/listing-health/reviews";
 import { mapColumns, parseCsv, parseRating, parseReviewsCsv, reviewFingerprint } from "../lib/listing-health/csv";
@@ -185,6 +185,16 @@ test("template guide uses placeholders, never the real code, and flags gaps", ()
   assert.ok(guide.includes("{{DOOR_CODE}}"));
   assert.ok(guide.includes("Street parking"));
   assert.ok(guide.includes("[team: add check-in steps]"));
+});
+
+test("meta-tag fallbacks read a page without the listing JSON", () => {
+  assert.equal(ratingFromOgTitle("Home in Columbus · ★4.62 · 3 bedrooms · 4 beds"), 4.62);
+  assert.equal(ratingFromOgTitle("Home in Columbus · ★New · 3 bedrooms"), null);
+  assert.equal(titleFromDocument("<title>Cozy Loft &amp; Patio - Houses for Rent in Columbus, Ohio, United States - Airbnb</title>"), "Cozy Loft & Patio");
+  assert.equal(titleFromDocument("<title>Airbnb | Vacation rentals</title>"), null);
+  const page = parsePublicListing('<html><head><title>Cozy Loft - Airbnb</title><meta property="og:title" content="Home in Columbus · ★4.9 · 2 beds"></head></html>');
+  assert.equal(page.title, "Cozy Loft");
+  assert.equal(page.rating, 4.9);
 });
 
 console.log(`\n${passed} passed`);

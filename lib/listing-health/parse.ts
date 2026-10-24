@@ -56,15 +56,48 @@ function truthy(value: unknown) {
 
 export const GENERIC_CAPTION = /^[\w\s'&/-]{1,40}\bimage\s+\d+$/i;
 
+function metaContent(html: string, prop: string): string | null {
+  const a = html.match(new RegExp(`<meta[^>]+(?:property|name)="${prop}"[^>]+content="([^"]*)"`, "i"))?.[1];
+  const b = html.match(new RegExp(`<meta[^>]+content="([^"]*)"[^>]+(?:property|name)="${prop}"`, "i"))?.[1];
+  return cleanText(decodeEntities(a ?? b ?? ""));
+}
+
+function decodeEntities(s: string) {
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+/** Rating from og:title ("Home in Columbus · ★4.62 · 3 bedrooms …"). */
+export function ratingFromOgTitle(og: string | null): number | null {
+  const m = og?.match(/★\s*(\d(?:\.\d+)?)/);
+  const v = m ? Number(m[1]) : NaN;
+  return v >= 1 && v <= 5 ? v : null;
+}
+
+/** Listing name from <title> ("Cozy Loft - Houses for Rent in Columbus, Ohio - Airbnb"). */
+export function titleFromDocument(html: string): string | null {
+  const raw = cleanText(decodeEntities(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? ""));
+  if (!raw || /^airbnb\b/i.test(raw)) return null;
+  const name = raw.replace(/\s+-\s+Airbnb\s*$/i, "").replace(/\s+-\s+[^-]*\bfor Rent in\b.*$/i, "").trim();
+  return name || null;
+}
+
 export function parsePublicListing(html: string): PublicListingSnapshot {
   const root = parseDeferredState(html);
   const pdp = extractPdpPresentation(html);
   const presentation = pdp?.pdpPresentation;
   const quality = presentation?.quality;
+  const ogTitle = metaContent(html, "og:title");
 
   // Ratings: the per-listing stats object is the most precise (4.87, not "4.9").
   const overall = quality?.listingRatingStats?.overallRatingStats;
-  const rating = num(overall?.ratingAverage) ?? num(findKey(root, "starRating"));
+  const rating = num(overall?.ratingAverage) ?? num(findKey(root, "starRating")) ?? ratingFromOgTitle(ogTitle);
   const reviewCount = num(overall?.ratingCount) ?? num(findKey(root, "reviewCount")) ?? num(findKey(root, "visibleReviewCount"));
 
   const categories: Record<CategoryKey, number | null> = {
@@ -127,7 +160,10 @@ export function parsePublicListing(html: string): PublicListingSnapshot {
   const description = htmlToPlainText(presentation?.descriptions?.longDescriptionHtml?.localizedStringWithTranslationPreference ?? "");
 
   return {
-    title: cleanText(presentation?.title?.content?.localizedString) ?? cleanText(pdp?.node?.description?.name?.localizedString),
+    title:
+      cleanText(presentation?.title?.content?.localizedString) ??
+      cleanText(pdp?.node?.description?.name?.localizedString) ??
+      titleFromDocument(html),
     rating,
     reviewCount: reviewCount !== null ? Math.round(reviewCount) : null,
     categories,

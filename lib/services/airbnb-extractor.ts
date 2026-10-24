@@ -1,5 +1,4 @@
 import { extractAirbnbListingId } from "@/lib/services/property-knowledge";
-import { PRODUCT_NAME } from "@/lib/brand";
 
 type ExtractedAirbnbListing = {
   airbnbListingId: string | null;
@@ -207,20 +206,28 @@ function isMeaningfulExtraction(listing: ExtractedAirbnbListing) {
   return otherSignals.length > 0;
 }
 
+// Airbnb serves a stripped page (no listing JSON) to obvious bot user agents
+// from data-centre IPs, so present as a normal browser with an English locale.
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+};
+
+export type ListingPage = { html: string; status: number; finalUrl: string };
+
 /** Fetches a public listing page, with a friendly error for every failure
  *  mode (timeout, non-200). Shared with lib/listing-health. */
-export async function fetchListingHtml(airbnbUrl: string): Promise<string> {
+export async function fetchListingPage(airbnbUrl: string): Promise<ListingPage> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
     const res = await fetch(airbnbUrl, {
-      headers: {
-        "User-Agent":
-          `Mozilla/5.0 (compatible; ${PRODUCT_NAME}/1.0)`,
-        Accept: "text/html,application/xhtml+xml",
-      },
+      headers: BROWSER_HEADERS,
       cache: "no-store",
+      redirect: "follow",
       signal: controller.signal,
     });
 
@@ -228,7 +235,7 @@ export async function fetchListingHtml(airbnbUrl: string): Promise<string> {
       throw new Error(`Airbnb returned HTTP ${res.status}. The listing may be private, removed, or temporarily blocking automated requests.`);
     }
 
-    return await res.text();
+    return { html: await res.text(), status: res.status, finalUrl: res.url || airbnbUrl };
   } catch (err: any) {
     if (err?.name === "AbortError") {
       throw new Error("Airbnb did not respond in time. Try again in a moment, or fill in the listing details manually.");
@@ -237,6 +244,10 @@ export async function fetchListingHtml(airbnbUrl: string): Promise<string> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function fetchListingHtml(airbnbUrl: string): Promise<string> {
+  return (await fetchListingPage(airbnbUrl)).html;
 }
 
 export async function extractAirbnbListing(airbnbUrl: string): Promise<ExtractedAirbnbListing> {

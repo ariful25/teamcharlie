@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { fetchListingHtml } from "@/lib/services/airbnb-extractor";
+import { fetchListingPage } from "@/lib/services/airbnb-extractor";
 import { parsePublicListing, type CategoryKey } from "./parse";
 import { detectIssues, healthScore, qualityScore, type Issue } from "./score";
 import { parseReviewsCsv, reviewFingerprint } from "./csv";
@@ -33,9 +33,17 @@ export async function refreshListingHealth(propertyId: string, teamId: string, o
 
   let snapshot;
   try {
-    const parsed = parsePublicListing(await fetchListingHtml(property.airbnbUrl));
+    const page = await fetchListingPage(property.airbnbUrl);
+    const parsed = parsePublicListing(page.html);
     if (!parsed.title && parsed.rating === null) {
-      throw new Error("Airbnb didn't return listing data (blocked, redirected, or the listing is unavailable).");
+      // Keep enough detail to tell a bot-challenge page from a removed listing.
+      const pageTitle = page.html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim().slice(0, 80) || "none";
+      const hasData = page.html.includes("data-deferred-state");
+      throw new Error(
+        `Airbnb didn't return listing data (blocked, redirected, or the listing is unavailable). ` +
+          `[HTTP ${page.status}, ${Math.round(page.html.length / 1024)} KB, listing JSON ${hasData ? "present" : "missing"}, ` +
+          `page title "${pageTitle}", final URL ${page.finalUrl.slice(0, 120)}]`,
+      );
     }
     const issues: Issue[] = detectIssues(parsed, context);
     snapshot = await prisma.listingHealthSnapshot.create({
