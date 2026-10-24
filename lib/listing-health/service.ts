@@ -35,10 +35,12 @@ export async function refreshListingHealth(propertyId: string, teamId: string, o
   try {
     const page = await fetchListingPage(property.airbnbUrl);
     const parsed = parsePublicListing(page.html);
-    if (!parsed.title && parsed.rating === null) {
+    // A title alone proves nothing (a redirect or challenge page has one too):
+    // trust the page only if it carries the listing JSON or a real star rating.
+    const hasData = page.html.includes("data-deferred-state") && !!parsed.title;
+    if (!hasData && parsed.rating === null) {
       // Keep enough detail to tell a bot-challenge page from a removed listing.
       const pageTitle = page.html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim().slice(0, 80) || "none";
-      const hasData = page.html.includes("data-deferred-state");
       throw new Error(
         `Airbnb didn't return listing data (blocked, redirected, or the listing is unavailable). ` +
           `[HTTP ${page.status}, ${Math.round(page.html.length / 1024)} KB, listing JSON ${hasData ? "present" : "missing"}, ` +

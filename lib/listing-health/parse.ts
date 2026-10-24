@@ -83,7 +83,7 @@ export function ratingFromOgTitle(og: string | null): number | null {
 /** Listing name from <title> ("Cozy Loft - Houses for Rent in Columbus, Ohio - Airbnb"). */
 export function titleFromDocument(html: string): string | null {
   const raw = cleanText(decodeEntities(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? ""));
-  if (!raw || /^airbnb\b/i.test(raw)) return null;
+  if (!raw || /^(airbnb\b|redirecting\b)/i.test(raw)) return null;
   const name = raw.replace(/\s+-\s+Airbnb\s*$/i, "").replace(/\s+-\s+[^-]*\bfor Rent in\b.*$/i, "").trim();
   return name || null;
 }

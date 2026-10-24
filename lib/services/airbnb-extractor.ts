@@ -19,7 +19,7 @@ type ExtractedAirbnbListing = {
 // Kept comfortably under Vercel's default Hobby-plan function limit (10s) so
 // our own friendly timeout error always fires before the platform kills the
 // request and returns a raw, unstyled 504 instead.
-const FETCH_TIMEOUT_MS = 8_000;
+const FETCH_TIMEOUT_MS = 12_000;
 
 export function cleanText(value: unknown) {
   if (typeof value !== "string") return null;
@@ -217,6 +217,37 @@ const BROWSER_HEADERS = {
 
 export type ListingPage = { html: string; status: number; finalUrl: string };
 
+const AIRBNB_HOST = /^(?:[\w-]+\.)*airbnb\.[a-z.]{2,8}$/i;
+
+/**
+ * Airbnb geo-redirects by IP: from the Vercel region (India) it answers
+ * airbnb.com with a tiny "Redirecting to www.airbnb.co.in" HTML page instead
+ * of an HTTP redirect, so fetch's own redirect-following never kicks in.
+ * Returns the target URL when `html` is such a page, else null.
+ */
+export function softRedirectTarget(html: string, fromUrl: string): string | null {
+  if (html.length > 50_000 || html.includes("data-deferred-state")) return null;
+  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? "";
+  const titleHost = title.match(/^Redirecting to\s+(?:https?:\/\/)?([\w.-]+)/i)?.[1];
+  const explicit =
+    html.match(/<meta[^>]+http-equiv=["']?refresh["']?[^>]+content=["'][^"']*url=([^"'>\s]+)/i)?.[1] ??
+    html.match(/(?:window\.)?location(?:\.href)?\s*=\s*["']([^"']+)["']/i)?.[1] ??
+    html.match(/location\.replace\(\s*["']([^"']+)["']/i)?.[1] ??
+    (titleHost ? html.match(/href=["'](https?:\/\/[^"']+)["']/i)?.[1] : undefined);
+  let target: URL | null = null;
+  try {
+    if (explicit) target = new URL(explicit.replace(/&amp;/g, "&"), fromUrl);
+    else if (titleHost) {
+      target = new URL(fromUrl);
+      target.hostname = titleHost;
+    }
+  } catch {
+    return null;
+  }
+  if (!target || !AIRBNB_HOST.test(target.hostname) || target.href === fromUrl) return null;
+  return target.href;
+}
+
 /** Fetches a public listing page, with a friendly error for every failure
  *  mode (timeout, non-200). Shared with lib/listing-health. */
 export async function fetchListingPage(airbnbUrl: string): Promise<ListingPage> {
@@ -224,18 +255,25 @@ export async function fetchListingPage(airbnbUrl: string): Promise<ListingPage> 
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const res = await fetch(airbnbUrl, {
-      headers: BROWSER_HEADERS,
-      cache: "no-store",
-      redirect: "follow",
-      signal: controller.signal,
-    });
+    let url = airbnbUrl;
+    for (let hop = 0; ; hop++) {
+      const res = await fetch(url, {
+        headers: BROWSER_HEADERS,
+        cache: "no-store",
+        redirect: "follow",
+        signal: controller.signal,
+      });
 
-    if (!res.ok) {
-      throw new Error(`Airbnb returned HTTP ${res.status}. The listing may be private, removed, or temporarily blocking automated requests.`);
+      if (!res.ok) {
+        throw new Error(`Airbnb returned HTTP ${res.status}. The listing may be private, removed, or temporarily blocking automated requests.`);
+      }
+
+      const html = await res.text();
+      const finalUrl = res.url || url;
+      const next = hop < 3 ? softRedirectTarget(html, finalUrl) : null;
+      if (!next) return { html, status: res.status, finalUrl };
+      url = next;
     }
-
-    return { html: await res.text(), status: res.status, finalUrl: res.url || airbnbUrl };
   } catch (err: any) {
     if (err?.name === "AbortError") {
       throw new Error("Airbnb did not respond in time. Try again in a moment, or fill in the listing details manually.");

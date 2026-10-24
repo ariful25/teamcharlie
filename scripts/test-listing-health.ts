@@ -8,6 +8,7 @@ import { analyzeReviews, complaintsIn, starBuckets } from "../lib/listing-health
 import { mapColumns, parseCsv, parseRating, parseReviewsCsv, reviewFingerprint } from "../lib/listing-health/csv";
 import { redactCodes, templateCheckinGuide } from "../lib/listing-health/ai";
 import { extractJson } from "../lib/ai/providers";
+import { softRedirectTarget } from "../lib/services/airbnb-extractor";
 
 let passed = 0;
 function test(name: string, fn: () => void) {
@@ -195,6 +196,18 @@ test("meta-tag fallbacks read a page without the listing JSON", () => {
   const page = parsePublicListing('<html><head><title>Cozy Loft - Airbnb</title><meta property="og:title" content="Home in Columbus · ★4.9 · 2 beds"></head></html>');
   assert.equal(page.title, "Cozy Loft");
   assert.equal(page.rating, 4.9);
+  assert.equal(titleFromDocument("<title>Redirecting to www.airbnb.co.in</title>"), null);
+});
+
+test("Airbnb's geo-redirect page is followed to the same listing", () => {
+  const from = "https://www.airbnb.com/rooms/123?adults=2";
+  assert.equal(softRedirectTarget("<html><head><title>Redirecting to www.airbnb.co.in</title></head></html>", from), "https://www.airbnb.co.in/rooms/123?adults=2");
+  assert.equal(
+    softRedirectTarget('<title>Redirecting to www.airbnb.co.in</title><meta http-equiv="refresh" content="0; url=https://www.airbnb.co.in/rooms/123">', from),
+    "https://www.airbnb.co.in/rooms/123",
+  );
+  assert.equal(softRedirectTarget('<title>Redirecting</title><script>location.href="https://evil.example/x"</script>', from), null);
+  assert.equal(softRedirectTarget("<title>Jaeger Haus</title><script data-deferred-state-0>{}</script>", from), null);
 });
 
 console.log(`\n${passed} passed`);
