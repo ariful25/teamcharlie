@@ -8,6 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type ImportResult = {
   imported: number;
@@ -173,7 +174,7 @@ export function AddReviewDialog({ open, onOpenChange, propertyId }: { open: bool
             <Select value={rating} onValueChange={setRating} options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${n} star${n === 1 ? "" : "s"}` }))} />
           </Field>
           <Field label="Date">
-            <input type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} className={inputClass} />
+            <DatePicker value={reviewDate} onChange={(v) => setReviewDate(v)} />
           </Field>
           <Field label="Guest" className="col-span-2">
             <input value={guestName} onChange={(e) => setGuestName(e.target.value)} className={inputClass} placeholder="Optional" />

@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { TimePicker } from "@/components/ui/time-picker";
 import { formatDayLong } from "@/lib/time";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Option = { id: string; name: string };
 
@@ -121,7 +122,7 @@ function EditForm({
       </Field>
 
       <Field label="Date">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className={inputClass} />
+        <DatePicker value={date} onChange={(v) => setDate(v)} required />
       </Field>
 
       <Field label="Priority">

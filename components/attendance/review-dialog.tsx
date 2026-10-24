@@ -12,6 +12,7 @@ import { formatClientDateTime, fromLocalInputValue, toLocalInputValue } from "@/
 import { splitWorked } from "@/lib/attendance/rules";
 import type { RecordView } from "@/lib/queries/attendance";
 import { Chip, ShiftTimeline, StateChip, TimelineLegend, dayLabel, hm, scheduleLabel, timeIn } from "./ui";
+import { DateTimePicker } from "@/components/ui/date-picker";
 
 export type ReviewTarget = { recordId: string | null; userId: string; date: string };
 
@@ -214,11 +215,11 @@ export function ReviewDialog({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="space-y-1.5">
                     <span className="text-xs font-medium text-muted-foreground">Check-in</span>
-                    <input type="datetime-local" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className={inputClass} required />
+                    <DateTimePicker value={checkIn} onChange={(v) => setCheckIn(v)} required />
                   </label>
                   <label className="space-y-1.5">
                     <span className="text-xs font-medium text-muted-foreground">Check-out</span>
-                    <input type="datetime-local" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className={inputClass} required />
+                    <DateTimePicker value={checkOut} onChange={(v) => setCheckOut(v)} required />
                   </label>
                 </div>
                 <p className="text-[11px] text-muted-foreground">Times are in the team&apos;s timezone ({tz}).</p>

@@ -23,7 +23,7 @@ function to24h(hour12: number, minute: number, period: "AM" | "PM") {
 // buttons below to make an all-click, no-scroll time control.
 function RollingDigits({ value }: { value: string }) {
   return (
-    <span className="relative inline-block h-[1.2em] w-[1.6ch] overflow-hidden text-center">
+    <span className="relative inline-block h-[1.2em] w-[2.4ch] overflow-hidden text-center">
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
           key={value}
@@ -92,6 +92,49 @@ function Stepper({
   );
 }
 
+/** Hour/minute steppers + AM/PM toggle on a "HH:MM" 24-hour string. Shared by
+ *  TimePicker and DateTimePicker so both popovers look identical. */
+export function TimeFields({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const parsed = parse24h(value);
+  const hour12 = parsed ? (parsed.h % 12 === 0 ? 12 : parsed.h % 12) : 9;
+  const minute = parsed ? parsed.m : 0;
+  const period: "AM" | "PM" = parsed ? (parsed.h >= 12 ? "PM" : "AM") : "AM";
+  const update = (h: number, m: number, p: "AM" | "PM") => onChange(to24h(h, m, p));
+
+  return (
+    <div className="flex items-center justify-center gap-3">
+      <Stepper
+        label="hour"
+        display={String(hour12).padStart(2, "0")}
+        onIncrement={() => update(hour12 === 12 ? 1 : hour12 + 1, minute, period)}
+        onDecrement={() => update(hour12 === 1 ? 12 : hour12 - 1, minute, period)}
+      />
+      <span className="pb-6 text-xl font-semibold text-muted-foreground">:</span>
+      <Stepper
+        label="minute"
+        display={String(minute).padStart(2, "0")}
+        onIncrement={() => update(hour12, (minute + 1) % 60, period)}
+        onDecrement={() => update(hour12, (minute - 1 + 60) % 60, period)}
+      />
+      <div className="ml-1 flex flex-col overflow-hidden rounded-lg border border-border">
+        {(["AM", "PM"] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => update(hour12, minute, p)}
+            className={cn(
+              "px-2 py-1.5 text-xs font-medium transition-colors",
+              period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
+            )}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Click-only time control — pairs of up/down steppers for hour and minute
  * instead of the native `<input type="time">`'s scroll-wheel/tiny-arrow
@@ -129,16 +172,10 @@ export function TimePicker({
   const minute = parsed ? parsed.m : 0;
   const period: "AM" | "PM" = parsed ? (parsed.h >= 12 ? "PM" : "AM") : "AM";
 
-  function update(nextHour12: number, nextMinute: number, nextPeriod: "AM" | "PM") {
-    const next = to24h(nextHour12, nextMinute, nextPeriod);
+  function update(next: string) {
     setCurrent(next);
     onValueChange?.(next);
   }
-
-  const incHour = () => update(hour12 === 12 ? 1 : hour12 + 1, minute, period);
-  const decHour = () => update(hour12 === 1 ? 12 : hour12 - 1, minute, period);
-  const incMinute = () => update(hour12, (minute + 1) % 60, period);
-  const decMinute = () => update(hour12, (minute - 1 + 60) % 60, period);
 
   const display = parsed
     ? `${String(hour12).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${period}`
@@ -165,36 +202,14 @@ export function TimePicker({
       </PopoverPrimitive.Trigger>
 
       <PopoverPrimitive.Portal>
-        <AnimatePresence>
-          {open && (
-            <PopoverPrimitive.Content sideOffset={6} align="start" className="z-[100]" asChild>
+        <PopoverPrimitive.Content sideOffset={6} align="start" className="z-[100]" asChild>
               <motion.div
                 initial={{ opacity: 0, y: -6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
+                                transition={{ duration: 0.15, ease: "easeOut" }}
                 className="glass glow-border w-auto rounded-xl p-4 shadow-card"
               >
-                <div className="flex items-center justify-center gap-3">
-                  <Stepper label="hour" display={String(hour12).padStart(2, "0")} onIncrement={incHour} onDecrement={decHour} />
-                  <span className="pb-6 text-xl font-semibold text-muted-foreground">:</span>
-                  <Stepper label="minute" display={String(minute).padStart(2, "0")} onIncrement={incMinute} onDecrement={decMinute} />
-                  <div className="ml-1 flex flex-col overflow-hidden rounded-lg border border-border">
-                    {(["AM", "PM"] as const).map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => update(hour12, minute, p)}
-                        className={cn(
-                          "px-2 py-1.5 text-xs font-medium transition-colors",
-                          period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
-                        )}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <TimeFields value={current || "09:00"} onChange={update} />
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
@@ -204,8 +219,6 @@ export function TimePicker({
                 </button>
               </motion.div>
             </PopoverPrimitive.Content>
-          )}
-        </AnimatePresence>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>
   );

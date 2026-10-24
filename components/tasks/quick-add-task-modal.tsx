@@ -11,6 +11,7 @@ import { Field, inputClass } from "@/components/shared/form-field";
 import { TimePicker } from "@/components/ui/time-picker";
 import { clientDateKey } from "@/lib/time";
 import { useTeamTimezone } from "@/components/providers/team-timezone";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Option = { id: string; name: string };
 
@@ -228,7 +229,7 @@ export function QuickAddTaskModal({
           )}
 
           <Field label="Date">
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className={inputClass} />
+            <DatePicker value={date} onChange={(v) => setDate(v)} required />
           </Field>
 
           <Field label="Priority">

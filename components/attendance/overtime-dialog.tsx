@@ -10,6 +10,7 @@ import { Field, inputClass } from "@/components/shared/form-field";
 import { useTeamTimezone } from "@/components/providers/team-timezone";
 import { clientDateKey } from "@/lib/time";
 import { dayLabel } from "./ui";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Option = { id: string; name: string };
 
@@ -88,7 +89,7 @@ export function OvertimeDialog({
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Shift day">
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} required />
+              <DatePicker value={date} onChange={(v) => setDate(v)} required />
             </Field>
             <Field label="Extra time">
               <Select value={minutes} onValueChange={setMinutes} options={DURATIONS} />

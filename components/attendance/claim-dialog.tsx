@@ -9,6 +9,7 @@ import { Field, inputClass } from "@/components/shared/form-field";
 import { useTeamTimezone } from "@/components/providers/team-timezone";
 import { clientDateKey, fromLocalInputValue } from "@/lib/time";
 import { dayLabel } from "./ui";
+import { DatePicker, DateTimePicker } from "@/components/ui/date-picker";
 
 // "I forgot to punch" — the employee's claim. It never changes hours by
 // itself: a team lead confirms both times later (docs/attendance-rules.md).
@@ -65,16 +66,16 @@ export function ClaimDialog({
               : "Forgot to check in or out? Enter what really happened. Nothing changes until your team lead confirms it."}
           </p>
           <Field label="Shift day">
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} required />
+            <DatePicker value={date} onChange={(v) => setDate(v)} required />
           </Field>
           <p className="-mt-1 text-[11px] text-primary">Shift of {dayLabel(date, "EEEE, d MMMM")}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="I started at">
-              <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} className={inputClass} required={mode === "start"} />
+              <DateTimePicker value={start} onChange={(v) => setStart(v)} required={mode === "start"} />
             </Field>
             {mode === "both" && (
               <Field label="I finished at">
-                <input type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} className={inputClass} />
+                <DateTimePicker value={end} onChange={(v) => setEnd(v)} />
               </Field>
             )}
           </div>

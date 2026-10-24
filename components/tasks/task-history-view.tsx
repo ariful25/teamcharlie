@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { TaskDetailDialog } from "./task-detail-dialog";
 import { formatDayMedium } from "@/lib/time";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Option = { id: string; name: string };
 
@@ -154,11 +155,11 @@ export function TaskHistoryView({
         </Field>
 
         <Field label="From" className="w-auto">
-          <input type="date" value={filters.from} onChange={(e) => updateFilter({ from: e.target.value })} className={inputClass} />
+          <DatePicker value={filters.from} onChange={(v) => updateFilter({ from: v })} />
         </Field>
 
         <Field label="To" className="w-auto">
-          <input type="date" value={filters.to} onChange={(e) => updateFilter({ to: e.target.value })} className={inputClass} />
+          <DatePicker value={filters.to} onChange={(v) => updateFilter({ to: v })} />
         </Field>
       </div>
 

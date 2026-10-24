@@ -17,6 +17,7 @@ import { OvertimeDialog } from "./overtime-dialog";
 import { LeaveBoard } from "./leave-panel";
 import type { LeaveView } from "@/lib/leave/service";
 import { Chip, DayBadge, Panel, ShiftTimeline, StatTile, StateChip, TimelineLegend, dayLabel, hm, scheduleLabel, timeIn } from "./ui";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Option = { id: string; name: string };
 type Tab = "roster" | "review" | "overtime" | "leave";
@@ -151,16 +152,9 @@ export function TeamAttendanceConsole({
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </IconTooltip>
-            <label className="relative">
-              <span className="sr-only">Pick a day</span>
-              <input
-                type="date"
-                value={day}
-                max={shiftDay(today, 7)}
-                onChange={(e) => e.target.value && go({ day: e.target.value })}
-                className={cn(inputClass, "h-9 w-[160px]")}
-              />
-            </label>
+            <div className="w-[180px]">
+              <DatePicker value={day} max={shiftDay(today, 7)} onChange={(v) => v && go({ day: v })} className="h-9" />
+            </div>
             <IconTooltip label="Next day">
               <Button variant="outline" size="icon" aria-label="Next day" onClick={() => go({ day: shiftDay(day, 1) })}>
                 <ChevronRight className="h-4 w-4" />

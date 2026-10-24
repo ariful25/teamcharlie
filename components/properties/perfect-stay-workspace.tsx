@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { formatDayMedium } from "@/lib/time";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Property = any;
 type Unit = any;
@@ -279,11 +280,11 @@ function TenancyModal({ units, existing, unitId }: { units: Unit[]; existing?: T
       </Field>
       <Field label="Tenant"><input name="tenantName" defaultValue={existing?.tenantName ?? ""} className={inputClass} /></Field>
       <Field label="Contact"><input name="tenantContact" defaultValue={existing?.tenantContact ?? ""} className={inputClass} /></Field>
-      <Field label="Move In"><input type="date" name="moveInDate" defaultValue={dateInput(existing?.moveInDate)} className={inputClass} /></Field>
-      <Field label="Move Out"><input type="date" name="moveOutDate" defaultValue={dateInput(existing?.moveOutDate)} className={inputClass} /></Field>
+      <Field label="Move In"><DatePicker name="moveInDate" defaultValue={dateInput(existing?.moveInDate)} /></Field>
+      <Field label="Move Out"><DatePicker name="moveOutDate" defaultValue={dateInput(existing?.moveOutDate)} /></Field>
       <Field label="Next Tenant"><input name="nextTenantName" defaultValue={existing?.nextTenantName ?? ""} className={inputClass} /></Field>
-      <Field label="Next Move In"><input type="date" name="nextTenantMoveIn" defaultValue={dateInput(existing?.nextTenantMoveIn)} className={inputClass} /></Field>
-      <Field label="Next Move Out"><input type="date" name="nextTenantMoveOut" defaultValue={dateInput(existing?.nextTenantMoveOut)} className={inputClass} /></Field>
+      <Field label="Next Move In"><DatePicker name="nextTenantMoveIn" defaultValue={dateInput(existing?.nextTenantMoveIn)} /></Field>
+      <Field label="Next Move Out"><DatePicker name="nextTenantMoveOut" defaultValue={dateInput(existing?.nextTenantMoveOut)} /></Field>
       <Field label="Lease Source"><input name="leaseSource" defaultValue={existing?.leaseSource ?? ""} className={inputClass} /></Field>
       <Field label="Rent"><input type="number" step="0.01" name="rentAmount" defaultValue={existing?.rentAmount ?? ""} className={inputClass} /></Field>
       <Field label="Deposit"><input type="number" step="0.01" name="securityDeposit" defaultValue={existing?.securityDeposit ?? ""} className={inputClass} /></Field>
@@ -317,7 +318,7 @@ function LeadModal({ clientId, units, existing }: { clientId: string; units: Uni
       <Field label="Name"><input name="name" required defaultValue={existing?.name ?? ""} className={inputClass} /></Field>
       <Field label="Channel"><input name="channel" required defaultValue={existing?.channel ?? "Facebook"} className={inputClass} /></Field>
       <Field label="Status"><input name="status" required defaultValue={existing?.status ?? "Sent a message"} className={inputClass} /></Field>
-      <Field label="Contacted"><input type="date" name="contactedDate" defaultValue={dateInput(existing?.contactedDate)} className={inputClass} /></Field>
+      <Field label="Contacted"><DatePicker name="contactedDate" defaultValue={dateInput(existing?.contactedDate)} /></Field>
       <Field label="Interested Unit" className="col-span-2">
         <select name="interestedUnitId" defaultValue={existing?.interestedUnitId ?? ""} className={inputClass}>
           <option value="">None</option>

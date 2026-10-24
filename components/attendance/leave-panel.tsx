@@ -11,6 +11,7 @@ import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
 import type { LeaveView } from "@/lib/leave/service";
 import { Chip, Panel, dayLabel } from "./ui";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Balance = { allowance: number | null; used: number; pending: number };
 type Balances = { PAID: Balance; SICK: Balance; UNPAID: Balance };
@@ -126,10 +127,10 @@ export function LeavePanel({ balances, requests, today }: { balances: Balances; 
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="From">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} required />
+                <DatePicker value={startDate} onChange={(v) => setStartDate(v)} required />
               </Field>
               <Field label="To (inclusive)">
-                <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} required />
+                <DatePicker value={endDate} min={startDate} onChange={(v) => setEndDate(v)} required />
               </Field>
             </div>
             <Field label="Reason">
