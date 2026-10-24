@@ -132,10 +132,10 @@ export function TeamAttendanceConsole({
   const open = (v: RecordView) => setReviewTarget({ recordId: v.id, userId: v.userId, date: v.date });
 
   return (
-    <div className={cn("space-y-6 transition-opacity", navigating && "opacity-60")}>
+    <div className={cn("space-y-5 transition-opacity", navigating && "opacity-60")}>
       {/* Day control — the single most important thing on this page: which day you're on. */}
       <Panel>
-        <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-medium text-primary">Viewing shifts of</p>
             <p className="font-display text-2xl font-semibold md:text-3xl">{dayLabel(day, "EEEE, d MMMM yyyy")}</p>
@@ -230,7 +230,7 @@ export function TeamAttendanceConsole({
           ) : (
             <ul className="divide-y divide-border/60">
               {filtered.map((v) => (
-                <li key={v.userId} className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(180px,1fr)_minmax(220px,1.618fr)_7rem] md:items-center">
+                <li key={v.userId} className="grid gap-3 px-5 py-5 md:grid-cols-[minmax(180px,1fr)_minmax(220px,1.618fr)_7rem] md:items-center">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-semibold text-primary glow-border">
                       {v.userName.charAt(0)}
@@ -245,7 +245,7 @@ export function TeamAttendanceConsole({
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <ShiftTimeline v={v} compact />
                     <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -254,7 +254,7 @@ export function TeamAttendanceConsole({
                       {v.credit.extraMinutes > 0 && <Chip tone="danger">+{hm(v.credit.extraMinutes)} unapproved</Chip>}
                       {v.overtimeApprovedMinutes > 0 && <Chip tone="accent">OT {hm(v.overtimeApprovedMinutes)}</Chip>}
                     </div>
-                    <p className="flex flex-wrap gap-x-4 text-[11px] text-muted-foreground">
+                    <p className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
                       <span>In {timeIn(v.effectiveCheckIn ?? v.actualCheckIn, tz)}</span>
                       <span>Out {timeIn(v.effectiveCheckOut ?? v.actualCheckOut, tz)}</span>
                       <span className={v.credit.bucket === "pending" ? "text-warning" : ""}>
@@ -287,7 +287,7 @@ export function TeamAttendanceConsole({
       )}
 
       {tab === "review" && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {queueByDay.length === 0 ? (
             <Panel>
               <p className="px-5 py-12 text-center text-sm text-muted-foreground">Nothing to review — every shift is confirmed.</p>
@@ -306,7 +306,7 @@ export function TeamAttendanceConsole({
               >
                 <ul className="divide-y divide-border/60">
                   {items.map((v) => (
-                    <li key={`${v.userId}-${v.date}`} className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                    <li key={`${v.userId}-${v.date}`} className="flex flex-col gap-3 px-5 py-5 md:flex-row md:items-center md:justify-between">
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{v.userName}</span>
@@ -335,7 +335,7 @@ export function TeamAttendanceConsole({
       )}
 
       {tab === "overtime" && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Panel
             title="Waiting for approval"
             action={
@@ -422,7 +422,7 @@ function OvertimeRow({ o, today, currentUser }: { o: OvertimeView; today: string
   }
 
   return (
-    <li className="grid gap-3 px-5 py-4 lg:grid-cols-[1fr_auto] lg:items-center">
+    <li className="grid gap-3 px-5 py-5 lg:grid-cols-[1fr_auto] lg:items-center">
       <div className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{o.userName}</span>

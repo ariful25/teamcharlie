@@ -369,7 +369,7 @@ export function PerfectStayWorkspace({
   const visibleLeads = showAllLeads ? leads : leads.slice(0, 20);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Needs Attention</CardTitle>
@@ -425,7 +425,7 @@ export function PerfectStayWorkspace({
               </div>
             </CardHeader>
             {expanded && (
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 {(property.driveTimesNote || property.generalNotes) && (
                   <p className="text-xs leading-5 text-muted-foreground">{[property.driveTimesNote, property.generalNotes].filter(Boolean).join(" · ")}</p>
                 )}
@@ -436,7 +436,7 @@ export function PerfectStayWorkspace({
                     const current = tenancies[0];
                     const parent = allUnits.find((candidate) => candidate.id === unit.parentUnitId);
                     return (
-                      <div key={unit.id} className="rounded-lg border border-border/70 p-4">
+                      <div key={unit.id} className="rounded-lg border border-border/70 p-5">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="font-medium">{unit.internalName}</p>
@@ -462,7 +462,7 @@ export function PerfectStayWorkspace({
                           <LinkPill href={unit.vrboLink}>VRBO</LinkPill>
                           <LinkPill href={unit.amenitiesDocLink}>Amenities</LinkPill>
                         </div>
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-semibold text-muted-foreground">Tenancy</p>
                             {canManage && <TenancyModal units={allUnits} unitId={unit.id} />}

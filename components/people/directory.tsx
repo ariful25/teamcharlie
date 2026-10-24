@@ -43,10 +43,10 @@ export function PeopleDirectory({ people, departments }: { people: PersonCard[];
   const birthdays = people.filter((p) => p.birthdayInDays !== null && p.birthdayInDays <= 14).sort((a, b) => a.birthdayInDays! - b.birthdayInDays!);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Who's around — the one line a lead reads every morning */}
-      <div className="glass flex flex-col gap-4 rounded-2xl px-5 py-4 shadow-card md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4">
+      <div className="glass flex flex-col gap-3 rounded-2xl px-5 py-5 shadow-card md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
           <div className="flex -space-x-3">
             {people
               .filter((p) => p.presence === "working")
@@ -134,7 +134,7 @@ export function PeopleDirectory({ people, departments }: { people: PersonCard[];
 
 function PersonTile({ p }: { p: PersonCard }) {
   return (
-    <div className="glass group relative flex items-center gap-4 rounded-2xl p-4 shadow-card transition-colors hover:border-primary/40">
+    <div className="glass group relative flex items-center gap-3 rounded-2xl p-5 shadow-card transition-colors hover:border-primary/40">
       <PersonAvatar name={p.name} size={60} ring={p.completeness} presence={p.presence} />
       <div className="min-w-0 flex-1">
         <Link href={`/people/${p.id}`} className="block truncate font-display text-base font-semibold after:absolute after:inset-0 after:rounded-2xl hover:text-primary">
@@ -179,7 +179,7 @@ function OrgChart({ people }: { people: PersonCard[] }) {
     <li className="relative">
       <Link
         href={`/people/${p.id}`}
-        className="glass relative z-10 inline-flex items-center gap-3 rounded-2xl py-2 pl-2 pr-4 shadow-card transition-colors hover:border-primary/40"
+        className="glass relative z-10 inline-flex items-center gap-3 rounded-2xl py-2 pl-2 pr-5 shadow-card transition-colors hover:border-primary/40"
       >
         <PersonAvatar name={p.name} size={40} presence={p.presence} />
         <span className="min-w-0">
@@ -188,7 +188,7 @@ function OrgChart({ people }: { people: PersonCard[] }) {
         </span>
       </Link>
       {childrenOf.has(p.id) && depth < 8 && (
-        <ul className="ml-6 mt-3 space-y-3 border-l border-primary/25 pl-6">
+        <ul className="ml-5 mt-3 space-y-3 border-l border-primary/25 pl-5">
           {childrenOf.get(p.id)!.map((c) => (
             <li key={c.id} className="relative before:absolute before:-left-6 before:top-7 before:h-px before:w-6 before:bg-primary/25">
               <Node p={c} depth={depth + 1} />
@@ -200,11 +200,11 @@ function OrgChart({ people }: { people: PersonCard[] }) {
   );
 
   return (
-    <div className="glass overflow-x-auto rounded-2xl p-6 shadow-card">
+    <div className="glass overflow-x-auto rounded-2xl p-5 shadow-card">
       {leaders.length === 0 ? (
         <p className="text-sm text-muted-foreground">No reporting lines yet. Set a manager on someone&apos;s Job tab and the chart builds itself.</p>
       ) : (
-        <ul className="space-y-6">
+        <ul className="space-y-5">
           {leaders.map((p) => (
             <Node key={p.id} p={p} depth={0} />
           ))}

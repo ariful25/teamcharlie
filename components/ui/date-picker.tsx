@@ -194,7 +194,7 @@ function PickerShell({
                 initial={{ opacity: 0, y: -6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="glass glow-border rounded-xl p-4 shadow-card"
+                className="glass glow-border rounded-xl p-5 shadow-card"
                 style={{ backgroundColor: "hsl(var(--card) / 0.97)" }}
               >
                 {children}
@@ -284,9 +284,9 @@ export function DateTimePicker({ name, value, defaultValue, onChange, min, max, 
       id={id}
       hiddenInput={<HiddenInput name={name} value={current} required={required} />}
     >
-      <div className="flex flex-col gap-4 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <Calendar selected={date} min={min?.slice(0, 10)} max={max?.slice(0, 10)} onSelect={(key) => set(`${key}T${time}`)} />
-        <div className="flex flex-col justify-center gap-2 border-border/60 sm:border-l sm:pl-4">
+        <div className="flex flex-col justify-center gap-2 border-border/60 sm:border-l sm:pl-5">
           <span className="text-center text-[11px] font-medium text-muted-foreground">Time</span>
           <TimeFields value={time} onChange={(t) => set(`${date || ymdKey(todayYmd())}T${t}`)} />
         </div>

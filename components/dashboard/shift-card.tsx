@@ -71,7 +71,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass glow-border relative overflow-hidden rounded-2xl p-6">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass glow-border relative overflow-hidden rounded-2xl p-5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-semibold text-foreground">Your shift</p>
         <span className=" text-xs tabular-nums text-muted-foreground">{now === null ? "—" : formatClientTime(new Date(now), tz)}</span>
@@ -145,7 +145,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
               </div>
             );
           })()}
-          <Button onClick={startCheckOut} disabled={isPending} variant="danger" className="mt-4 w-full" size="lg">
+          <Button onClick={startCheckOut} disabled={isPending} variant="danger" className="mt-3 w-full" size="lg">
             <LogOut className="h-4 w-4" /> Check Out
           </Button>
           <div className="mt-2 grid grid-cols-2 gap-2">

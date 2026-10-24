@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // Mirrors the directory: title, presence strip, search row, department of tiles.
 export default function PeopleLoading() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="space-y-2">
         <Skeleton className="h-7 w-28" />
         <Skeleton className="h-4 w-80 max-w-full" />

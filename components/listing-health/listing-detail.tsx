@@ -106,7 +106,7 @@ export function ListingDetail({
   const s = latest;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div className="min-w-0">
           <Link href={`/listing-health?clientId=${property.clientId}`} className="mb-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
@@ -182,7 +182,7 @@ export function ListingDetail({
           </Card>
 
           {s.ok && (
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className="grid gap-3 lg:grid-cols-3">
               <Card>
                 <CardHeader>
                   <CardTitle>Category ratings</CardTitle>
@@ -343,7 +343,7 @@ export function ListingDetail({
           ) : (
             <ul className="divide-y divide-border/60">
               {shown.map((r) => (
-                <li key={r.id} className="space-y-1.5 px-5 py-4 text-sm">
+                <li key={r.id} className="space-y-1.5 px-5 py-5 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <Stars count={r.rating} />
@@ -405,7 +405,7 @@ export function ListingDetail({
 
 function Tile({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
-    <div className="glass rounded-2xl p-4 shadow-card">
+    <div className="glass rounded-2xl px-5 py-3 shadow-card">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <div className="mt-3 text-2xl font-semibold tabular-nums">{value}</div>
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}

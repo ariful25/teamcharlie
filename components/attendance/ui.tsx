@@ -94,13 +94,13 @@ export function StatTile({
     <Comp
       onClick={onClick}
       className={cn(
-        "glass rounded-2xl p-4 text-left shadow-card transition-shadow",
+        "glass rounded-2xl px-5 py-3 text-left shadow-card transition-shadow",
         onClick && "cursor-pointer hover:shadow-glow-sm",
         active && "ring-2 ring-primary/50"
       )}
     >
       <span className="block text-xs font-medium text-muted-foreground">{label}</span>
-      <span className={cn("mt-3 block text-2xl font-semibold tabular-nums", valueTone[tone])}>{value}</span>
+      <span className={cn("mt-2 block font-display text-3xl font-semibold tabular-nums", valueTone[tone])}>{value}</span>
       {hint && <span className="mt-0.5 block text-xs text-muted-foreground">{hint}</span>}
     </Comp>
   );

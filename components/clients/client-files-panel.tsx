@@ -145,7 +145,7 @@ export function ClientFilesPanel({ clientId, files, canManage }: { clientId: str
       </CardHeader>
       <CardContent className="p-0">
         {files.length === 0 ? (
-          <div className="p-6 text-center">
+          <div className="p-5 text-center">
             <FileText className="mx-auto h-6 w-6 text-muted-foreground" />
             <p className="mt-2 text-sm text-muted-foreground">No files linked yet.</p>
           </div>

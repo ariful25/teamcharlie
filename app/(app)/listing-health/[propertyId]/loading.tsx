@@ -3,7 +3,7 @@ import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
 // Mirrors the listing page: header, 6 tiles, issues, 3 cards, reviews.
 export default function ListingDetailLoading() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="space-y-2">
         <Skeleton className="h-3 w-32" />
         <Skeleton className="h-7 w-64" />
@@ -15,7 +15,7 @@ export default function ListingDetailLoading() {
         ))}
       </div>
       <SkeletonCard lines={5} />
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
         <SkeletonCard lines={6} />
         <SkeletonCard lines={5} />
         <SkeletonCard lines={7} />

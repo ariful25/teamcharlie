@@ -32,7 +32,7 @@ export function MyAttendance({ shifts, overtime, leads, today }: { shifts: Recor
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+    <div className="grid gap-8 xl:grid-cols-golden">
       <Panel
         title="My recent shifts"
         action={
@@ -51,7 +51,7 @@ export function MyAttendance({ shifts, overtime, leads, today }: { shifts: Recor
                   <DayBadge dayKey={v.date} today={today} />
                   <p className="mt-1 text-[11px] text-muted-foreground">{scheduleLabel(v)}</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <ShiftTimeline v={v} compact />
                   <div className="min-w-0 flex-1 space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">

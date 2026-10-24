@@ -309,7 +309,7 @@ export function TaskDetailDialog({
             onCancel={() => setMode("view")}
           />
         ) : (
-          <div className="space-y-4 text-sm">
+          <div className="space-y-3 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone={priorityTone(task.priority)}>{task.priority}</Badge>
@@ -328,7 +328,7 @@ export function TaskDetailDialog({
 
             {!readOnly && <TaskActions task={task} onDone={() => handleOpenChange(false)} />}
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-3">
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground">Date</p>
                 <p className="mt-0.5">{formatDayLong(new Date(task.date))}</p>

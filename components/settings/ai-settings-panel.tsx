@@ -82,7 +82,7 @@ export function AiSettingsPanel(props: Props) {
   const keySet = provider === "OPENAI" ? props.hasOpenAiKey : props.hasAnthropicKey;
 
   return (
-    <div className="space-y-4 text-sm">
+    <div className="space-y-3 text-sm">
       <p className="text-muted-foreground">
         Powers the AI tools in Listing Health (insights, check-in guide, title &amp; description ideas, review replies). Uses your
         own API key — usage is billed by the provider to your account. Door codes and Wi-Fi passwords are never sent to the AI.

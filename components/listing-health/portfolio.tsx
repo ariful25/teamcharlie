@@ -140,15 +140,15 @@ export function ListingHealthPortfolio({
   const est = summary.estimatedLowStars;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Listing Health</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 max-w-[68ch] text-sm text-muted-foreground">
             Ratings, review problems and listing quality for every property in the Knowledge Base. Checked listings are re-checked automatically every week.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Select
             className="w-[180px]"
             value={clientId}
@@ -194,7 +194,7 @@ export function ListingHealthPortfolio({
             <Tile label="Avg listing quality" value={summary.averageQuality !== null ? Math.round(summary.averageQuality) : "—"} hint="search readiness" />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-3 lg:grid-cols-3">
             <Card>
               <CardHeader>
                 <CardTitle>Low-star reviews (estimated)</CardTitle>
@@ -390,7 +390,7 @@ export function ListingHealthPortfolio({
 
 function Tile({ label, value, hint, tone }: { label: string; value: React.ReactNode; hint?: string; tone?: string }) {
   return (
-    <div className="glass rounded-2xl p-4 shadow-card">
+    <div className="glass rounded-2xl px-5 py-3 shadow-card">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <div className={`mt-3 text-2xl font-semibold tabular-nums ${tone ?? ""}`}>{value}</div>
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}

@@ -39,7 +39,7 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-3">
       <AuthField label="Email" icon={Mail} type="email" value={email} onChange={() => {}} readOnly aria-readonly="true" />
       <AuthField label="Your name" icon={User} value={name} onChange={setName} required autoComplete="name" placeholder="Full name" />
       <AuthField

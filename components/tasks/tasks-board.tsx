@@ -50,7 +50,7 @@ export function TasksBoard({
   }, [tasks, search, status, clientId, assignedUserId, category, myTasksOnly, currentUserId, view]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center rounded-xl border border-border p-0.5">

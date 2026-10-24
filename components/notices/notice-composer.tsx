@@ -138,7 +138,7 @@ export function NoticeComposer() {
   return (
     <div
       ref={rootRef}
-      className={`mx-auto max-w-xl rounded-xl p-4 shadow-glow-sm ${style.card}`}
+      className={`mx-auto max-w-xl rounded-xl p-5 shadow-glow-sm ${style.card}`}
     >
       {mode === "text" ? (
         <textarea

@@ -84,7 +84,7 @@ export function ImportReviewsDialog({
   return (
     <Dialog open={open} onOpenChange={close}>
       <DialogContent title={listingLabel ? `Import reviews · ${listingLabel}` : "Import reviews"} className="max-w-lg">
-        <div className="space-y-4 text-sm">
+        <div className="space-y-3 text-sm">
           <p className="text-muted-foreground">
             Upload a CSV export of reviews (Guesty, Hostaway, Hospitable or your own sheet). It needs a <b>rating</b> column and a{" "}
             <b>review</b> column; date, guest name and private feedback are picked up when present.
@@ -96,7 +96,7 @@ export function ImportReviewsDialog({
             )}{" "}
             Re-importing the same file never creates duplicates.
           </p>
-          <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center transition hover:border-primary/40">
+          <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 px-5 py-5 text-center transition hover:border-primary/40">
             <Upload className="h-5 w-5 text-muted-foreground" />
             <span>{fileName ?? "Choose a .csv file"}</span>
             <input type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />

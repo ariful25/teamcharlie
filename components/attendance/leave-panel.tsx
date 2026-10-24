@@ -73,7 +73,7 @@ export function LeavePanel({ balances, requests, today }: { balances: Balances; 
         </Button>
       }
     >
-      <div className="grid grid-cols-3 gap-3 border-b border-border/60 px-5 py-4 text-sm">
+      <div className="grid grid-cols-3 gap-3 border-b border-border/60 px-5 py-5 text-sm">
         {(["PAID", "SICK", "UNPAID"] as const).map((t) => {
           const b = balances[t];
           return (
@@ -91,7 +91,7 @@ export function LeavePanel({ balances, requests, today }: { balances: Balances; 
         })}
       </div>
       {requests.length === 0 ? (
-        <p className="px-5 py-6 text-center text-sm text-muted-foreground">No leave requests yet.</p>
+        <p className="px-5 py-5 text-center text-sm text-muted-foreground">No leave requests yet.</p>
       ) : (
         <ul className="divide-y divide-border/60">
           {requests.map((r) => (
@@ -172,7 +172,7 @@ export function LeaveBoard({ pending, recent, currentUser }: { pending: LeaveVie
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Panel title="Waiting for approval">
         {pending.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground">No leave requests waiting.</p>
@@ -181,7 +181,7 @@ export function LeaveBoard({ pending, recent, currentUser }: { pending: LeaveVie
             {pending.map((r) => {
               const own = r.userId === currentUser.id && currentUser.role !== "ADMIN";
               return (
-                <li key={r.id} className="grid gap-3 px-5 py-4 lg:grid-cols-[1fr_auto] lg:items-center">
+                <li key={r.id} className="grid gap-3 px-5 py-5 lg:grid-cols-[1fr_auto] lg:items-center">
                   <div className="space-y-1 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{r.userName}</span>

@@ -71,7 +71,7 @@ export function InvitesPanel({ invites }: { invites: Invite[] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <form onSubmit={create} className="grid gap-2 sm:grid-cols-[1fr_160px_auto] sm:items-end">
         <Field label="Invite by email">
           <input

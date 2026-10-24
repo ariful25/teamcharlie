@@ -52,7 +52,7 @@ export function ShiftTypesPanel({ shiftTypes: initial }: { shiftTypes: any[] }) 
   return (
     <div className="space-y-2">
       {shiftTypes.map((s) => (
-        <div key={s.id} className="flex items-center justify-between rounded-xl border border-border px-4 py-3 text-sm">
+        <div key={s.id} className="flex items-center justify-between rounded-xl border border-border px-5 py-3 text-sm">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.colorHex }} />
             <span className="font-medium">{s.name}</span>

@@ -49,7 +49,7 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
   const plainGoogleSheet = JSON.parse(JSON.stringify(googleSheet));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">{client.name}</h1>
@@ -92,7 +92,7 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
             </CardHeader>
             <CardContent className="space-y-2 p-0 pb-2">
               {tasks.length === 0 ? (
-                <p className="px-5 pb-4 text-sm text-muted-foreground">No tasks scheduled today.</p>
+                <p className="px-5 pb-5 text-sm text-muted-foreground">No tasks scheduled today.</p>
               ) : (
                 tasks.map((t) => (
                   <div key={t.id} className="flex items-center justify-between border-t border-border/60 px-5 py-3 text-sm first:border-0">
@@ -118,7 +118,7 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
             </CardHeader>
             <CardContent className="space-y-2 p-0 pb-2">
               {recurringTasks.length === 0 ? (
-                <p className="px-5 pb-4 text-sm text-muted-foreground">No recurring tasks configured for this client.</p>
+                <p className="px-5 pb-5 text-sm text-muted-foreground">No recurring tasks configured for this client.</p>
               ) : (
                 recurringTasks.map((r) => (
                   <div key={r.id} className="flex items-center justify-between border-t border-border/60 px-5 py-3 text-sm first:border-0">
@@ -138,7 +138,7 @@ export default async function ClientWorkspacePage({ params }: { params: { id: st
         </>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <ClientIntegrationsPanel clientId={client.id} integrations={plainIntegrations} canManage={canManageIntegrations} />
         <ClientFilesPanel clientId={client.id} files={plainFiles} canManage={canManageClientFiles} />
         <ClientGoogleSheetPanel

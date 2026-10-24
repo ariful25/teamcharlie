@@ -74,7 +74,7 @@ export function PayrollConsole({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Payroll</h1>
@@ -128,7 +128,7 @@ export function PayrollConsole({
           </div>
 
           {status === "DRAFT" && unresolved > 0 && (
-            <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
+            <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-5 py-3 text-sm">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <span>
                 {unresolved} shift(s) this month still need review, so their hours aren&apos;t confirmed.{" "}
@@ -146,7 +146,7 @@ export function PayrollConsole({
                 {MONTHS[month]} {year}
               </CardTitle>
               <div className="flex flex-wrap gap-2">
-                <a href={`/api/payroll?year=${year}&month=${month}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-medium transition hover:bg-muted/40">
+                <a href={`/api/payroll?year=${year}&month=${month}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-5 text-sm font-medium transition hover:bg-muted/40">
                   <Download className="h-4 w-4" /> Export CSV
                 </a>
                 {status === "FINALIZED" ? (
@@ -270,7 +270,7 @@ function Line({ label, value }: { label: string; value: string }) {
 
 function Tile({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
-    <div className="glass rounded-2xl p-4 shadow-card">
+    <div className="glass rounded-2xl p-5 shadow-card">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <div className="mt-3 text-xl font-semibold tabular-nums">{value}</div>
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
@@ -366,7 +366,7 @@ function RulesForm({ rules }: { rules: PayrollRules & { currency: string } }) {
       <CardHeader>
         <CardTitle>Payroll rules</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 text-sm">
+      <CardContent className="space-y-3 text-sm">
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Overtime rate (normal days)">
             <input value={r.otMultiplier} onChange={(e) => set("otMultiplier", e.target.value)} className={inputClass} inputMode="decimal" />

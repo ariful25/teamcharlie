@@ -41,10 +41,27 @@ const config: Config = {
         "3xl": ["1.8125rem", { lineHeight: "2.25rem" }],
         "4xl": ["2.3125rem", { lineHeight: "2.75rem" }],
       },
+      // Golden-ratio rhythm. Spacing steps 3 / 5 / 8 are retuned to the
+      // Fibonacci values 13 / 21 / 34px (each ≈ φ × the one before, with 2 = 8px
+      // and 14 = 55px), so every gap-3, p-5, space-y-8 … in the app lands on
+      // the same scale. Use `golden` / `golden-r` for main+aside splits.
+      spacing: {
+        3: "0.8125rem",
+        5: "1.3125rem",
+        8: "2.125rem",
+        14: "3.4375rem",
+      },
+      gridTemplateColumns: {
+        golden: "minmax(0, 1.618fr) minmax(0, 1fr)",
+        "golden-r": "minmax(0, 1fr) minmax(0, 1.618fr)",
+      },
+      // Radii step down by φ as surfaces nest: panels 21px → inner blocks
+      // 13px → chips 8px; 3xl (34px) for the largest hero surfaces.
       borderRadius: {
-        xl: "1rem",
-        "2xl": "1.25rem",
-        "3xl": "1.75rem",
+        lg: "0.5rem",
+        xl: "0.8125rem",
+        "2xl": "1.3125rem",
+        "3xl": "2.125rem",
       },
       boxShadow: {
         glow: "0 0 24px -4px hsl(var(--primary) / 0.45)",

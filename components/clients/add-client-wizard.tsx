@@ -116,7 +116,7 @@ export function AddClientWizard() {
         </Button>
       </DialogTrigger>
       <DialogContent title="Add Client" className="max-w-xl">
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           {STEPS.map((label, i) => (
             <div key={label} className="flex items-center gap-2">
               <div

@@ -29,7 +29,7 @@ export function ClientStatusCard({
           <h3 className="text-sm font-semibold">{name}</h3>
           <Badge tone={statusTone(status)}>{status.charAt(0) + status.slice(1).toLowerCase().replace("_", " ")}</Badge>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+        <div className="mt-3 grid grid-cols-2 gap-2 text-center">
           <div>
             <p className="text-lg font-semibold">
               {completedTasks}/{totalTasks}

@@ -77,7 +77,7 @@ export function TaskCard({
 
   return (
     <motion.div whileHover={{ y: -2 }}>
-      <Card className="group relative cursor-pointer p-4" onClick={() => setDetailOpen(true)}>
+      <Card className="group relative cursor-pointer p-5" onClick={() => setDetailOpen(true)}>
         <IconTooltip label="Delete task">
           <button
             onClick={(e) => {
@@ -91,7 +91,7 @@ export function TaskCard({
           </button>
         </IconTooltip>
 
-        <div className="flex items-start justify-between gap-2 pr-6">
+        <div className="flex items-start justify-between gap-2 pr-5">
           <div>
             <p className="font-medium">{task.title}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">

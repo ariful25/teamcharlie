@@ -86,7 +86,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
   const first = about.preferredName ?? person.name.split(" ")[0];
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.618fr)] lg:items-start">
+    <div className="grid gap-8 lg:grid-cols-golden-r lg:items-start">
       <IdentityPanel data={data} />
 
       <div className="min-w-0 space-y-5">
@@ -100,7 +100,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
                 aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  "shrink-0 rounded-xl px-4 py-2 text-sm transition-colors",
+                  "shrink-0 rounded-xl px-5 py-2 text-sm transition-colors",
                   tab === t.id ? "bg-primary/15 font-medium text-primary shadow-glow-sm" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                 )}
               >
@@ -137,7 +137,7 @@ function IdentityPanel({ data }: { data: ProfileData }) {
   return (
     <aside className="glass relative overflow-hidden rounded-2xl shadow-card lg:sticky lg:top-6">
       <div aria-hidden="true" className="pointer-events-none absolute -left-20 -top-28 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
-      <div className="relative flex flex-col items-center px-6 pb-6 pt-8 text-center">
+      <div className="relative flex flex-col items-center px-5 pb-5 pt-8 text-center">
         <PersonAvatar name={person.name} size={128} ring={data.completeness} />
         <h1 className="mt-5 font-display text-3xl font-semibold leading-tight">{person.name}</h1>
         {about.preferredName && about.preferredName !== person.name.split(" ")[0] && (
@@ -161,13 +161,13 @@ function IdentityPanel({ data }: { data: ProfileData }) {
 
       <dl className="relative divide-y divide-border/50 border-t border-border/60 text-sm">
         {facts.map(([label, value]) => (
-          <div key={label} className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-3 px-6 py-2.5">
+          <div key={label} className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-3 px-5 py-2.5">
             <dt className="text-muted-foreground">{label}</dt>
             <dd className="min-w-0 truncate text-right">{shown(value as string)}</dd>
           </div>
         ))}
         {job.reports.length > 0 && (
-          <div className="px-6 py-3">
+          <div className="px-5 py-3">
             <dt className="mb-2 text-muted-foreground">Reports to {person.name.split(" ")[0]}</dt>
             <dd className="flex flex-wrap gap-1.5">
               {job.reports.map((r) => (
@@ -181,7 +181,7 @@ function IdentityPanel({ data }: { data: ProfileData }) {
       </dl>
 
       {missing && (
-        <p className="relative border-t border-border/60 px-6 py-3 text-xs text-muted-foreground">
+        <p className="relative border-t border-border/60 px-5 py-3 text-xs text-muted-foreground">
           Profile {data.completeness}% complete. The ring fills as job, contact and personal details are added.
         </p>
       )}
@@ -229,7 +229,7 @@ function EditButton({ onClick, label = "Edit" }: { onClick: () => void; label?: 
 
 function FactGrid({ items }: { items: [string, React.ReactNode][] }) {
   return (
-    <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+    <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
       {items.map(([k, v]) => (
         <div key={k}>
           <dt className="text-xs text-muted-foreground">{k}</dt>
@@ -295,7 +295,7 @@ function MonthStrip({ data }: { data: ProfileData }) {
         </Link>
       }
     >
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Paid hours" value={hm(paid)} hint={share !== null ? `${share}% of scheduled` : undefined} />
         <Stat label="Days worked" value={String(m.daysWorked)} />
         <Stat label="Late" value={String(m.lateCount)} tone={m.lateCount ? "warning" : undefined} />
@@ -341,7 +341,7 @@ function AboutDialog({ data, onClose }: { data: ProfileData; onClose: () => void
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent title="Edit about" className="max-w-lg">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Field label="Preferred name">
             <input className={inputClass} value={f.preferredName} onChange={(e) => setF({ ...f, preferredName: e.target.value })} placeholder={person.name.split(" ")[0]} />
           </Field>
@@ -354,7 +354,7 @@ function AboutDialog({ data, onClose }: { data: ProfileData; onClose: () => void
           <Field label="Languages (comma separated)">
             <input className={inputClass} value={f.languages} onChange={(e) => setF({ ...f, languages: e.target.value })} placeholder="English, Bangla" />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Work phone">
               <input className={inputClass} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} inputMode="tel" />
             </Field>
@@ -417,11 +417,11 @@ function JobTab({ data }: { data: ProfileData }) {
             ) : undefined
           }
         >
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Stat label="Monthly gross" value={`৳${pay.monthlyGross.toLocaleString("en-US")}`} />
             <Stat label="Basic" value={`৳${Math.round((pay.monthlyGross * pay.basicPercent) / 100).toLocaleString("en-US")}`} hint={`${pay.basicPercent}% of gross`} />
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">Only {access.self ? "you and admins" : "admins and this person"} can see this.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Only {access.self ? "you and admins" : "admins and this person"} can see this.</p>
         </Section>
       )}
 
@@ -455,8 +455,8 @@ function JobDialog({ data, onClose }: { data: ProfileData; onClose: () => void }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent title={`Job details · ${person.name}`} className="max-w-xl">
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Job title">
               <input className={inputClass} value={f.jobTitle} onChange={(e) => setF({ ...f, jobTitle: e.target.value })} placeholder="Guest experience associate" />
             </Field>
@@ -589,11 +589,11 @@ function PersonalDialog({ data, onClose }: { data: ProfileData; onClose: () => v
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent title="Edit personal details" className="max-w-lg">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Field label="Personal email">
             <input type="email" className={inputClass} value={f.personalEmail} onChange={(e) => setF({ ...f, personalEmail: e.target.value })} />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Date of birth">
               <DatePicker value={f.dateOfBirth} max={data.today} onChange={(v) => setF({ ...f, dateOfBirth: v })} />
             </Field>
@@ -620,11 +620,11 @@ function ContactDialog({ userId, onClose }: { userId: string; onClose: () => voi
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent title="Add emergency contact" className="max-w-md">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Field label="Name">
             <input className={inputClass} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Relationship">
               <input className={inputClass} value={f.relationship} onChange={(e) => setF({ ...f, relationship: e.target.value })} placeholder="Mother, spouse…" />
             </Field>
@@ -648,7 +648,7 @@ function LeaveGauge({ label, used, pending, allowance }: { label: string; used: 
   const usedPct = allowance ? Math.min(1, used / allowance) : 0;
   const pendPct = allowance ? Math.min(1 - usedPct, pending / allowance) : 0;
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/15 p-4">
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/15 p-5">
       <svg viewBox="0 0 80 80" className="h-[72px] w-[72px] shrink-0 -rotate-90" aria-hidden="true">
         <circle cx="40" cy="40" r={r} fill="none" stroke="hsl(225 55% 3%)" strokeWidth="8" />
         {allowance !== null && (
@@ -772,11 +772,11 @@ function DocumentDialog({ userId, onClose }: { userId: string; onClose: () => vo
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent title="Add document link" className="max-w-md">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Field label="Title">
             <input className={inputClass} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Employment contract 2026" />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Type">
               <Select value={f.kind} onValueChange={(v) => setF({ ...f, kind: v })} options={DOC_KINDS.map((k) => ({ value: k, label: k }))} />
             </Field>
@@ -840,7 +840,7 @@ function HistoryTab({ data }: { data: ProfileData }) {
             const meta = EVENT_META[e.kind as keyof typeof EVENT_META];
             const Icon = meta.icon;
             return (
-              <li key={e.id} className="relative flex gap-4">
+              <li key={e.id} className="relative flex gap-3">
                 <span className={cn("relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ring-4 ring-[hsl(var(--card))]", meta.tone)}>
                   <Icon className="h-4 w-4" />
                 </span>
@@ -902,7 +902,7 @@ function EventDialog({ userId, kind, name, onClose }: { userId: string; kind: "P
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent title={copy.title} className="max-w-md">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Field label="Title">
             <input className={inputClass} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder={copy.ph} />
           </Field>

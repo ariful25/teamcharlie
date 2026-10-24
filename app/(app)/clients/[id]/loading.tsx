@@ -5,7 +5,7 @@ import { Skeleton, SkeletonCard, SkeletonTable } from "@/components/ui/skeleton"
 // Google Knowledge Base).
 export default function ClientWorkspaceLoading() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <Skeleton className="h-7 w-40" />
@@ -17,7 +17,7 @@ export default function ClientWorkspaceLoading() {
       <SkeletonTable rows={3} columns={3} />
       <SkeletonTable rows={2} columns={3} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <SkeletonCard lines={3} />
         <SkeletonCard lines={3} />
       </div>

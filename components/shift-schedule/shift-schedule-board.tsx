@@ -173,7 +173,7 @@ export function ShiftScheduleBoard({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
         <WeekSelector label={weekLabel} onPrev={() => goToWeek(-7)} onNext={() => goToWeek(7)} onToday={goToday} />
         {canEdit && (

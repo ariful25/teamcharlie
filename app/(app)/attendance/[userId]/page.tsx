@@ -27,7 +27,7 @@ export default async function EmployeeAttendancePage({ params }: { params: { use
   const m = summary[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <Link href={canReview ? "/attendance/admin" : "/attendance"} className="mb-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3 w-3" /> Back

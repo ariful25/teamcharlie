@@ -79,7 +79,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden flex-1 px-4 py-10 lg:min-h-0 lg:justify-end lg:px-0 lg:py-0">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden flex-1 px-5 py-10 lg:min-h-0 lg:justify-end lg:px-0 lg:py-0">
       <div className="pointer-events-none absolute inset-0 lg:hidden">
         <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-primary/20 blur-3xl animate-pulse-glow" />
         <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-accent/20 blur-3xl animate-pulse-glow" />
@@ -92,14 +92,14 @@ function LoginForm() {
         className="glass glow-border relative z-10 w-full max-w-md rounded-3xl p-8 lg:mr-[8%] lg:max-w-sm xl:mr-[12%]"
       >
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 glow-border">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 glow-border">
             <Radar className="h-7 w-7 text-primary" />
           </div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Sign in to {PRODUCT_NAME}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your team&apos;s tasks, shifts, and operations in one place.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Email
@@ -183,7 +183,7 @@ function LoginForm() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
+        <p className="mt-5 text-center text-xs text-muted-foreground">
           New here?{" "}
           <Link href="/signup" className="font-medium text-primary hover:brightness-110">
             Create a team
@@ -191,7 +191,7 @@ function LoginForm() {
           — or ask your admin for an invite link.
         </p>
 
-        <div className="mt-6 grid grid-cols-3 gap-2 border-t border-border pt-5 lg:hidden">
+        <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border pt-5 lg:hidden">
           {FEATURES.map((f) => (
             <div key={f.title} className="flex flex-col items-center gap-1 text-center">
               <f.icon className="h-4 w-4 text-primary" />

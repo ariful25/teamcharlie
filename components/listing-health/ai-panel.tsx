@@ -82,7 +82,7 @@ export function AiAssistant({
           </div>
         )}
       </CardHeader>
-      <CardContent className="space-y-4 text-sm">
+      <CardContent className="space-y-3 text-sm">
         {!ready && (
           <p className="text-muted-foreground">
             AI isn&apos;t connected for this team.{" "}
@@ -147,7 +147,7 @@ export function AiAssistant({
         )}
 
         {copy && (
-          <div className="space-y-3 border-t border-border/60 pt-4">
+          <div className="space-y-3 border-t border-border/60 pt-5">
             <div className="flex items-center justify-between">
               <p className="font-medium">Title &amp; description ideas</p>
               <span className="text-xs text-muted-foreground">{copy.model}</span>
@@ -247,7 +247,7 @@ export function CheckinGuideCard({
             ? `Rewritten by AI (${aiGuide.model}) from the Knowledge Base and guest complaints. Codes are filled in here, never sent to the AI.`
             : "Built from this listing's Knowledge Base fields. “[team: add …]” marks missing details."}
         </p>
-        <pre className="whitespace-pre-wrap rounded-xl bg-muted/30 p-4 font-sans text-sm">{fill(raw, reveal)}</pre>
+        <pre className="whitespace-pre-wrap rounded-xl bg-muted/30 p-5 font-sans text-sm">{fill(raw, reveal)}</pre>
       </CardContent>
     </Card>
   );

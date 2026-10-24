@@ -80,6 +80,13 @@ never just hidden in the UI. Job-field changes are logged as
   `font-stretch`) for headings and big figures — never Inter/Geist. Sizes
   are golden-ratio steps in `tailwind.config.ts`; two-pane layouts split
   1 : 1.618. Labels are sentence case, never tracked all-caps.
+- Golden-ratio rhythm (`tailwind.config.ts`): spacing steps 2/3/5/8/14 are
+  8/13/21/34/55px (Fibonacci). Page sections `space-y-8` (34), cards and
+  sections `space-y-5`/`p-5` (21), content inside them `gap-3` (13). Don't
+  use the off-rhythm 4 and 6 for spacing. Main + aside layouts use
+  `grid-cols-golden` / `grid-cols-golden-r`; radii nest 2xl 21 → xl 13 →
+  lg 8. Stat tiles are `px-5 py-3` so they sit near a 1.618 rectangle.
+  Wide tables go full width below a golden split, not inside its narrow side.
 - Shifts are shown as a 24-hour dial (`components/attendance/shift-dial.tsx`),
   people as a ringed avatar (`components/people/person-avatar.tsx`) — reuse
   these rather than adding progress bars.

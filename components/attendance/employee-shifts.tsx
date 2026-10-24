@@ -35,7 +35,7 @@ export function EmployeeShifts({
                 <DayBadge dayKey={v.date} today={today} />
                 <p className="mt-1 text-[11px] text-muted-foreground">{scheduleLabel(v)}</p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <ShiftTimeline v={v} compact />
                 <div className="min-w-0 flex-1 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">

@@ -3,7 +3,7 @@ import { Skeleton, SkeletonTable } from "@/components/ui/skeleton";
 // Mirrors the payroll page: header + month switcher, tabs, 5 tiles, table.
 export default function PayrollLoading() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div className="space-y-2">
           <Skeleton className="h-7 w-32" />

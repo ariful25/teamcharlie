@@ -71,7 +71,7 @@ export function ShiftGrid({
   }
 
   return (
-    <div ref={gridRef} className="space-y-6 overflow-x-auto pb-2">
+    <div ref={gridRef} className="space-y-5 overflow-x-auto pb-2">
       {dayHeader}
 
       {groupedByShift

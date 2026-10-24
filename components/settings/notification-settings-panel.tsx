@@ -38,8 +38,8 @@ export function NotificationSettingsPanel({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-xl border border-border p-4">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between rounded-xl border border-border p-5">
         <div>
           <p className="text-sm font-medium">Check-in Connection</p>
           <div className="mt-1 flex items-center gap-1.5 text-xs">
@@ -61,7 +61,7 @@ export function NotificationSettingsPanel({
         </Button>
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border border-border p-4">
+      <div className="flex items-center justify-between rounded-xl border border-border p-5">
         <div>
           <p className="text-sm font-medium">Check-out Connection</p>
           <div className="mt-1 flex items-center gap-1.5 text-xs">

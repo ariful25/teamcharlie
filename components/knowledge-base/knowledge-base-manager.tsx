@@ -423,18 +423,18 @@ export function KnowledgeBaseManager({
   const exportHref = `/api/knowledge-properties/export${clientId ? `?clientId=${clientId}` : ""}`;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+    <div className="space-y-8">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Property Knowledge Base</h1>
-          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+          <p className="mt-1 max-w-[68ch] text-sm text-muted-foreground">
             Prepare Airbnb listing information for Google Sheets and NotebookLM. {PRODUCT_NAME} extracts the repetitive public details; the team reviews and fills operational notes.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 md:max-w-[50%] md:justify-end">
           <a
             href={clientId ? `/listing-health?clientId=${clientId}` : "/listing-health"}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-medium transition hover:bg-muted/40"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border px-5 text-sm font-medium transition hover:bg-muted/40"
           >
             <HeartPulse className="h-4 w-4" /> Listing Health
           </a>
@@ -444,7 +444,7 @@ export function KnowledgeBaseManager({
           {canManage && (
             <a
               href={exportHref}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-medium transition hover:bg-muted/40"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border px-5 text-sm font-medium transition hover:bg-muted/40"
             >
               <Download className="h-4 w-4" /> Export CSV
             </a>
@@ -453,10 +453,10 @@ export function KnowledgeBaseManager({
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Properties</p><p className="mt-1 text-2xl font-semibold">{filteredItems.length}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Ready / Exported</p><p className="mt-1 text-2xl font-semibold">{readyCount}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Needs Review</p><p className="mt-1 text-2xl font-semibold">{needsReviewCount}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Average Completion</p><p className="mt-1 text-2xl font-semibold">{filteredItems.length ? Math.round(filteredItems.reduce((sum, item) => sum + item.completionPct, 0) / filteredItems.length) : 0}%</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-muted-foreground">Properties</p><p className="mt-1 text-2xl font-semibold">{filteredItems.length}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-muted-foreground">Ready / Exported</p><p className="mt-1 text-2xl font-semibold">{readyCount}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-muted-foreground">Needs Review</p><p className="mt-1 text-2xl font-semibold">{needsReviewCount}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-muted-foreground">Average Completion</p><p className="mt-1 text-2xl font-semibold">{filteredItems.length ? Math.round(filteredItems.reduce((sum, item) => sum + item.completionPct, 0) / filteredItems.length) : 0}%</p></CardContent></Card>
       </div>
 
       <Card>
@@ -501,7 +501,7 @@ export function KnowledgeBaseManager({
                         </Link>
                         {item.extractionError && <p className="mt-1 text-xs text-danger">{item.extractionError}</p>}
                       </td>
-                      <td className="px-5 py-3 text-muted-foreground">{item.client?.name}</td>
+                      <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{item.client?.name}</td>
                       <td className="px-5 py-3"><Badge tone={statusTone(item.status)}>{item.status.replace(/_/g, " ")}</Badge></td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">

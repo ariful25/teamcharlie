@@ -148,7 +148,7 @@ export function ReviewDialog({
         ) : (
           <div className="max-h-[75vh] space-y-5 overflow-y-auto pr-1 text-sm">
             {/* Which day — stated first and big, so nobody fixes the wrong one. */}
-            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
               <p className="text-xs font-medium text-primary">Shift of</p>
               <p className="font-display text-xl font-semibold">{dayLabel(v.date, "EEEE, d MMMM yyyy")}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -192,7 +192,7 @@ export function ReviewDialog({
                 This is your own shift. Another team lead or an admin has to review it.
               </p>
             ) : checkInRequestOnly ? (
-              <div className="space-y-3 rounded-2xl border border-info/30 bg-info/5 p-4">
+              <div className="space-y-3 rounded-2xl border border-info/30 bg-info/5 p-5">
                 <p>
                   {v.userName} asked to start this shift at{" "}
                   <span className=" font-semibold">{timeIn(v.checkInRequestedAt, tz)}</span> but was blocked by an earlier shift with no
@@ -209,7 +209,7 @@ export function ReviewDialog({
                 </div>
               </div>
             ) : (
-              <div className="space-y-4 rounded-2xl border border-border bg-muted/10 p-4">
+              <div className="space-y-3 rounded-2xl border border-border bg-muted/10 p-5">
                 <p className="text-sm font-semibold text-foreground">Confirm the real times (both required)</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="space-y-1.5">

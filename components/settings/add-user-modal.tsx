@@ -72,12 +72,12 @@ export function AddUserModal({ shiftTypes }: { shiftTypes: { id: string; name: s
       </DialogTrigger>
       <DialogContent title={tempPassword ? "User Created" : "Add User"}>
         {tempPassword ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               Share this temporary password with <span className="font-medium text-foreground">{name}</span> — it
               won&apos;t be shown again. They should change it after logging in.
             </p>
-            <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-4 py-3">
+            <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-5 py-3">
               <code className="text-sm font-semibold tracking-wide text-primary">{tempPassword}</code>
               <button onClick={copyPassword} className="rounded-lg p-1.5 text-primary hover:bg-primary/15">
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}

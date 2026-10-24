@@ -19,7 +19,7 @@ export default async function InvitePage({ params }: { params: { token: string }
         </p>
         <Link
           href="/login"
-          className="mt-6 block rounded-xl border border-border py-2.5 text-center text-sm font-medium transition hover:border-primary/40 hover:text-primary"
+          className="mt-5 block rounded-xl border border-border py-2.5 text-center text-sm font-medium transition hover:border-primary/40 hover:text-primary"
         >
           Go to sign in
         </Link>
@@ -36,7 +36,7 @@ export default async function InvitePage({ params }: { params: { token: string }
         </p>
         <Link
           href="/dashboard"
-          className="mt-6 block rounded-xl border border-border py-2.5 text-center text-sm font-medium transition hover:border-primary/40 hover:text-primary"
+          className="mt-5 block rounded-xl border border-border py-2.5 text-center text-sm font-medium transition hover:border-primary/40 hover:text-primary"
         >
           Back to dashboard
         </Link>

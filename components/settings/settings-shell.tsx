@@ -61,11 +61,11 @@ export function SettingsShell({ teamName, sections }: { teamName: string; sectio
   const Icon = ICONS[current.id] ?? Building2;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[16.5rem_minmax(0,1fr)] lg:items-start">
+    <div className="grid gap-5 lg:grid-cols-[16.5rem_minmax(0,1fr)] lg:items-start">
       {/* Section list — a sticky rail on desktop, a scrolling tab row on phones */}
       <nav aria-label="Settings sections" className="lg:sticky lg:top-6">
         <div className="glass hidden overflow-hidden rounded-2xl shadow-card lg:block">
-          <div className="border-b border-border/60 px-5 py-4">
+          <div className="border-b border-border/60 px-5 py-5">
             <p className="font-display text-base font-semibold">{teamName}</p>
             <p className="text-xs text-muted-foreground">Workspace settings</p>
           </div>
@@ -107,7 +107,7 @@ export function SettingsShell({ teamName, sections }: { teamName: string; sectio
           </div>
         </div>
 
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:hidden">
+        <div className="-mx-3 flex gap-2 overflow-x-auto px-5 pb-1 lg:hidden">
           {sections.map((s) => (
             <button
               key={s.id}
@@ -126,12 +126,12 @@ export function SettingsShell({ teamName, sections }: { teamName: string; sectio
       </nav>
 
       <section className="glass min-w-0 overflow-hidden rounded-2xl shadow-card" aria-labelledby="settings-section-title">
-        <header className="relative flex flex-col gap-4 overflow-hidden border-b border-border/60 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <header className="relative flex flex-col gap-3 overflow-hidden border-b border-border/60 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
           />
-          <div className="relative flex items-start gap-4">
+          <div className="relative flex items-start gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/25 to-primary/5 text-primary shadow-glow-sm">
               <Icon className="h-5 w-5" />
             </span>
@@ -144,7 +144,7 @@ export function SettingsShell({ teamName, sections }: { teamName: string; sectio
           </div>
           {current.action && <div className="relative shrink-0">{current.action}</div>}
         </header>
-        <div className="p-6">{current.content}</div>
+        <div className="p-5">{current.content}</div>
       </section>
     </div>
   );

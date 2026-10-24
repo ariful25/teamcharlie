@@ -72,13 +72,13 @@ export function SkeletonStatRow({ count = 4 }: { count?: number }) {
 export function SkeletonTable({ rows = 5, columns = 4 }: { rows?: number; columns?: number }) {
   return (
     <div className="glass overflow-hidden rounded-2xl shadow-card">
-      <div className="flex items-center gap-4 border-b border-border/60 px-5 py-3">
+      <div className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
         {Array.from({ length: columns }).map((_, i) => (
           <Skeleton key={i} className="h-3 flex-1" />
         ))}
       </div>
       {Array.from({ length: rows }).map((_, r) => (
-        <div key={r} className="flex items-center gap-4 border-t border-border/60 px-5 py-4 first:border-0">
+        <div key={r} className="flex items-center gap-3 border-t border-border/60 px-5 py-5 first:border-0">
           {Array.from({ length: columns }).map((_, c) => (
             <Skeleton key={c} className={cn("h-3.5 flex-1", c === 0 && "max-w-[40%]")} />
           ))}
@@ -112,11 +112,11 @@ export function SkeletonCardGrid({ count = 6, columns = 3 }: { count?: number; c
 // activity list — matches app/(app)/dashboard/page.tsx's actual layout.
 export function SkeletonDashboard() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <SkeletonStatRow count={4} />
       <div className="glass rounded-2xl p-5 shadow-card">
         <Skeleton className="h-4 w-40" />
-        <Skeleton className="mt-4 h-48 w-full rounded-xl" />
+        <Skeleton className="mt-3 h-48 w-full rounded-xl" />
       </div>
       <SkeletonTable rows={5} columns={4} />
     </div>
@@ -129,7 +129,7 @@ export function SkeletonDashboard() {
 // single centered spinner.
 export function SkeletonPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <Skeleton className="h-7 w-48" />
         <SkeletonButton />

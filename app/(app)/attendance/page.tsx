@@ -64,7 +64,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: {
   const m = myMonth[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <p className="text-xs font-medium text-primary">{formatDateLong(now, tz)}</p>
@@ -94,7 +94,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: {
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(300px,380px)_1fr]">
+      <div className="grid gap-8 lg:grid-cols-golden-r">
         <ShiftCard state={shiftState} checklistItems={checklist.map((c) => ({ id: c.id, label: c.label }))} leads={leads} />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatTile label="Paid this week" value={hm((w?.regularMinutes ?? 0) + (w?.overtimeMinutes ?? 0))} hint={`of ${hm(w?.scheduledMinutes ?? 0)} scheduled`} tone="primary" />

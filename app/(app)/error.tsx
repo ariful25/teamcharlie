@@ -14,7 +14,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
   }, [error]);
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center p-6">
+    <div className="flex min-h-[60vh] items-center justify-center p-5">
       <div className="glass flex max-w-sm flex-col items-center gap-3 rounded-2xl p-8 text-center shadow-card">
         <AlertTriangle className="h-8 w-8 text-danger" />
         <div>

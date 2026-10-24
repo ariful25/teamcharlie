@@ -5,8 +5,8 @@ export default function PersonLoading() {
   return (
     <div className="space-y-5">
       <Skeleton className="h-3 w-16" />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.618fr)]">
-        <div className="space-y-4 rounded-2xl">
+      <div className="grid gap-8 lg:grid-cols-golden-r">
+        <div className="space-y-3 rounded-2xl">
           <Skeleton className="h-[520px] rounded-2xl" />
         </div>
         <div className="space-y-5">

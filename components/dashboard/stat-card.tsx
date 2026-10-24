@@ -59,7 +59,7 @@ export function StatCard({
     <Link href={href}>
       <motion.div
         whileHover={{ y: -3 }}
-        className="glass group rounded-2xl p-4 shadow-card transition-shadow hover:shadow-glow-sm cursor-pointer"
+        className="glass group rounded-2xl px-5 py-3 shadow-card transition-shadow hover:shadow-glow-sm cursor-pointer"
       >
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground">{label}</span>
@@ -67,7 +67,7 @@ export function StatCard({
             <Icon className="h-4 w-4" />
           </div>
         </div>
-        <div className="mt-3 font-display text-3xl font-semibold tabular-nums">
+        <div className="mt-2 font-display text-3xl font-semibold tabular-nums">
           <AnimatedCounter value={value} />
           {suffix && <span className="ml-1 text-base text-muted-foreground">{suffix}</span>}
         </div>

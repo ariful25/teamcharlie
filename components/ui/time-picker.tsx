@@ -109,7 +109,7 @@ export function TimeFields({ value, onChange }: { value: string; onChange: (valu
         onIncrement={() => update(hour12 === 12 ? 1 : hour12 + 1, minute, period)}
         onDecrement={() => update(hour12 === 1 ? 12 : hour12 - 1, minute, period)}
       />
-      <span className="pb-6 text-xl font-semibold text-muted-foreground">:</span>
+      <span className="pb-5 text-xl font-semibold text-muted-foreground">:</span>
       <Stepper
         label="minute"
         display={String(minute).padStart(2, "0")}
@@ -207,7 +207,7 @@ export function TimePicker({
                 initial={{ opacity: 0, y: -6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="glass glow-border w-auto rounded-xl p-4 shadow-card"
+                className="glass glow-border w-auto rounded-xl p-5 shadow-card"
               >
                 <TimeFields value={current || "09:00"} onChange={update} />
                 <button

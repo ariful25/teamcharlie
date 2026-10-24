@@ -122,7 +122,7 @@ export default async function SettingsPage() {
       status: { text: `${activeUsers.length} active`, tone: "info" },
       action: canManageUsers ? <AddUserModal shiftTypes={shiftTypes.map((s) => ({ id: s.id, name: s.name }))} /> : undefined,
       content: canManageUsers ? (
-        <div className="-mx-6 -mb-6 -mt-2">
+        <div className="-mx-5 -mb-5 -mt-2">
           <UsersManagementTable users={users} currentUserId={currentUser.id} showSlack={isHomeTeam} />
         </div>
       ) : (
@@ -234,7 +234,7 @@ export default async function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">How your team works in {PRODUCT_NAME}: schedule rules, people and connected tools.</p>

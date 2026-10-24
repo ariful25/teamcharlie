@@ -48,9 +48,9 @@ export default async function DashboardPage() {
   const clientColor = new Map(clients.map((c, i) => [c.id, CLIENT_PALETTE[i % CLIENT_PALETTE.length]]));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
             {greeting(today, tz)}, {currentUser.name.split(" ")[0] || team.name} 👋
@@ -84,15 +84,15 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-golden">
+        <div className="min-w-0 space-y-8">
           {/* Client status */}
           <div>
             <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
               Client Status
             </h2>
             {clientStats.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              <div className="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
                 No clients yet.{" "}
                 <Link href="/clients" className="font-medium text-primary hover:brightness-110">
                   Add your first client
@@ -107,11 +107,9 @@ export default async function DashboardPage() {
               </div>
             )}
           </div>
-
-          <TodaysOperations rows={operationRows} />
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           <ShiftCard
             state={shiftState}
             checklistItems={checkoutChecklistItems.map((c) => ({ id: c.id, label: c.label }))}
@@ -120,6 +118,9 @@ export default async function DashboardPage() {
           <AttendanceWidget rows={attendanceRows} />
         </div>
       </div>
+
+      {/* Full width: a table needs width more than anything else on the page. */}
+      <TodaysOperations rows={operationRows} />
 
       <CharlieHq3DWrapper
         teamName={team.name}

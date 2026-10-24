@@ -73,9 +73,9 @@ function SyncLogModal({ clientId }: { clientId: string }) {
       </Button>
       <DialogContent title="Google Sheets Sync Log" className="max-w-2xl">
         {loading ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Loading...</p>
+          <p className="py-5 text-center text-sm text-muted-foreground">Loading...</p>
         ) : logs.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">No sync activity yet.</p>
+          <p className="py-5 text-center text-sm text-muted-foreground">No sync activity yet.</p>
         ) : (
           <div className="max-h-[60vh] space-y-2 overflow-y-auto">
             {logs.map((log) => (

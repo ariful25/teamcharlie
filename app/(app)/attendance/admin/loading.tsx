@@ -3,7 +3,7 @@ import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
 // Mirrors the Team Attendance console: day control, 6 tiles, tabs, roster.
 export default function TeamAttendanceLoading() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="space-y-2">
         <Skeleton className="h-3 w-32" />
         <Skeleton className="h-8 w-56" />

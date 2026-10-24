@@ -120,7 +120,7 @@ export function TaskHistoryView({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex items-center rounded-xl border border-border p-0.5">
           {STATUS_TABS.map((tab) => (

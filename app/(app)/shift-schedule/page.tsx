@@ -28,7 +28,7 @@ export default async function ShiftSchedulePage() {
   const roster = await getWeekRoster(currentUser.teamId, new Date());
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Shift Schedule</h1>
         <p className="mt-1 text-sm text-muted-foreground">

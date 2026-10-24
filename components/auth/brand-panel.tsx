@@ -13,7 +13,7 @@ export const FEATURES = [
 
 export function BrandPanel() {
   return (
-    <div className="relative hidden overflow-hidden bg-[hsl(222_47%_4%)] lg:flex lg:w-[45%] lg:items-center lg:justify-start lg:px-16">
+    <div className="relative hidden overflow-hidden bg-[hsl(222_47%_4%)] lg:flex lg:w-[38.2%] lg:items-center lg:justify-start lg:px-14">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-24 top-0 h-[32rem] w-[32rem] rounded-full bg-primary/25 blur-[100px]" />
         <div className="absolute -bottom-24 -right-10 h-[28rem] w-[28rem] rounded-full bg-accent/20 blur-[100px]" />
@@ -32,10 +32,10 @@ export function BrandPanel() {
         className="relative z-10 max-w-md"
       >
         <p className="text-xs font-semibold text-primary">Team Operations, Simplified</p>
-        <h2 className="mt-4 font-display text-4xl font-semibold leading-tight tracking-tight">
+        <h2 className="mt-3 font-display text-4xl font-semibold leading-tight tracking-tight">
           Great teams run on great operations.
         </h2>
-        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           {PRODUCT_NAME} helps operations teams stay organized and on schedule — one shared source of truth for
           every client, task, shift, and teammate.
         </p>

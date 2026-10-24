@@ -76,7 +76,7 @@ export function CheckoutChecklistPanel({ items: initial }: { items: ChecklistIte
       {items.map((item) => (
         <div
           key={item.id}
-          className="flex items-center justify-between gap-2 rounded-xl border border-border px-4 py-2.5 text-sm"
+          className="flex items-center justify-between gap-2 rounded-xl border border-border px-5 py-2.5 text-sm"
         >
           {editingId === item.id ? (
             <>

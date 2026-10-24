@@ -113,7 +113,7 @@ function NoticeCard({ notice, canPinNotices, canManage }: { notice: Notice; canP
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2 }}
-      className={`group mb-4 break-inside-avoid rounded-xl border border-black/5 p-4 shadow-md ${style.card}`}
+      className={`group mb-3 break-inside-avoid rounded-xl border border-black/5 p-5 shadow-md ${style.card}`}
     >
       {pinned && (
         <div className="mb-1 flex justify-end">
@@ -203,17 +203,17 @@ export function NoticeBoard({
   const archivedCount = notices.filter((n) => n.archived).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-center gap-1 rounded-full border border-border p-1 text-sm w-fit mx-auto">
         <button
           onClick={() => setTab("board")}
-          className={`rounded-full px-4 py-1.5 transition ${tab === "board" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          className={`rounded-full px-5 py-1.5 transition ${tab === "board" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           Board
         </button>
         <button
           onClick={() => setTab("archive")}
-          className={`rounded-full px-4 py-1.5 transition ${tab === "archive" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          className={`rounded-full px-5 py-1.5 transition ${tab === "archive" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           Archive {archivedCount > 0 && `(${archivedCount})`}
         </button>
@@ -227,7 +227,7 @@ export function NoticeBoard({
           <p className="text-sm">{tab === "board" ? "No notices yet. Post the first one for the team." : "No archived notices."}</p>
         </div>
       ) : (
-        <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+        <div className="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">
           {sorted.map((notice) => (
             <NoticeCard
               key={notice.id}

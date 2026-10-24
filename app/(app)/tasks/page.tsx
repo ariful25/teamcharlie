@@ -10,7 +10,7 @@ export default async function TasksPage() {
   const { tasks, clients, employees, categories, shiftTypes } = await getTasksPageData(currentUser.teamId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Tasks</h1>
         <p className="mt-1 text-sm text-muted-foreground">Today&apos;s task instances across all clients.</p>

@@ -4,7 +4,7 @@ import { Skeleton, SkeletonStatRow, SkeletonTable } from "@/components/ui/skelet
 // action buttons, a 4-up stat row, then the "Prepared Properties" table.
 export default function KnowledgeBaseLoading() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <Skeleton className="h-7 w-64" />
