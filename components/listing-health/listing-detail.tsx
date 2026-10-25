@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, ExternalLink, Plus, RefreshCw, Trash2, Upload, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ExternalLink, ClipboardPaste, Plus, RefreshCw, Trash2, Upload, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import type { SnapshotView } from "@/lib/listing-health/queries";
 import { Bar, Rating, SEVERITY_TONE, Stars, categoryBarTone, scoreTone } from "./shared";
 import { AddReviewDialog, ImportReviewsDialog } from "./review-dialogs";
+import { PasteReviewsDialog } from "./paste-reviews";
 import { FixTaskButton } from "./fix-task-button";
 import { AiAssistant, CheckinGuideCard, ReviewReply } from "./ai-panel";
 
@@ -81,6 +82,7 @@ export function ListingDetail({
   const [starFilter, setStarFilter] = useState<number | "low" | "all">("low");
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
 
   async function recheck() {
     setChecking(true);
@@ -119,8 +121,11 @@ export function ListingDetail({
         </div>
         {canManage && (
           <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setPasteOpen(true)}>
+              <ClipboardPaste className="h-4 w-4" /> Paste reviews
+            </Button>
             <Button variant="secondary" onClick={() => setImportOpen(true)}>
-              <Upload className="h-4 w-4" /> Import reviews
+              <Upload className="h-4 w-4" /> Import CSV
             </Button>
             <Button variant="secondary" onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4" /> Add review
@@ -270,7 +275,7 @@ export function ListingDetail({
         <CardContent>
           {reviews.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No reviews saved yet. {canManage ? "Use “Import reviews” (CSV from Guesty/your PMS) or “Add review” to paste them in." : ""}
+              No reviews saved yet. {canManage ? "Use “Paste reviews” (copy Airbnb’s Reviews page), “Import CSV”, or turn on Review email sync in Settings." : ""}
             </p>
           ) : themes.length === 0 ? (
             <p className="text-sm text-muted-foreground">No repeated complaints found in {reviews.length} reviews.</p>
@@ -398,6 +403,15 @@ export function ListingDetail({
       )}
 
       <AddReviewDialog open={addOpen} onOpenChange={setAddOpen} propertyId={property.id} />
+      <PasteReviewsDialog
+        open={pasteOpen}
+        onOpenChange={setPasteOpen}
+        clientId={property.clientId}
+        propertyId={property.id}
+        listingLabel={property.internalName}
+        listings={[]}
+        aiReady={ai.ready}
+      />
       <ImportReviewsDialog open={importOpen} onOpenChange={setImportOpen} clientId={property.clientId} propertyId={property.id} listingLabel={property.internalName} />
     </div>
   );

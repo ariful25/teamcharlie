@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Download, ExternalLink, RefreshCw, Search, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, ExternalLink, ClipboardPaste, RefreshCw, Search, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import { formatClientDateTime } from "@/lib/time";
 import type { PortfolioRow } from "@/lib/listing-health/queries";
 import { Bar, Rating, SEVERITY_TONE, ScoreBadge, categoryBarTone } from "./shared";
 import { ImportReviewsDialog } from "./review-dialogs";
+import { PasteReviewsDialog } from "./paste-reviews";
+import { ReviewInbox, type InboxItem } from "./review-inbox";
 
 type Summary = {
   listings: number;
@@ -66,12 +68,18 @@ export function ListingHealthPortfolio({
   rows,
   summary,
   canManage,
+  aiReady,
+  inbox,
+  teamListings,
 }: {
   clients: { id: string; name: string }[];
   clientId: string;
   rows: PortfolioRow[];
   summary: Summary;
   canManage: boolean;
+  aiReady: boolean;
+  inbox: InboxItem[];
+  teamListings: { id: string; name: string }[];
 }) {
   const tz = useTeamTimezone();
   const router = useRouter();
@@ -80,6 +88,7 @@ export function ListingHealthPortfolio({
   const [sort, setSort] = useState<Sort>("health");
   const [progress, setProgress] = useState<{ done: number; total: number; failed: number } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
 
   async function runChecks(onlyIds?: string[]) {
     const ids = onlyIds ?? rows.map((r) => r.id);
@@ -157,8 +166,11 @@ export function ListingHealthPortfolio({
           />
           {canManage && (
             <>
+              <Button variant="secondary" onClick={() => setPasteOpen(true)}>
+                <ClipboardPaste className="h-4 w-4" /> Paste reviews
+              </Button>
               <Button variant="secondary" onClick={() => setImportOpen(true)}>
-                <Upload className="h-4 w-4" /> Import reviews
+                <Upload className="h-4 w-4" /> Import CSV
               </Button>
               <Button onClick={() => runChecks()} disabled={!!progress || rows.length === 0}>
                 <RefreshCw className={`h-4 w-4 ${progress ? "animate-spin" : ""}`} />
@@ -168,6 +180,8 @@ export function ListingHealthPortfolio({
           )}
         </div>
       </div>
+
+      {canManage && <ReviewInbox items={inbox} listings={teamListings} />}
 
       {progress && (
         <div className="h-1.5 overflow-hidden rounded-full bg-muted/50">
@@ -384,6 +398,13 @@ export function ListingHealthPortfolio({
       </Card>
 
       <ImportReviewsDialog open={importOpen} onOpenChange={setImportOpen} clientId={clientId} />
+      <PasteReviewsDialog
+        open={pasteOpen}
+        onOpenChange={setPasteOpen}
+        clientId={clientId}
+        aiReady={aiReady}
+        listings={rows.map((r) => ({ id: r.id, name: r.internalName }))}
+      />
     </div>
   );
 }

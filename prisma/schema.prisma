@@ -258,6 +258,14 @@ model TeamSettings {
   openaiModel     String?
   aiDailyLimit    Int     @default(200)
 
+  // ---- Review email sync (lib/listing-health/inbox.ts): a Google Apps Script
+  // in the team's Gmail posts Airbnb review emails with this token. Only a
+  // SHA-256 hash is stored; the token itself is shown once in Settings.
+  reviewInboxTokenHash   String?   @unique
+  reviewInboxTokenHint   String?
+  reviewInboxCreatedById String?
+  reviewInboxLastSeenAt  DateTime?
+
   // ---- Leave allowances per calendar year (days).
   paidLeavePerYear Int @default(10)
   sickLeavePerYear Int @default(14)
@@ -1279,4 +1287,27 @@ model EmployeeEvent {
 
   @@index([userId, createdAt])
   @@index([teamId])
+}
+
+// An Airbnb review email received by the review email sync. Read
+// automatically when possible (status SAVED, reviewId set); otherwise it
+// waits as NEEDS_REVIEW for a person to fill in what the email didn't say.
+model ReviewInboxItem {
+  id          String   @id @default(cuid())
+  teamId      String
+  externalId  String // Gmail message id — duplicate guard
+  subject     String
+  fromAddress String
+  receivedAt  DateTime
+  body        String
+  status      String // SAVED | NEEDS_REVIEW | IGNORED
+  propertyId  String?
+  reviewId    String?
+  // What the reader found: { guestName, rating, comment, listingRef }
+  parsed      Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([teamId, externalId])
+  @@index([teamId, status])
 }

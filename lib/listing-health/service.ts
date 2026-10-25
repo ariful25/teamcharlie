@@ -85,7 +85,7 @@ export async function refreshListingHealth(propertyId: string, teamId: string, o
 }
 
 /** Matches a CSV "listing" cell to one of the client's listings. */
-function matchListing(ref: string | null, listings: { id: string; airbnbListingId: string | null; airbnbUrl: string; internalName: string; listingName: string | null }[]) {
+export function matchListing(ref: string | null, listings: { id: string; airbnbListingId: string | null; airbnbUrl: string; internalName: string; listingName: string | null }[]) {
   if (!ref) return null;
   const r = ref.trim().toLowerCase();
   const idInRef = r.match(/rooms\/(\d+)/)?.[1] ?? (/^\d{5,}$/.test(r) ? r : null);

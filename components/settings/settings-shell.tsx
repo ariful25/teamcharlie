@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Bell, Building2, ClipboardCheck, Clock3, MessageSquare, Sparkles, UserPlus, Users, type LucideIcon } from "lucide-react";
+import { Bell, Building2, ClipboardCheck, Clock3, MailCheck, MessageSquare, Sparkles, UserPlus, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Settings as a two-pane control centre: a grouped section list with live
@@ -17,6 +17,7 @@ const ICONS: Record<string, LucideIcon> = {
   shifts: Clock3,
   checklist: ClipboardCheck,
   ai: Sparkles,
+  reviews: MailCheck,
   discord: MessageSquare,
   slack: Bell,
 };

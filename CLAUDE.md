@@ -48,7 +48,13 @@ Raw punches (`actualCheckIn/Out`) are never overwritten; approved times go in
 page (rating, category scores, star distribution, photos, amenities) — see
 `lib/listing-health/`. Review texts aren't on the public page: they come from
 CSV import or manual entry (`ListingReview`), never from Airbnb's private
-APIs. Scoring, review-theme analysis and CSV parsing are pure functions —
+APIs. Without a PMS API, reviews also arrive by **paste** (text copied from
+Airbnb's Reviews page → preview → save) and **review email sync** (a Google
+Apps Script in the team's Gmail posts Airbnb review emails to
+`/api/inbound/reviews` with a per-team token; only its hash is stored).
+Readers are in `lib/listing-health/review-text.ts` (pure, tested); anything
+they can't read with confidence waits in the Review inbox for a person —
+ratings are never guessed. Scoring, review-theme analysis and CSV parsing are pure functions —
 run `npm run test:listing-health` after touching them. Health checks are
 throttled to one fetch per listing per 10 minutes.
 

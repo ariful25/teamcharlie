@@ -9,6 +9,7 @@ import { mapColumns, parseCsv, parseRating, parseReviewsCsv, reviewFingerprint }
 import { redactCodes, templateCheckinGuide } from "../lib/listing-health/ai";
 import { extractJson } from "../lib/ai/providers";
 import { softRedirectTarget } from "../lib/services/airbnb-extractor";
+import { looksLikeReviewEmail, parseLooseDate, parsePastedReviews, parseReviewEmail, ratingInText } from "../lib/listing-health/review-text";
 
 let passed = 0;
 function test(name: string, fn: () => void) {
@@ -208,6 +209,54 @@ test("Airbnb's geo-redirect page is followed to the same listing", () => {
   );
   assert.equal(softRedirectTarget('<title>Redirecting</title><script>location.href="https://evil.example/x"</script>', from), null);
   assert.equal(softRedirectTarget("<title>Jaeger Haus</title><script data-deferred-state-0>{}</script>", from), null);
+});
+
+test("pasted Airbnb reviews split into guest, date, rating and comment", () => {
+  const text = `Reviews
+Sarah
+October 2026
+Rating, 5 stars
+Lovely home, spotless and the hot tub was perfect.
+Show more
+Mike
+September 2026
+The wifi kept dropping and the beds were hard.
+Private feedback: please replace the mattress in bedroom 2
+Response from Ayesha
+Thanks Mike, we've called the ISP.`;
+  const out = parsePastedReviews(text);
+  assert.equal(out.length, 2);
+  assert.deepEqual(
+    { ...out[0] },
+    { guestName: "Sarah", reviewDate: "2026-10-01", rating: 5, comment: "Lovely home, spotless and the hot tub was perfect.", privateNote: null, listingRef: null }
+  );
+  assert.equal(out[1].rating, null, "no rating in the text → left for a person");
+  assert.equal(out[1].comment, "The wifi kept dropping and the beds were hard.");
+  assert.equal(out[1].privateNote, "please replace the mattress in bedroom 2");
+});
+
+test("loose dates and ratings", () => {
+  assert.equal(parseLooseDate("Oct 12, 2026"), "2026-10-12");
+  assert.equal(parseLooseDate("12 October 2026"), "2026-10-12");
+  assert.equal(parseLooseDate("2 weeks ago"), null);
+  assert.equal(ratingInText("Sam left a 4-star review!"), 4);
+  assert.equal(ratingInText("4.0 out of 5"), 4);
+  assert.equal(ratingInText("★★★"), 3);
+  assert.equal(ratingInText("Stayed 3 nights"), null);
+});
+
+test("Airbnb review emails: guest, rating, quote and listing", () => {
+  const r = parseReviewEmail({
+    subject: "Sam left a 4-star review!",
+    body: `Here's what Sam said about their stay:\n\n“Great location but the kitchen needed a deep clean.”\n\nhttps://www.airbnb.com/rooms/1000645092029118307?review=1`,
+  });
+  assert.equal(r.guestName, "Sam");
+  assert.equal(r.rating, 4);
+  assert.equal(r.comment, "Great location but the kitchen needed a deep clean.");
+  assert.equal(r.listingRef, "1000645092029118307");
+  assert.equal(looksLikeReviewEmail("Sam left a 4-star review!", "Airbnb <automated@airbnb.com>"), true);
+  assert.equal(looksLikeReviewEmail("Write a review for Sam", "Airbnb <automated@airbnb.com>"), false);
+  assert.equal(looksLikeReviewEmail("Your payout was sent", "Airbnb <automated@airbnb.com>"), false);
 });
 
 console.log(`\n${passed} passed`);

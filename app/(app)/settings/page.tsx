@@ -15,6 +15,8 @@ import { HOME_TEAM_SLUG, PRODUCT_NAME } from "@/lib/brand";
 import { AiSettingsPanel } from "@/components/settings/ai-settings-panel";
 import { getTeamAiConfig } from "@/lib/ai/client";
 import { DEFAULT_MODELS } from "@/lib/ai/providers";
+import { inboxStatus } from "@/lib/listing-health/inbox";
+import { ReviewSyncPanel } from "@/components/settings/review-sync-panel";
 
 export default async function SettingsPage() {
   const currentUser = await getCurrentUser();
@@ -74,6 +76,7 @@ export default async function SettingsPage() {
   const slackCheckoutConfigured = !!(process.env.SLACK_BOT_TOKEN && (process.env.SLACK_CHECKOUT_CHANNEL_ID || process.env.SLACK_TASK_CHANNEL_ID));
 
   const activeUsers = users.filter((u) => u.active);
+  const reviewSync = canManageNotifications ? await inboxStatus(currentUser.teamId) : null;
   const aiReady = !!aiConfig?.enabled && (aiConfig.provider === "OPENAI" ? aiConfig.hasOpenAiKey : aiConfig.hasAnthropicKey);
   const integrationStatus = (a: boolean, b: boolean): SettingsSection["status"] =>
     a && b ? { text: "Connected", tone: "ok" } : a || b ? { text: "Partial", tone: "warn" } : { text: "Not set up", tone: "off" };
@@ -172,6 +175,18 @@ export default async function SettingsPage() {
                 usage={usage}
               />
             ),
+          },
+        ]
+      : []),
+    ...(reviewSync
+      ? [
+          {
+            id: "reviews",
+            group: "Integrations" as const,
+            label: "Review email sync",
+            description: "Bring Airbnb guest reviews in automatically from your Gmail — no Airbnb API needed.",
+            status: reviewSync.connected ? { text: "On", tone: "ok" as const } : { text: "Off", tone: "off" as const },
+            content: <ReviewSyncPanel initial={reviewSync} />,
           },
         ]
       : []),
