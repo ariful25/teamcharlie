@@ -31,6 +31,8 @@ export const authOptions: NextAuthOptions = {
         const user = await prisma.user.findUnique({
           where: { email: credentials.email.toLowerCase() },
           include: { team: true },
+          // The only query allowed to read the hash (see lib/prisma.ts).
+          omit: { passwordHash: false },
         });
 
         // Same generic error for "no such user" and "wrong password" —

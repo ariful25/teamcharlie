@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   const teamId = (session.user as any).teamId as string;
-  const parsed = leadSchema.safeParse(await req.json());
+  const parsed = leadSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }

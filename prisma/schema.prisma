@@ -10,7 +10,9 @@
 //   overrides) — this is the single source of truth for expected attendance times.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // omitApi: lets lib/prisma.ts hide User.passwordHash from every query by default.
+  previewFeatures = ["omitApi"]
 }
 
 datasource db {

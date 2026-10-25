@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const existing = await canAccessUnit(params.id, teamId);
   if (!existing) return NextResponse.json({ error: "Unit not found" }, { status: 404 });
 
-  const parsed = unitSchema.partial().safeParse(await req.json());
+  const parsed = unitSchema.partial().safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }

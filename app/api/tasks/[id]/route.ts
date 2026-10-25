@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const teamId = (session.user as any).teamId as string;
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
 
   // Restoring is the one operation allowed on an already-deleted task — it's
   // how the "Recently Deleted" view undoes a soft delete. Everything else

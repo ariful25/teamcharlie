@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   // `channel` defaults to "discord" so the pre-existing retry button (which
   // only ever sent {recordId, kind}) keeps working unchanged.
-  const { recordId, kind, channel = "discord" } = await req.json();
+  const { recordId, kind, channel = "discord" } = await req.json().catch(() => ({}));
   if (!recordId || !["checkin", "checkout"].includes(kind) || !["discord", "slack"].includes(channel)) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }

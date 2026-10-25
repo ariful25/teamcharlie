@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const client = await getClientForTeam(params.id, teamId);
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
-  const parsed = clientIntegrationCreateSchema.safeParse(await req.json());
+  const parsed = clientIntegrationCreateSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }

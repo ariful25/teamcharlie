@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { weekStart } = await req.json();
+  const { weekStart } = await req.json().catch(() => ({}));
   if (!weekStart) return NextResponse.json({ error: "weekStart is required" }, { status: 400 });
 
   const result = await copyPreviousWeek(currentUser.teamId, parseDayParam(weekStart, await getTeamTimezone(currentUser.teamId)), currentUser.id);

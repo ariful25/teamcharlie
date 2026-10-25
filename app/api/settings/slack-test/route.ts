@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { kind } = await req.json();
+  const { kind } = await req.json().catch(() => ({}));
   if (!["checkin", "checkout"].includes(kind)) {
     return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
   }

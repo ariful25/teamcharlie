@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   const teamId = (session.user as any).teamId as string;
   const authorId = (session.user as any).id as string;
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const parsed = noticeSchema.safeParse(body);
 
   if (!parsed.success) {

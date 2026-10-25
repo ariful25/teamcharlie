@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const teamId = (session.user as any).teamId as string;
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const parsed = taskSchema.safeParse(body);
 
   if (!parsed.success) {

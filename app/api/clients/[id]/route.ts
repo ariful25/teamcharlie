@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const existing = await prisma.client.findFirst({ where: { id: params.id, teamId } });
   if (!existing) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
-  const parsed = clientUpdateSchema.safeParse(await req.json());
+  const parsed = clientUpdateSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
