@@ -8,7 +8,8 @@ async function getClientForTeam(id: string, teamId: string) {
   return prisma.client.findFirst({ where: { id, teamId }, select: { id: true } });
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -28,7 +29,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 // wizard's "Create Google Spreadsheet automatically" checkbox was off at
 // creation time, or the first attempt errored) — same function client
 // creation calls automatically, just invoked explicitly here.
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

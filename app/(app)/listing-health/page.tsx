@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { isAiReady } from "@/lib/ai/client";
 import { listInbox } from "@/lib/listing-health/inbox";
 
-export default async function ListingHealthPage({ searchParams }: { searchParams: { clientId?: string } }) {
+export default async function ListingHealthPage(props: { searchParams: Promise<{ clientId?: string }> }) {
+  const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
   const clients = await prisma.client.findMany({
     where: { teamId: currentUser.teamId, active: true },

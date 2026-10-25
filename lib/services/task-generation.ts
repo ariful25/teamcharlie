@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC, dayOfWeekInTz, combineDateAndTime } from "@/lib/time";
-import { releaseAt } from "@/lib/tasks/visibility";
+import { dueAt, releaseAt } from "@/lib/tasks/visibility";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { notifyTasksOverdue } from "@/lib/notifications";
 
@@ -165,7 +165,7 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
     if (released && released.getTime() > referenceDate.getTime()) continue;
     // Each task's own date, not the reference day — a task from three days
     // ago is compared against its own due time on its own day, not today's.
-    const due = combineDateAndTime(t.date, t.dueTime, tz);
+    const due = dueAt(t, tz)!;
     if (due.getTime() < referenceDate.getTime()) {
       newlyOverdue.push(t);
     }
@@ -182,5 +182,15 @@ export async function refreshOverdueTasks(teamId: string, referenceDate: Date = 
     await notifyTasksOverdue(teamId, newlyOverdue);
   }
 
-  return { markedOverdue: newlyOverdue.length };
+  // Undo false alarms: tasks flagged OVERDUE whose real due time (shift-aware,
+  // see dueAt) hasn't arrived yet — mostly overnight-shift tasks flagged by the
+  // old same-calendar-day rule.
+  const flagged = await prisma.task.findMany({
+    where: { teamId, status: "OVERDUE", deletedAt: null, isRecurringTemplate: false, dueTime: { not: null }, shiftTypeId: { not: null } },
+    include: { shiftType: true },
+  });
+  const notYetDue = flagged.filter((t) => (dueAt(t, tz)?.getTime() ?? 0) > referenceDate.getTime()).map((t) => t.id);
+  if (notYetDue.length) await prisma.task.updateMany({ where: { id: { in: notYetDue } }, data: { status: "UPCOMING" } });
+
+  return { markedOverdue: newlyOverdue.length, cleared: notYetDue.length };
 }

@@ -6,7 +6,10 @@ import { startOfDayUTC } from "@/lib/time";
 import { getPayroll } from "@/lib/payroll/service";
 import { PayrollConsole } from "@/components/payroll/payroll-console";
 
-export default async function PayrollPage({ searchParams }: { searchParams: { year?: string; month?: string; tab?: string } }) {
+export default async function PayrollPage(
+  props: { searchParams: Promise<{ year?: string; month?: string; tab?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
   if (!permissions.canManagePayroll(currentUser.role)) redirect("/dashboard");
 

@@ -10,7 +10,8 @@ import { noticeUpdateSchema } from "@/lib/validations";
 // — you'd write a new note, not edit the old one — the checklist field here
 // only ever replaces the whole array wholesale (toggling an item's
 // `checked`), never adds/removes/retexts items after creation.
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -54,7 +55,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 // The note's own author or an admin can take it down — same tier as who's
 // allowed to remove a physical note from the board.
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

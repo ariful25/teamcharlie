@@ -10,7 +10,8 @@ import { EmployeeShifts } from "@/components/attendance/employee-shifts";
 import { StatTile } from "@/components/attendance/ui";
 import { hm } from "@/lib/attendance/format";
 
-export default async function EmployeeAttendancePage({ params }: { params: { userId: string } }) {
+export default async function EmployeeAttendancePage(props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const currentUser = await getCurrentUser();
   const canReview = permissions.canEditAttendance(currentUser.role);
   // Employees can only see their own history.

@@ -4,7 +4,8 @@ import { permissions } from "@/lib/auth";
 import { getListingDetail } from "@/lib/listing-health/queries";
 import { ListingDetail } from "@/components/listing-health/listing-detail";
 
-export default async function ListingHealthDetailPage({ params }: { params: { propertyId: string } }) {
+export default async function ListingHealthDetailPage(props: { params: Promise<{ propertyId: string }> }) {
+  const params = await props.params;
   const currentUser = await getCurrentUser();
   const data = await getListingDetail(currentUser.teamId, params.propertyId);
   if (!data) notFound();

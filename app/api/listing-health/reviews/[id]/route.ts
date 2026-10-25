@@ -3,7 +3,8 @@ import { deleteReview } from "@/lib/listing-health/service";
 import { listingHealthErrorResponse, requireListingManager } from "@/lib/listing-health/http";
 
 // Remove a wrongly imported/added review.
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = await requireListingManager();
   if (auth.error) return auth.error;
   try {

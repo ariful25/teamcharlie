@@ -6,7 +6,8 @@ import { peopleActor, peopleErrorResponse } from "@/lib/people/http";
 // POST { type: "contact" | "document" | "event", ...fields }
 // DELETE ?type=…&id=…
 
-export async function POST(req: NextRequest, { params }: { params: { userId: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const actor = await peopleActor();
   if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = (await req.json().catch(() => ({}))) as { type?: string };
@@ -20,7 +21,8 @@ export async function POST(req: NextRequest, { params }: { params: { userId: str
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { userId: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const actor = await peopleActor();
   if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const type = req.nextUrl.searchParams.get("type");

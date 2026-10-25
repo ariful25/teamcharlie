@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { Radar, Lock, Mail, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { AUTH_ERROR_ACCOUNT_DISABLED } from "@/lib/auth-errors";
+import { AUTH_ERROR_ACCOUNT_DISABLED, AUTH_ERROR_TOO_MANY_ATTEMPTS } from "@/lib/auth-errors";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { BrandPanel, FEATURES } from "@/components/auth/brand-panel";
 
@@ -70,7 +70,9 @@ function LoginForm() {
       setError(
         res.error === AUTH_ERROR_ACCOUNT_DISABLED
           ? "Your account has been disabled. Contact your administrator."
-          : "Incorrect email or password."
+          : res.error === AUTH_ERROR_TOO_MANY_ATTEMPTS
+            ? "Too many failed attempts. Wait 15 minutes, then try again."
+            : "Incorrect email or password."
       );
       return;
     }

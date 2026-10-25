@@ -4,7 +4,8 @@ import { permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // Revoke a pending invite — its link stops working immediately.
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const currentUser = await getCurrentUserOrNull();
   if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!permissions.canManageUsers(currentUser.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

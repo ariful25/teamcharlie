@@ -3,7 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { encode as defaultEncode, decode as defaultDecode } from "next-auth/jwt";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { AUTH_ERROR_INVALID_CREDENTIALS, AUTH_ERROR_ACCOUNT_DISABLED } from "@/lib/auth-errors";
+import { AUTH_ERROR_INVALID_CREDENTIALS, AUTH_ERROR_ACCOUNT_DISABLED, AUTH_ERROR_TOO_MANY_ATTEMPTS } from "@/lib/auth-errors";
+import { clear, clientIp, hit, LOGIN_MAX_PER_ACCOUNT, LOGIN_MAX_PER_IP, LOGIN_WINDOW_MS, peek } from "@/lib/rate-limit";
 
 const ONE_DAY_SECONDS = 24 * 60 * 60;
 const THIRTY_DAYS_SECONDS = 30 * ONE_DAY_SECONDS;
@@ -23,10 +24,21 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
         rememberMe: { label: "Remember me", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error(AUTH_ERROR_INVALID_CREDENTIALS);
         }
+
+        // Brute-force guard, shared across server instances (lib/rate-limit.ts).
+        const accountKey = `login:account:${credentials.email.toLowerCase()}`;
+        const ipKey = `login:ip:${clientIp(req?.headers ?? {})}`;
+        if ((await peek(accountKey)) >= LOGIN_MAX_PER_ACCOUNT || (await peek(ipKey)) >= LOGIN_MAX_PER_IP) {
+          throw new Error(AUTH_ERROR_TOO_MANY_ATTEMPTS);
+        }
+        const fail = async (code: string) => {
+          await Promise.all([hit(accountKey, LOGIN_WINDOW_MS), hit(ipKey, LOGIN_WINDOW_MS)]);
+          throw new Error(code);
+        };
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email.toLowerCase() },
@@ -41,11 +53,12 @@ export const authOptions: NextAuthOptions = {
         // distinguished (see AUTH_ERROR_ACCOUNT_DISABLED) since that's a
         // deliberate admin action the user should know to ask about,
         // not something to hide.
-        if (!user) throw new Error(AUTH_ERROR_INVALID_CREDENTIALS);
+        if (!user) return fail(AUTH_ERROR_INVALID_CREDENTIALS);
         if (!user.active) throw new Error(AUTH_ERROR_ACCOUNT_DISABLED);
 
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!valid) throw new Error(AUTH_ERROR_INVALID_CREDENTIALS);
+        if (!valid) return fail(AUTH_ERROR_INVALID_CREDENTIALS);
+        await clear(accountKey);
 
         return {
           id: user.id,

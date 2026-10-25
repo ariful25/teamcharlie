@@ -8,7 +8,8 @@ import { AcceptInviteForm } from "@/components/auth/accept-invite-form";
 
 export const metadata: Metadata = { title: `Join a team · ${PRODUCT_NAME}` };
 
-export default async function InvitePage({ params }: { params: { token: string } }) {
+export default async function InvitePage(props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const [invite, currentUser] = await Promise.all([findUsableInvite(params.token), getCurrentUserOrNull()]);
 
   if (!invite) {

@@ -12,7 +12,8 @@ import { syncPropertyToSheet } from "@/lib/google-sheets/sync";
 // well before this, so this is a ceiling, not the expected duration.
 export const maxDuration = 30;
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

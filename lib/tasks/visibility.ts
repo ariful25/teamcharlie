@@ -38,3 +38,17 @@ export function boardPhase(
   if (task.releaseAt && now < new Date(task.releaseAt).getTime()) return "later";
   return "board";
 }
+
+/**
+ * When a task is actually due. For a task tied to a shift, the due time is
+ * its first occurrence at or after the shift starts: an Evening (17:00–01:00)
+ * task due "00:30" is due 00:30 the next morning, not 16 hours before the
+ * shift begins. Other tasks are due at that clock time on their own day.
+ */
+export function dueAt(task: { date: Date; dueTime: string | null; shiftType?: { startTime: string } | null }, tz: string): Date | null {
+  if (!task.dueTime) return null;
+  const due = combineDateAndTime(task.date, task.dueTime, tz);
+  if (!task.shiftType?.startTime) return due;
+  const start = combineDateAndTime(task.date, task.shiftType.startTime, tz);
+  return due.getTime() < start.getTime() ? new Date(due.getTime() + 24 * 60 * 60 * 1000) : due;
+}

@@ -1,0 +1,71 @@
+name: CI
+
+# Every push and pull request: types, lint, unit tests, a production build,
+# and the security suite against that build on a throwaway Postgres.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: teamhq_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/teamhq_ci
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/teamhq_ci
+      NEXTAUTH_URL: http://localhost:3123
+      NEXTAUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      HOME_TEAM_SLUG: charlie
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Migrate a fresh database
+        run: npx prisma migrate deploy
+
+      - name: Build
+        run: npx next build
+
+      - name: Security suite against the built app
+        run: |
+          npx next start -p 3123 > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3123/login && break; sleep 2; done
+          BASE_URL=http://localhost:3123 npm run test:security
+
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 200 server.log || true

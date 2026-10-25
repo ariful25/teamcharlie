@@ -5,7 +5,8 @@ import { getCurrentUser } from "@/lib/session";
 import { getProfile } from "@/lib/people/queries";
 import { ProfileView } from "@/components/people/profile-view";
 
-export default async function PersonPage({ params }: { params: { userId: string } }) {
+export default async function PersonPage(props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const user = await getCurrentUser();
   const data = await getProfile({ id: user.id, role: user.role, teamId: user.teamId }, params.userId);
   if (!data) notFound();

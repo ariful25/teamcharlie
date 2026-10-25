@@ -4,7 +4,8 @@ import { permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateUserSchema } from "@/lib/validations";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const currentUser = await getCurrentUserOrNull();
   if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

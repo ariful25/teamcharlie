@@ -1380,3 +1380,11 @@ model MessageTemplate {
 
   @@unique([teamId, key])
 }
+
+// Rate-limit counters shared by every server instance (lib/rate-limit.ts).
+// In-memory counters don't work on serverless: each instance has its own.
+model RateLimit {
+  key        String   @id
+  count      Int
+  windowEnds DateTime
+}

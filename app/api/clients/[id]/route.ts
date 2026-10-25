@@ -4,7 +4,8 @@ import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clientUpdateSchema } from "@/lib/validations";
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -22,7 +23,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 // disappears from active dropdowns (every list query already filters
 // `active: true`, e.g. app/api/clients GET, lib/queries/tasks.ts,
 // lib/queries/dashboard.ts, the knowledge-base page).
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

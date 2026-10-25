@@ -13,7 +13,8 @@ const schema = z.object({
   reviewId: z.string().optional(),
 });
 
-export async function POST(req: NextRequest, { params }: { params: { propertyId: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ propertyId: string }> }) {
+  const params = await props.params;
   const auth = await requireListingManager();
   if (auth.error) return auth.error;
   const parsed = schema.safeParse(await req.json().catch(() => ({})));

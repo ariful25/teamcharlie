@@ -3,7 +3,8 @@ import { resolveInboxItem } from "@/lib/listing-health/inbox";
 import { listingHealthErrorResponse, requireListingManager } from "@/lib/listing-health/http";
 
 // Finish an email the reader couldn't fully read (SAVE) or dismiss it (IGNORE).
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = await requireListingManager();
   if (auth.error) return auth.error;
   try {

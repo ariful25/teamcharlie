@@ -7,7 +7,7 @@ import { allowRequest, clientIp } from "@/lib/rate-limit";
 // browser then signs in with the same credentials (NextAuth credentials
 // provider) — this route never issues a session itself.
 export async function POST(req: NextRequest) {
-  if (!allowRequest(`signup:${clientIp(req)}`, 5, 60 * 60 * 1000)) {
+  if (!(await allowRequest(`signup:${clientIp(req.headers)}`, 5, 60 * 60 * 1000))) {
     return NextResponse.json({ error: "Too many sign-up attempts. Try again in an hour." }, { status: 429 });
   }
 

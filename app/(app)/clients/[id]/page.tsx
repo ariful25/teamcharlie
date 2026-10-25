@@ -13,7 +13,8 @@ import { ClientFilesPanel } from "@/components/clients/client-files-panel";
 import { ClientGoogleSheetPanel } from "@/components/clients/client-google-sheet-panel";
 import { getClientIntegrationOverview } from "@/lib/services/integrations";
 
-export default async function ClientWorkspacePage({ params }: { params: { id: string } }) {
+export default async function ClientWorkspacePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const currentUser = await getCurrentUser();
 
   // params.id is the same clientId getClientWorkspaceData scopes its lookup

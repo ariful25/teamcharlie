@@ -4,3 +4,4 @@
 // signIn({redirect:false}) for how they surface as res.error.
 export const AUTH_ERROR_INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
 export const AUTH_ERROR_ACCOUNT_DISABLED = "ACCOUNT_DISABLED";
+export const AUTH_ERROR_TOO_MANY_ATTEMPTS = "TOO_MANY_ATTEMPTS";

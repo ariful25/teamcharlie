@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { shiftAssignmentUpdateSchema } from "@/lib/validations";
 import { teamOwnsShiftType } from "@/lib/tenancy";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const currentUser = await getCurrentUserOrNull();
   if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

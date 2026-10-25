@@ -25,7 +25,10 @@ import { LeavePanel } from "@/components/attendance/leave-panel";
 import { leaveBalances, leaveViews } from "@/lib/leave/service";
 import { hm } from "@/lib/attendance/format";
 
-export default async function AttendancePage({ searchParams }: { searchParams: { year?: string; month?: string; weekStart?: string } }) {
+export default async function AttendancePage(
+  props: { searchParams: Promise<{ year?: string; month?: string; weekStart?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
   const tz = await getTeamTimezone(currentUser.teamId);
   const isLead = permissions.canEditAttendance(currentUser.role);

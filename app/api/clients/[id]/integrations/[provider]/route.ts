@@ -8,7 +8,11 @@ import { clientIntegrationUpdateSchema, INTEGRATION_PROVIDERS } from "@/lib/vali
 // "a human is asserting this is true" pattern TeamSettings already uses for
 // discordCheckinWebhookConfigured. This is never auto-set to CONNECTED by
 // anything else in the app.
-export async function PATCH(req: NextRequest, { params }: { params: { id: string; provider: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string; provider: string }> }
+) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

@@ -3,7 +3,8 @@ import { updateReview } from "@/lib/reviews/service";
 import { listingHealthErrorResponse, requireListingManager } from "@/lib/listing-health/http";
 
 // Edit a saved review: rating, text, guest, private note, "responded".
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = await requireListingManager();
   if (auth.error) return auth.error;
   try {

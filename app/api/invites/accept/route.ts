@@ -8,7 +8,7 @@ import { allowRequest, clientIp } from "@/lib/rate-limit";
 // Public: turns a valid invite link into an account on the inviting team.
 // The email is always the one the admin invited — never taken from the body.
 export async function POST(req: NextRequest) {
-  if (!allowRequest(`invite-accept:${clientIp(req)}`, 20, 60 * 60 * 1000)) {
+  if (!(await allowRequest(`invite-accept:${clientIp(req.headers)}`, 20, 60 * 60 * 1000))) {
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }
 

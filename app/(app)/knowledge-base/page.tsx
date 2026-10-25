@@ -3,11 +3,12 @@ import { getCurrentUser } from "@/lib/session";
 import { permissions } from "@/lib/auth";
 import { KnowledgeBaseManager } from "@/components/knowledge-base/knowledge-base-manager";
 
-export default async function KnowledgeBasePage({
-  searchParams,
-}: {
-  searchParams?: { clientId?: string };
-}) {
+export default async function KnowledgeBasePage(
+  props: {
+    searchParams?: Promise<{ clientId?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
   const canManage = permissions.canManageKnowledgeBase(currentUser.role);
 

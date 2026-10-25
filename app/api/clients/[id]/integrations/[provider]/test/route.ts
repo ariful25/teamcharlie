@@ -9,7 +9,11 @@ import { INTEGRATION_HAS_CONNECTOR, INTEGRATION_LABELS, IntegrationProviderId } 
 // lib/services/integrations.ts), so this always honestly reports that no
 // automated test exists rather than faking a success. It still records
 // lastCheckedAt so "someone tried this" is visible — that part is real.
-export async function POST(_req: NextRequest, { params }: { params: { id: string; provider: string } }) {
+export async function POST(
+  _req: NextRequest,
+  props: { params: Promise<{ id: string; provider: string }> }
+) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

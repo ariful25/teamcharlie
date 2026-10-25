@@ -10,7 +10,8 @@ import { getOvertimeBoard, getReviewQueue, getTeamDay } from "@/lib/queries/atte
 import { TeamAttendanceConsole } from "@/components/attendance/team-attendance-console";
 import { leaveViews } from "@/lib/leave/service";
 
-export default async function TeamAttendancePage({ searchParams }: { searchParams: { day?: string; tab?: string } }) {
+export default async function TeamAttendancePage(props: { searchParams: Promise<{ day?: string; tab?: string }> }) {
+  const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
   if (!permissions.canEditAttendance(currentUser.role)) redirect("/attendance");
 

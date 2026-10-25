@@ -3,11 +3,12 @@ import { getTaskHistory } from "@/lib/queries/tasks";
 import { prisma } from "@/lib/prisma";
 import { TaskHistoryView } from "@/components/tasks/task-history-view";
 
-export default async function TaskHistoryPage({
-  searchParams,
-}: {
-  searchParams: { status?: string; clientId?: string; assignedUserId?: string; from?: string; to?: string };
-}) {
+export default async function TaskHistoryPage(
+  props: {
+    searchParams: Promise<{ status?: string; clientId?: string; assignedUserId?: string; from?: string; to?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
 
   const status = (searchParams.status as "ALL" | "COMPLETED" | "DELETED") ?? "ALL";

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfDayUTC, formatTime, combineDateAndTime } from "@/lib/time";
 import { differenceInMinutes } from "date-fns";
-import { boardPhase, releaseAt } from "@/lib/tasks/visibility";
+import { boardPhase, dueAt, releaseAt } from "@/lib/tasks/visibility";
 
 export async function getDashboardData(teamId: string) {
   const tz = await getTeamTimezone(teamId);
@@ -69,7 +69,7 @@ export async function getDashboardData(teamId: string) {
       // t's own date, not today's — a task overdue since 3 days ago must be
       // compared against when it was actually due, not today's date, or
       // "overdue by" would understate it (or go negative).
-      const due = combineDateAndTime(t.date, t.dueTime, tz);
+      const due = dueAt(t, tz)!;
       const mins = differenceInMinutes(new Date(), due);
       overdueBy = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins} minutes`;
     }

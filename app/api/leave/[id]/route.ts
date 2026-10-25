@@ -8,7 +8,8 @@ import { attendanceErrorResponse } from "@/lib/attendance/http";
 const schema = z.object({ action: z.enum(["APPROVE", "REJECT", "REVOKE"]), note: z.string().max(500).optional().nullable() });
 
 // Lead/admin decision (approve writes the leave onto the Shift Schedule).
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await getCurrentUserOrNull();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!permissions.canEditAttendance(user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -23,7 +24,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // The employee withdrawing their own pending request.
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await getCurrentUserOrNull();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
