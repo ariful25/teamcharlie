@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, LayoutGrid, List as ListIcon, History, CheckCircle2, ChevronDown, Clock3 } from "lucide-react";
 import { boardPhase } from "@/lib/tasks/visibility";
+import type { BoardTask, TasksPageData } from "@/lib/queries/tasks";
 import { useTeamTimezone } from "@/components/providers/team-timezone";
 import { formatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -22,11 +23,11 @@ export function TasksBoard({
   shiftTypes,
   currentUserId,
 }: {
-  tasks: any[];
-  clients: any[];
-  employees: any[];
-  categories: any[];
-  shiftTypes: any[];
+  tasks: BoardTask[];
+  clients: TasksPageData["clients"];
+  employees: TasksPageData["employees"];
+  categories: TasksPageData["categories"];
+  shiftTypes: TasksPageData["shiftTypes"];
   currentUserId: string;
 }) {
   const searchParams = useSearchParams();
@@ -49,9 +50,11 @@ export function TasksBoard({
     return () => clearInterval(t);
   }, []);
 
-  const phaseOf = (t: any) => boardPhase(t, now);
+  const phaseOf = (t: BoardTask) => boardPhase(t, now);
   const doneToday = tasks.filter((t) => t.status === "COMPLETED");
-  const later = tasks.filter((t) => phaseOf(t) === "later").sort((a, b) => a.releaseAt.localeCompare(b.releaseAt));
+  const later = tasks
+    .filter((t): t is BoardTask & { releaseAt: string } => t.releaseAt !== null && phaseOf(t) === "later")
+    .sort((a, b) => a.releaseAt.localeCompare(b.releaseAt));
   const laterGroups = later.reduce<{ key: string; label: string; count: number }[]>((acc, t) => {
     const label = `${t.shiftType?.name ?? "Shift"} · ${formatTime(new Date(t.releaseAt), tz)}`;
     const g = acc.find((x) => x.key === t.releaseAt);

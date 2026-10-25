@@ -16,7 +16,7 @@ export function TemplatesEditor({ templates }: { templates: ReviewHub["templates
     <div className="space-y-5">
       <p className="max-w-[72ch] text-sm text-muted-foreground">
         These fill in the guest&apos;s first name (<code>{"{firstName}"}</code>) and listing (<code>{"{listing}"}</code>). Airbnb&apos;s Reviews Policy
-        forbids offering anything for a review, pressuring guests, or trading reviews (&ldquo;our 5★ for yours&rdquo;) — the editor warns when a message
+        forbids offering anything for a review, pressuring guests or trading reviews (&ldquo;our 5★ for yours&rdquo;). The editor warns when a message
         reads that way.
       </p>
       {templates.map((t) => (

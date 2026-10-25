@@ -73,12 +73,12 @@ function ConfigureModal({ clientId, row }: { clientId: string; row: IntegrationR
           {row.record ? "Update" : "Connect"}
         </Button>
       </DialogTrigger>
-      <DialogContent title={`${row.label} — Connection Status`} className="max-w-md">
+      <DialogContent title={`${row.label} connection status`} className="max-w-md">
         <form onSubmit={handleSubmit} className="space-y-3">
           <p className="text-xs text-muted-foreground">
             {row.hasConnector
               ? "Set this once the connection is set up."
-              : `${PRODUCT_NAME} has no automated ${row.label} connector yet — this only records the status for team visibility, it does not give ${PRODUCT_NAME} access. Set it up directly in ${row.label}, then mark it "Externally Configured" here.`}
+              : `${PRODUCT_NAME} has no automated ${row.label} connector yet. This only records the status for team visibility; it does not give ${PRODUCT_NAME} access. Set it up directly in ${row.label}, then mark it "Externally Configured" here.`}
           </p>
           <Field label="Status">
             <Select

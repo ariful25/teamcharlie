@@ -15,9 +15,9 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
-  const userId = (session.user as any).id as string;
-  const role = (session.user as any).role;
+  const teamId = session.user.teamId as string;
+  const userId = session.user.id as string;
+  const role = session.user.role;
 
   const existing = await prisma.notice.findFirst({ where: { id: params.id, teamId } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -60,9 +60,9 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
-  const userId = (session.user as any).id as string;
-  const role = (session.user as any).role;
+  const teamId = session.user.teamId as string;
+  const userId = session.user.id as string;
+  const role = session.user.role;
 
   const existing = await prisma.notice.findFirst({ where: { id: params.id, teamId } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });

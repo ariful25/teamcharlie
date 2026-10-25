@@ -57,7 +57,7 @@ async function createSpreadsheetFile(title: string): Promise<string> {
   const folderId = process.env.GOOGLE_DRIVE_CLIENTS_FOLDER_ID;
   if (!folderId && isUsingServiceAccount()) {
     throw new Error(
-      "GOOGLE_DRIVE_CLIENTS_FOLDER_ID is not set. With a service account it must point to a folder inside a Shared Drive that the service account is a member of — a bare service account has no storage quota of its own and cannot create files anywhere else."
+      "GOOGLE_DRIVE_CLIENTS_FOLDER_ID is not set. With a service account it must point to a folder inside a Shared Drive that the service account is a member of. A bare service account has no storage quota of its own and cannot create files anywhere else."
     );
   }
 
@@ -157,7 +157,7 @@ export async function createClientSpreadsheet(clientId: string) {
           { range: `${TABS.FAILED_EXTRACTION}!A1`, values: [FAILED_EXTRACTION_HEADERS] },
           { range: `${TABS.CHANGE_LOG}!A1`, values: [CHANGE_LOG_HEADERS] },
           { range: `${TABS.CONFIG}!A1`, values: [["Column", "Type", "Sync"]] },
-          { range: `${TABS.NOTEBOOK_LM}!A1`, values: [["No properties yet — this fills in automatically once properties are added and synced."]] },
+          { range: `${TABS.NOTEBOOK_LM}!A1`, values: [["No properties yet. This fills in automatically once properties are added and synced."]] },
         ],
       },
     });

@@ -68,13 +68,32 @@ function reviewDigest(ctx: Awaited<ReturnType<typeof loadContext>>, limit = 40) 
     .join("\n");
 }
 
+/**
+ * Models use long dashes however they're asked not to; TeamHQ's copy never
+ * does. Ranges become "to" ("60–120" → "60 to 120"), other dashes a comma.
+ */
+export function undash(text: string) {
+  return text
+    .replace(/(\d)\s*[–—]\s*(\d)/g, "$1 to $2")
+    .replace(/\s*[—–]\s*/g, ", ")
+    .replace(/,\s*([.!?])/g, "$1")
+    .replace(/^,\s*/gm, "");
+}
+
+function undashDeep<T>(value: T): T {
+  if (typeof value === "string") return undash(value) as T;
+  if (Array.isArray(value)) return value.map(undashDeep) as T;
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, undashDeep(v)])) as T;
+  return value;
+}
+
 async function save(propertyId: string, kind: AiKind, content: unknown, meta: { provider: string; model: string; userId: string; reviewId?: string | null }) {
   return prisma.listingAiNote.create({
     data: {
       propertyId,
       kind,
       reviewId: meta.reviewId ?? null,
-      content: content as Prisma.InputJsonValue,
+      content: undashDeep(content) as Prisma.InputJsonValue,
       provider: meta.provider,
       model: meta.model,
       createdById: meta.userId,
@@ -83,11 +102,11 @@ async function save(propertyId: string, kind: AiKind, content: unknown, meta: { 
 }
 
 const BASE_SYSTEM =
-  "You are an expert short-term rental operations manager helping a property-management team improve Airbnb listings. Be specific, practical and concise. Only use the facts given — never invent amenities, fixes that were made, or numbers.";
+  "You are an expert short-term rental operations manager helping a property-management team improve Airbnb listings. Be specific, practical and concise. Only use the facts given; never invent amenities, fixes that were made or numbers. Write in plain sentences and never use em dashes or en dashes (— or –); use full stops, commas or colons instead.";
 
 export async function generateInsights(teamId: string, userId: string, propertyId: string) {
   const ctx = await loadContext(propertyId, teamId);
-  if (!ctx.snapshot && ctx.reviews.length === 0) throw new AiError("Run a health check or import reviews first — there's nothing to analyse yet.");
+  if (!ctx.snapshot && ctx.reviews.length === 0) throw new AiError("Run a health check or import reviews first. There's nothing to analyse yet.");
   const themes = analyzeReviews(ctx.reviews)
     .slice(0, 8)
     .map((t) => `- ${t.label}: ${t.reviews} reviews`)
@@ -199,14 +218,14 @@ export async function generateReviewReply(teamId: string, userId: string, review
     prompt: `Listing: ${review.property.listingName ?? review.property.internalName}
 Guest rating: ${review.rating}★
 Public review: ${clip(review.comment, 1500)}
-${review.privateNote ? `Private feedback (context only — never quote or reveal it): ${clip(redactCodes(review.privateNote), 600)}` : ""}
+${review.privateNote ? `Private feedback (context only; never quote or reveal it): ${clip(redactCodes(review.privateNote), 600)}` : ""}
 
 Write the host's public response:
 - Thank the guest by first name if one is obvious, otherwise no name.
 - Acknowledge the specific points calmly; never argue, blame the guest or share private details.
-- Don't claim something was fixed unless the review says so — say it has been passed to the team to address.
+- Don't claim something was fixed unless the review says so; say it has been passed to the team to address.
 - Future guests will read it: show care and professionalism.
-- 60–120 words, plain text, no sign-off placeholder.`,
+- 60 to 120 words, plain text, no sign-off placeholder.`,
   });
   return save(review.propertyId, "REVIEW_REPLY", { text: result.text.trim().slice(0, 2000) } satisfies TextContent, { ...result, userId, reviewId });
 }

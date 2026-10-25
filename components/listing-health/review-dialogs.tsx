@@ -183,7 +183,7 @@ export function AddReviewDialog({ open, onOpenChange, propertyId }: { open: bool
             <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={4} required minLength={2} className={inputClass} placeholder="Paste the guest's review" />
           </Field>
           <Field label="Private feedback" className="col-span-2">
-            <textarea value={privateNote} onChange={(e) => setPrivateNote(e.target.value)} rows={2} className={inputClass} placeholder="Optional — what they told you privately" />
+            <textarea value={privateNote} onChange={(e) => setPrivateNote(e.target.value)} rows={2} className={inputClass} placeholder="Optional: what they told you privately" />
           </Field>
           <Button type="submit" disabled={busy} className="col-span-2">
             {busy ? "Saving…" : "Save review"}

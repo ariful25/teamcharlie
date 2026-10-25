@@ -13,12 +13,12 @@ export async function GET(req: NextRequest) {
   // exporting it is a bulk sensitive-data action and must be gated the same
   // way create/edit/extract already are, not left reachable by any team
   // member just because the download link exists.
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!permissions.canManageKnowledgeBase(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const clientId = req.nextUrl.searchParams.get("clientId") ?? undefined;
   const where = { client: { teamId }, ...(clientId ? { clientId } : {}) };
 

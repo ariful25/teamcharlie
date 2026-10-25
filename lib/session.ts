@@ -12,40 +12,35 @@ export type CurrentUser = {
   teamSlug: string;
 };
 
-/**
- * The single place every Server Component/route should get the current user from.
- * Replaces the previous fragile `session!.user` pattern, which threw a hard
- * null-reference error on refresh/direct-visit races instead of redirecting
- * cleanly to /login. Always awaits and null-checks the session before touching it.
- */
-export async function getCurrentUser(): Promise<CurrentUser> {
+/** The signed-in user, or null when there's no complete session. A session
+ *  without an id or teamId is treated as signed out: a missing teamId would
+ *  turn `where: { teamId }` into "every team" in Prisma. */
+async function readUser(): Promise<CurrentUser | null> {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    redirect("/login");
-  }
-  const user = session.user as any;
+  const user = session?.user;
+  if (!user?.id || !user.teamId || !user.role) return null;
   return {
     id: user.id,
     name: user.name ?? "",
     email: user.email ?? "",
     role: user.role,
     teamId: user.teamId,
-    teamSlug: user.teamSlug,
+    teamSlug: user.teamSlug ?? "",
   };
 }
 
-/** Same as getCurrentUser, but returns null instead of redirecting — for places
- * (like API routes) that need to return a 401 response rather than a redirect. */
+/**
+ * The single place every Server Component/route should get the current user
+ * from. Redirects to /login when there's no complete session.
+ */
+export async function getCurrentUser(): Promise<CurrentUser> {
+  const user = await readUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
+/** Same as getCurrentUser, but returns null instead of redirecting — for API
+ *  routes that answer 401 rather than redirect. */
 export async function getCurrentUserOrNull(): Promise<CurrentUser | null> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return null;
-  const user = session.user as any;
-  return {
-    id: user.id,
-    name: user.name ?? "",
-    email: user.email ?? "",
-    role: user.role,
-    teamId: user.teamId,
-    teamSlug: user.teamSlug,
-  };
+  return readUser();
 }

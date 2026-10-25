@@ -212,7 +212,7 @@ export async function autoStopOpenSessions(scope: { teamId?: string; userId?: st
     });
     if (result.count === 1) {
       stopped++;
-      await audit(prisma, r.id, SYSTEM_ACTOR, "AUTO_STOP", snapshot(r), { autoClosedAt: stopAt }, "No check-out — timer stopped automatically.");
+      await audit(prisma, r.id, SYSTEM_ACTOR, "AUTO_STOP", snapshot(r), { autoClosedAt: stopAt }, "No check-out, so the timer stopped automatically.");
     }
   }
   return { stopped };
@@ -233,7 +233,7 @@ export async function checkIn(userId: string) {
   if (blocking) {
     throw new AttendanceError(
       "BLOCKED",
-      `Your shift on ${dayLabel(dateKeyOf(blocking.date), "EEE d MMM")} has no check-out yet. A team lead has to confirm it before you can check in — use “Request check-in” so your start time is recorded.`,
+      `Your shift on ${dayLabel(dateKeyOf(blocking.date), "EEE d MMM")} has no check-out yet. A team lead has to confirm it before you can check in. Use “Request check-in” so your start time is recorded.`,
       409
     );
   }
@@ -286,7 +286,7 @@ export async function requestCheckIn(userId: string, note?: string) {
   await autoStopOpenSessions({ userId }, now);
 
   if (!(await findBlockingRecord(userId))) {
-    throw new AttendanceError("NOT_BLOCKED", "Nothing is blocking you — just press Check In.", 409);
+    throw new AttendanceError("NOT_BLOCKED", "Nothing is blocking you. Just press Check In.", 409);
   }
   const date = await resolveShiftDay(userId, now, tz);
   const record = await getOrCreateRecordForDay(userId, date, tz);
@@ -400,7 +400,7 @@ export async function submitClaim(
   }
   const claimedIn = input.claimedCheckIn ? new Date(input.claimedCheckIn) : null;
   const claimedOut = input.claimedCheckOut ? new Date(input.claimedCheckOut) : null;
-  if (!claimedIn && !claimedOut) throw new AttendanceError("INVALID_CLAIM", "Enter the time you started, finished, or both.");
+  if (!claimedIn && !claimedOut) throw new AttendanceError("INVALID_CLAIM", "Enter the time you started, finished or both.");
   if ((claimedIn && isNaN(claimedIn.getTime())) || (claimedOut && isNaN(claimedOut.getTime()))) {
     throw new AttendanceError("INVALID_CLAIM", "One of the times isn't valid.");
   }
@@ -470,7 +470,7 @@ export async function reviewRecord(reviewer: Reviewer, input: ReviewInput) {
   }
   if (!record) throw new AttendanceError("NOT_FOUND", "Attendance record not found.", 404);
   if (!canReview(reviewer, record.userId)) {
-    throw new AttendanceError("SELF_REVIEW", "You can't approve your own attendance — ask another team lead or an admin.", 403);
+    throw new AttendanceError("SELF_REVIEW", "You can't approve your own attendance. Ask another team lead or an admin.", 403);
   }
 
   const subject = await loadUser(record.userId);

@@ -18,7 +18,7 @@ export function ScoreBadge({ score, label }: { score: number | null; label?: str
   return (
     <Badge tone={scoreTone(score)}>
       {label ? `${label} ` : ""}
-      {score === null ? "—" : score}
+      {score === null ? "·" : score}
     </Badge>
   );
 }
@@ -34,7 +34,7 @@ export function Rating({ value, className }: { value: number | null; className?:
   return (
     <span className={cn("inline-flex items-center gap-1 font-semibold tabular-nums", ratingTone(value), className)}>
       <Star className="h-3.5 w-3.5 fill-current" />
-      {value === null ? "—" : value.toFixed(2)}
+      {value === null ? "·" : value.toFixed(2)}
     </span>
   );
 }

@@ -35,7 +35,7 @@ export function InvitesPanel({ invites }: { invites: Invite[] }) {
       await navigator.clipboard.writeText(link);
       toast.success("Invite link copied");
     } catch {
-      toast.error("Couldn't copy — select the link and copy it manually");
+      toast.error("Couldn't copy. Select the link and copy it manually.");
     }
   }
 

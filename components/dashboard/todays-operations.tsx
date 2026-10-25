@@ -46,7 +46,7 @@ export function TodaysOperations({ rows }: { rows: OperationRow[] }) {
           delete next[id];
           return next;
         });
-        toast.error("Could not update task — change reverted");
+        toast.error("Could not update the task. Change reverted.");
       }
     });
   }
@@ -78,7 +78,7 @@ export function TodaysOperations({ rows }: { rows: OperationRow[] }) {
                   const status = overrides[row.id] ?? row.status;
                   return (
                     <tr key={row.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
-                      <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{row.time ?? "—"}</td>
+                      <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{row.time ?? "·"}</td>
                       <td className="min-w-[15rem] px-3 py-3">
                         <p className="font-medium leading-snug">{row.title}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">

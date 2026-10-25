@@ -103,7 +103,7 @@ export function UsersManagementTable({
                 }
               }}
               placeholder="Discord user ID"
-              title="Discord user ID — used to @mention them in task/digest notifications"
+              title="Discord user ID, used to @mention them in task and digest notifications"
               className="w-[150px] rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-xs outline-none focus:border-primary/50"
             />
             {showSlack && (
@@ -117,7 +117,7 @@ export function UsersManagementTable({
                   }
                 }}
                 placeholder="Slack user ID"
-                title="Slack user ID — used to @mention them in task/digest notifications"
+                title="Slack user ID, used to @mention them in task and digest notifications"
                 className="w-[140px] rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-xs outline-none focus:border-primary/50"
               />
             )}

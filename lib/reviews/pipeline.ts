@@ -16,10 +16,10 @@ export type Stage = "BOOKED" | "CHECKED_OUT" | "FOLLOW_UP_SENT" | "ISSUE" | "ASK
 
 export const STAGES: { key: Stage; label: string; hint: string }[] = [
   { key: "BOOKED", label: "Booked", hint: "Upcoming or in stay" },
-  { key: "CHECKED_OUT", label: "Follow up", hint: "Checked out — ask how the stay was" },
+  { key: "CHECKED_OUT", label: "Follow up", hint: "Checked out. Ask how the stay was." },
   { key: "FOLLOW_UP_SENT", label: "Waiting for reply", hint: "Follow-up sent" },
   { key: "ISSUE", label: "Fix an issue", hint: "Guest wasn't fully happy" },
-  { key: "ASK_REVIEW", label: "Ask for review", hint: "Guest happy — review them, then send the request" },
+  { key: "ASK_REVIEW", label: "Ask for review", hint: "Guest happy. Review them, then send the request." },
   { key: "REVIEW_REQUESTED", label: "Waiting for review", hint: "Review request sent" },
   { key: "REVIEWED", label: "Reviewed", hint: "Guest left a review" },
   { key: "EXPIRED", label: "No review", hint: "14-day window closed" },

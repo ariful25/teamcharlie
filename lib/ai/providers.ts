@@ -46,7 +46,7 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
     if (!res.ok) {
       const detail = json?.error?.message ?? text.slice(0, 200);
       const hint =
-        res.status === 401 ? "The API key was rejected." : res.status === 404 ? "That model name wasn't found — check it in Settings." : res.status === 429 ? "Rate limit or out of credit at the provider." : "";
+        res.status === 401 ? "The API key was rejected." : res.status === 404 ? "That model name wasn't found. Check it in Settings." : res.status === 429 ? "Rate limit or out of credit at the provider." : "";
       throw new AiProviderError(`${hint ? `${hint} ` : ""}(${res.status}) ${detail}`.trim(), res.status);
     }
     return json;

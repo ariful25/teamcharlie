@@ -85,8 +85,8 @@ function AddFileModal({ clientId }: { clientId: string }) {
       <DialogContent title="Add Client File" className="max-w-md">
         <form onSubmit={handleSubmit} className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            {PRODUCT_NAME} links to files rather than storing raw uploads today — paste a link to the document (Google
-            Drive, an external URL, or a generated doc).
+            {PRODUCT_NAME} links to files rather than storing raw uploads today. Paste a link to the document (Google
+            Drive, an external URL or a generated doc).
           </p>
           <Field label="Name">
             <input name="name" required className={inputClass} placeholder="e.g. Cleaning SOP" />

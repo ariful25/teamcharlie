@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!teamId) return NextResponse.json({ error: "Unknown or revoked sync token." }, { status: 401 });
 
   const length = Number(req.headers.get("content-length") ?? 0);
-  if (length > 4_000_000) return NextResponse.json({ error: "Batch too large — send fewer emails per call." }, { status: 413 });
+  if (length > 4_000_000) return NextResponse.json({ error: "Batch too large. Send fewer emails per call." }, { status: 413 });
   const parsed = inboundSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Expected { messages: [{ id, subject, from, date, body }] }." }, { status: 400 });
 

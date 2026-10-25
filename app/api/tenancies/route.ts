@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const unitId = req.nextUrl.searchParams.get("unitId") ?? undefined;
   const tenancies = await prisma.tenancy.findMany({
     where: { unit: { property: { client: { teamId } } }, ...(unitId ? { unitId } : {}) },
@@ -41,12 +41,12 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!permissions.canManageProperties(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const parsed = tenancySchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });

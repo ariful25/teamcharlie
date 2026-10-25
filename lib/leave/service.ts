@@ -98,7 +98,7 @@ export async function reviewLeave(reviewer: Actor, id: string, input: { action: 
   const request = await prisma.leaveRequest.findFirst({ where: { id, teamId: reviewer.teamId } });
   if (!request) throw new AttendanceError("NOT_FOUND", "Leave request not found.", 404);
   if (!canReview(reviewer, request.userId)) {
-    throw new AttendanceError("SELF_REVIEW", "You can't approve your own leave — ask another team lead or an admin.", 403);
+    throw new AttendanceError("SELF_REVIEW", "You can't approve your own leave. Ask another team lead or an admin.", 403);
   }
   const selfTag = reviewer.id === request.userId ? "[self-approved] " : "";
   const note = `${selfTag}${input.note?.trim() ?? ""}`.trim() || null;
@@ -136,7 +136,7 @@ export async function reviewLeave(reviewer: Actor, id: string, input: { action: 
     where: { userId: request.userId, date: { in: days }, actualCheckIn: { not: null } },
     select: { date: true },
   });
-  if (worked) throw new AttendanceError("WORKED", `They checked in on ${dayKey(worked.date)} — adjust the dates before approving.`, 409);
+  if (worked) throw new AttendanceError("WORKED", `They checked in on ${dayKey(worked.date)} . Adjust the dates before approving.`, 409);
 
   const existing = await prisma.shiftAssignment.findMany({ where: { userId: request.userId, date: { in: days } } });
   const replaced: Replaced[] = days.map((d) => {

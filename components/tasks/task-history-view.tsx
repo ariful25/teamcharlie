@@ -41,7 +41,7 @@ function HistoryRow({ task, clients, employees, categories }: { task: any; clien
       body: JSON.stringify({ restore: true }),
     });
     if (res.ok) {
-      toast.success("Task restored — back on the board");
+      toast.success("Task restored and back on the board");
       setRestored(true);
       router.refresh();
     } else {
@@ -173,7 +173,7 @@ export function TaskHistoryView({
         )}
       </div>
       {tasks.length === 300 && (
-        <p className="text-center text-xs text-muted-foreground">Showing the most recent 300 — narrow the date range to see more precisely.</p>
+        <p className="text-center text-xs text-muted-foreground">Showing the most recent 300. Narrow the date range to see more.</p>
       )}
     </div>
   );

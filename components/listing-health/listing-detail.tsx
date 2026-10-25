@@ -146,11 +146,11 @@ export function ListingDetail({
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <Tile label="Rating" value={s.ok ? <Rating value={s.rating} className="text-2xl" /> : "—"} hint={s.ok ? `${s.reviewCount ?? 0} reviews` : undefined} />
+            <Tile label="Rating" value={s.ok ? <Rating value={s.rating} className="text-2xl" /> : "·"} hint={s.ok ? `${s.reviewCount ?? 0} reviews` : undefined} />
             <Tile label="Health" value={<ScoreValue score={s.healthScore} />} hint="guest experience · out of 100" />
             <Tile label="Listing quality" value={<ScoreValue score={s.qualityScore} />} hint="search readiness · out of 100" />
             <Tile label="Guest Favorite" value={s.guestFavorite ? "Yes" : "No"} />
-            <Tile label="Photos" value={s.photoCount ?? "—"} hint={s.genericCaptions ? `${s.genericCaptions} without captions` : undefined} />
+            <Tile label="Photos" value={s.photoCount ?? "·"} hint={s.genericCaptions ? `${s.genericCaptions} without captions` : undefined} />
             <Tile label="Last checked" value={<span className="text-base">{formatClientDateTime(new Date(s.fetchedAt), tz)}</span>} />
           </div>
 
@@ -160,7 +160,7 @@ export function ListingDetail({
             </CardHeader>
             <CardContent>
               {s.issues.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing to fix — this listing looks healthy.</p>
+                <p className="text-sm text-muted-foreground">Nothing to fix. This listing looks healthy.</p>
               ) : (
                 <ul className="divide-y divide-border/60">
                   {s.issues.map((i) => (
@@ -196,7 +196,7 @@ export function ListingDetail({
                   {Object.entries(s.categories)
                     .sort((a, b) => (a[1] ?? 5) - (b[1] ?? 5))
                     .map(([k, v]) => (
-                      <Bar key={k} label={CATEGORY_LABEL[k]} value={v !== null ? (v - 4) * 100 : 0} display={v?.toFixed(2) ?? "—"} tone={categoryBarTone(v)} />
+                      <Bar key={k} label={CATEGORY_LABEL[k]} value={v !== null ? (v - 4) * 100 : 0} display={v?.toFixed(2) ?? "·"} tone={categoryBarTone(v)} />
                     ))}
                 </CardContent>
               </Card>
@@ -211,7 +211,7 @@ export function ListingDetail({
                       key={n}
                       label={`${n} star${n === 1 ? "" : "s"}`}
                       value={(s.starShares?.[String(n) as "5"] ?? 0) * 100}
-                      display={s.estimatedStars ? `~${s.estimatedStars[String(n) as "5"]}` : "—"}
+                      display={s.estimatedStars ? `~${s.estimatedStars[String(n) as "5"]}` : "·"}
                       tone={n === 5 ? "bg-success" : n === 4 ? "bg-warning" : "bg-danger"}
                     />
                   ))}
@@ -270,7 +270,7 @@ export function ListingDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle>What&apos;s wrong — from the reviews</CardTitle>
+          <CardTitle>What the reviews say is wrong</CardTitle>
         </CardHeader>
         <CardContent>
           {reviews.length === 0 ? (
@@ -318,7 +318,7 @@ export function ListingDetail({
           <div role="tablist" aria-label="Filter by stars" className="flex flex-wrap gap-1">
             {(
               [
-                ["low", `1–4★ (${byStar[1] + byStar[2] + byStar[3] + byStar[4]})`],
+                ["low", `1 to 4★ (${byStar[1] + byStar[2] + byStar[3] + byStar[4]})`],
                 [1, `1★ (${byStar[1]})`],
                 [2, `2★ (${byStar[2]})`],
                 [3, `3★ (${byStar[3]})`],
@@ -394,7 +394,7 @@ export function ListingDetail({
               <div key={h.fetchedAt} className="flex justify-between text-muted-foreground">
                 <span>{formatClientDateTime(new Date(h.fetchedAt), tz)}</span>
                 <span className="tabular-nums">
-                  {h.rating?.toFixed(2) ?? "—"} · {h.reviewCount ?? 0} reviews · health {h.healthScore ?? "—"}
+                  {h.rating?.toFixed(2) ?? "·"} · {h.reviewCount ?? 0} reviews · health {h.healthScore ?? "·"}
                 </span>
               </div>
             ))}
@@ -430,7 +430,7 @@ function Tile({ label, value, hint }: { label: string; value: React.ReactNode; h
 function ScoreValue({ score }: { score: number | null }) {
   const tone = scoreTone(score);
   const color = tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : tone === "danger" ? "text-danger" : "";
-  return <span className={color}>{score ?? "—"}</span>;
+  return <span className={color}>{score ?? "·"}</span>;
 }
 
 function Check({ ok, text }: { ok: boolean; text: string }) {

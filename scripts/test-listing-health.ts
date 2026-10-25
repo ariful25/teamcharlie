@@ -6,7 +6,7 @@ import { GENERIC_CAPTION, parsePublicListing, ratingFromOgTitle, titleFromDocume
 import { detectIssues, healthScore, qualityScore, starCounts } from "../lib/listing-health/score";
 import { analyzeReviews, complaintsIn, starBuckets } from "../lib/listing-health/reviews";
 import { mapColumns, parseCsv, parseRating, parseReviewsCsv, reviewFingerprint } from "../lib/listing-health/csv";
-import { redactCodes, templateCheckinGuide } from "../lib/listing-health/ai";
+import { redactCodes, templateCheckinGuide, undash } from "../lib/listing-health/ai";
 import { extractJson } from "../lib/ai/providers";
 import { softRedirectTarget } from "../lib/services/airbnb-extractor";
 import { looksLikeReviewEmail, parseLooseDate, parsePastedReviews, parseReviewEmail, ratingInText } from "../lib/listing-health/review-text";
@@ -198,6 +198,13 @@ test("meta-tag fallbacks read a page without the listing JSON", () => {
   assert.equal(page.title, "Cozy Loft");
   assert.equal(page.rating, 4.9);
   assert.equal(titleFromDocument("<title>Redirecting to www.airbnb.co.in</title>"), null);
+});
+
+test("AI output never keeps long dashes", () => {
+  assert.equal(undash("Thanks so much — we loved hosting you!"), "Thanks so much, we loved hosting you!");
+  assert.equal(undash("Check-in is 4–6 PM."), "Check-in is 4 to 6 PM.");
+  assert.equal(undash("We fixed it —."), "We fixed it.");
+  assert.equal(undash("No dashes here, all good."), "No dashes here, all good.");
 });
 
 test("Airbnb's geo-redirect page is followed to the same listing", () => {

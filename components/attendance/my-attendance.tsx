@@ -58,7 +58,7 @@ export function MyAttendance({ shifts, overtime, leads, today }: { shifts: Recor
                     <StateChip state={v.state} />
                     {v.lateMinutes > 0 && <Chip tone="warning">Late {hm(v.lateMinutes)}</Chip>}
                     {v.review === "APPROVED" && <Chip tone="success">Confirmed{v.reviewedByName ? ` by ${v.reviewedByName}` : ""}</Chip>}
-                    {v.review === "REJECTED" && <Chip tone="danger">Not accepted{v.reviewNote ? ` — ${v.reviewNote}` : ""}</Chip>}
+                    {v.review === "REJECTED" && <Chip tone="danger">Not accepted{v.reviewNote ? `: ${v.reviewNote}` : ""}</Chip>}
                   </div>
                   <p className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
                     <span>In {timeIn(v.effectiveCheckIn ?? v.actualCheckIn, tz)}</span>
@@ -92,7 +92,7 @@ export function MyAttendance({ shifts, overtime, leads, today }: { shifts: Recor
         }
       >
         <p className="border-b border-border/60 px-5 py-3 text-[11px] text-muted-foreground">
-          Ask before staying late. Only approved overtime is paid — extra time without approval isn&apos;t counted as overtime.
+          Ask before staying late. Only approved overtime is paid. Extra time without approval isn&apos;t counted as overtime.
         </p>
         {overtime.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground">No overtime requests yet.</p>

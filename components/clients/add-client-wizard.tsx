@@ -131,7 +131,7 @@ export function AddClientWizard() {
           ))}
         </div>
         <p className="mb-3 text-xs font-semibold text-muted-foreground">
-          Step {step + 1} of {STEPS.length} — {STEPS[step]}
+          Step {step + 1} of {STEPS.length}: {STEPS[step]}
         </p>
 
         {step === 0 && (
@@ -165,7 +165,7 @@ export function AddClientWizard() {
         {step === 2 && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              Selecting a provider only enables it for this client (status starts Not Connected) — it does not connect any account. You can enable more, or connect, later from the client workspace.
+              Selecting a provider only enables it for this client (status starts Not Connected). It does not connect any account. You can enable more, or connect, later from the client workspace.
             </p>
             <div className="grid grid-cols-2 gap-2">
               {PROVIDERS.map((provider) => (
@@ -189,7 +189,7 @@ export function AddClientWizard() {
         {step === 3 && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              {PRODUCT_NAME} is the source of truth — this creates a client-specific Google Spreadsheet that mirrors the
+              {PRODUCT_NAME} is the source of truth. This creates a client-specific Google Spreadsheet that mirrors the
               Property Knowledge Base (read-only for NotebookLM/employees, editable by Admins) and stays in sync
               automatically. Never the other way around: nothing typed into the sheet flows back into {PRODUCT_NAME}.
             </p>
@@ -212,7 +212,7 @@ export function AddClientWizard() {
 
         {step === 4 && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Every client automatically gets these {PRODUCT_NAME} modules — nothing to configure.</p>
+            <p className="text-xs text-muted-foreground">Every client automatically gets these {PRODUCT_NAME} modules. Nothing to configure.</p>
             <div className="grid grid-cols-2 gap-2">
               {ALWAYS_ON_MODULES.map((mod) => (
                 <div key={mod} className="flex items-center gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm">
@@ -227,22 +227,22 @@ export function AddClientWizard() {
           <div className="space-y-3 text-sm">
             <div>
               <p className="text-xs font-semibold text-muted-foreground">Client</p>
-              <p className="mt-1 font-medium">{name || "—"}</p>
+              <p className="mt-1 font-medium">{name || "·"}</p>
               <p className="text-xs text-muted-foreground">{STATUS_OPTIONS.find((o) => o.value === status)?.label}</p>
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground">Modules</p>
-              <p className="mt-1 text-xs text-muted-foreground">{ALWAYS_ON_MODULES.join(", ")} — all enabled</p>
+              <p className="mt-1 text-xs text-muted-foreground">{ALWAYS_ON_MODULES.join(", ")}, all enabled</p>
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground">Integrations</p>
               {selectedIntegrations.size === 0 ? (
-                <p className="mt-1 text-xs text-muted-foreground">None selected — can be added later.</p>
+                <p className="mt-1 text-xs text-muted-foreground">None selected. You can add them later.</p>
               ) : (
                 <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                   {Array.from(selectedIntegrations).map((p) => (
                     <li key={p}>
-                      {INTEGRATION_LABELS[p as keyof typeof INTEGRATION_LABELS]} — Needs connection
+                      {INTEGRATION_LABELS[p as keyof typeof INTEGRATION_LABELS]}: needs connection
                     </li>
                   ))}
                 </ul>
@@ -251,7 +251,7 @@ export function AddClientWizard() {
             <div>
               <p className="text-xs font-semibold text-muted-foreground">Google Knowledge Base</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {createGoogleSheet ? "Spreadsheet will be created automatically" : "Not created — can be added later"}
+                {createGoogleSheet ? "Spreadsheet will be created automatically" : "Not created. You can add it later."}
               </p>
             </div>
           </div>

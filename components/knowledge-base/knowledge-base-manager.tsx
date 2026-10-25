@@ -158,7 +158,7 @@ function PropertyFormModal({
             <div className="col-span-2 flex items-start gap-2 rounded-xl border border-info/30 bg-info/10 p-3 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-info" />
               <p>
-                Airbnb extraction is only a starting point — it never overwrites a field you&apos;ve already filled in here,
+                Airbnb extraction is only a starting point. It never overwrites a field you&apos;ve already filled in here,
                 including amenities and rules. Review everything below before marking this Ready.
               </p>
             </div>
@@ -336,7 +336,7 @@ function ExtractAllButton({ items }: { items: KnowledgeItem[] }) {
     if (failed === 0) {
       toast.success(`Extracted ${ok} propert${ok === 1 ? "y" : "ies"}. Review each before marking Ready.`);
     } else {
-      toast.warning(`Extracted ${ok}, ${failed} failed — review the Failed rows below.`);
+      toast.warning(`Extracted ${ok}, ${failed} failed. Review the Failed rows below.`);
     }
     router.refresh();
   }

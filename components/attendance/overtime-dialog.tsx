@@ -67,7 +67,7 @@ export function OvertimeDialog({
       toast.error(data.error ?? "Could not save the request");
       return;
     }
-    toast.success(assign ? "Overtime assigned and approved" : "Overtime requested — waiting for approval");
+    toast.success(assign ? "Overtime assigned and approved" : "Overtime requested, waiting for approval");
     onOpenChange(false);
     setReason("");
     router.refresh();
@@ -80,7 +80,7 @@ export function OvertimeDialog({
           <p className="text-xs text-muted-foreground">
             {assign
               ? "Adds overtime that's approved straight away. It counts only for time actually worked after the scheduled end."
-              : "Ask before you stay late. Overtime only counts once a team lead or admin approves it — staying late without approval is not paid as overtime."}
+              : "Ask before you stay late. Overtime only counts once a team lead or admin approves it. Staying late without approval is not paid as overtime."}
           </p>
           {assign && employees && (
             <Field label="Employee">
@@ -103,8 +103,8 @@ export function OvertimeDialog({
             <Select
               value={askedById}
               onValueChange={setAskedById}
-              placeholder="Nobody — my own request"
-              options={[{ value: "", label: "Nobody — my own request" }, ...leads.map((l) => ({ value: l.id, label: l.name }))]}
+              placeholder="Nobody, it's my own request"
+              options={[{ value: "", label: "Nobody, it's my own request" }, ...leads.map((l) => ({ value: l.id, label: l.name }))]}
             />
           </Field>
           <label className="flex items-center gap-2 text-xs">

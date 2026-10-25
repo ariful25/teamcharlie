@@ -49,7 +49,7 @@ export function TeamProfileForm({
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (tz !== timezone && !confirm(`Change the team timezone to ${tz}? Due times, shifts, and attendance will use it from now on.`)) return;
+    if (tz !== timezone && !confirm(`Change the team timezone to ${tz}? Due times, shifts and attendance will use it from now on.`)) return;
     setSaving(true);
     const res = await fetch("/api/settings/team", {
       method: "PATCH",

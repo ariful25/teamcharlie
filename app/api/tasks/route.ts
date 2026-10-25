@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const { searchParams } = new URL(req.url);
 
   const status = searchParams.get("status");
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const body = await req.json().catch(() => ({}));
   const parsed = taskSchema.safeParse(body);
 
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   }
 
   const isRecurring = data.repeatMode && data.repeatMode !== "NONE";
-  const teamUserId = (session.user as any).id as string;
+  const teamUserId = session.user.id as string;
 
   const task = await prisma.task.create({
     data: {

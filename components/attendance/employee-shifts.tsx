@@ -24,7 +24,7 @@ export function EmployeeShifts({
   const [target, setTarget] = useState<ReviewTarget | null>(null);
 
   return (
-    <Panel title="Shifts — last 45 days" action={<TimelineLegend />}>
+    <Panel title="Shifts in the last 45 days" action={<TimelineLegend />}>
       {shifts.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm text-muted-foreground">No shifts in this period.</p>
       ) : (

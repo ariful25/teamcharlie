@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const client = await getClientForTeam(params.id, teamId);
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
@@ -34,12 +34,12 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!permissions.canManageGoogleSheets(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const client = await getClientForTeam(params.id, teamId);
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 

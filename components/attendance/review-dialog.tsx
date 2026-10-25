@@ -267,7 +267,7 @@ export function ReviewDialog({
                   <input type="checkbox" checked={tasksConfirmed} onChange={(e) => setTasksConfirmed(e.target.checked)} className="mt-0.5" />
                   <span>
                     I confirm {v.userName}&apos;s scheduled tasks for this shift are complete
-                    {openTasks.length > 0 ? ` — ${openTasks.length} still open, handed over or carried to the next shift` : ""}.
+                    {openTasks.length > 0 ? `; ${openTasks.length} still open, handed over or carried to the next shift` : ""}.
                   </span>
                 </label>
 

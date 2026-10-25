@@ -69,28 +69,33 @@ export const authOptions: NextAuthOptions = {
           teamId: user.teamId,
           teamSlug: user.team.slug,
           rememberMe: credentials.rememberMe !== "false",
-        } as any;
+        };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role;
-        token.teamId = (user as any).teamId;
-        token.teamSlug = (user as any).teamSlug;
-        token.id = (user as any).id;
-        token.rememberMe = (user as any).rememberMe;
+        token.role = user.role;
+        token.teamId = user.teamId;
+        token.teamSlug = user.teamSlug;
+        token.id = user.id;
+        token.rememberMe = user.rememberMe;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).teamId = token.teamId;
-        (session.user as any).teamSlug = token.teamSlug;
+      // An incomplete token (malformed, or from before teams existed) gets NO
+      // user: every route then answers 401. Never let it through with
+      // teamId undefined — Prisma reads `where: { teamId: undefined }` as
+      // "no filter", which would return every team's data.
+      if (!session.user || !token.id || !token.role || !token.teamId) {
+        return { expires: session.expires } as typeof session;
       }
+      session.user.id = token.id;
+      session.user.role = token.role;
+      session.user.teamId = token.teamId;
+      session.user.teamSlug = token.teamSlug ?? "";
       return session;
     },
   },
@@ -103,7 +108,7 @@ export const authOptions: NextAuthOptions = {
   jwt: {
     maxAge: THIRTY_DAYS_SECONDS,
     async encode(params) {
-      const rememberMe = (params.token as any)?.rememberMe;
+      const rememberMe = params.token?.rememberMe;
       const maxAge = rememberMe === false ? ONE_DAY_SECONDS : params.maxAge ?? THIRTY_DAYS_SECONDS;
       return defaultEncode({ ...params, maxAge });
     },

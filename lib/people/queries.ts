@@ -112,7 +112,7 @@ export async function getProfile(viewer: Viewer & { teamId: string }, userId: st
       role: user.role,
       active: user.active,
       joinedApp: iso(user.createdAt)!,
-      defaultShift: shiftType ? `${shiftType.name} · ${shiftType.startTime}–${shiftType.endTime}` : null,
+      defaultShift: shiftType ? `${shiftType.name} · ${shiftType.startTime} to ${shiftType.endTime}` : null,
     },
     job: {
       employeeCode: p?.employeeCode ?? null,

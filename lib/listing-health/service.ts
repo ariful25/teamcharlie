@@ -42,7 +42,7 @@ export async function refreshListingHealth(propertyId: string, teamId: string, o
       // Keep enough detail to tell a bot-challenge page from a removed listing.
       const pageTitle = page.html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim().slice(0, 80) || "none";
       throw new Error(
-        `Airbnb didn't return listing data (blocked, redirected, or the listing is unavailable). ` +
+        `Airbnb didn't return listing data (blocked, redirected or the listing is unavailable). ` +
           `[HTTP ${page.status}, ${Math.round(page.html.length / 1024)} KB, listing JSON ${hasData ? "present" : "missing"}, ` +
           `page title "${pageTitle}", final URL ${page.finalUrl.slice(0, 120)}]`,
       );
@@ -69,14 +69,26 @@ export async function refreshListingHealth(propertyId: string, teamId: string, o
         issues: issues as unknown as Prisma.InputJsonValue,
       },
     });
-  } catch (err: any) {
-    const issue: Issue = {
-      code: "UNREACHABLE",
-      severity: "high",
-      title: "Listing page couldn't be read",
-      detail: err?.message ?? "Unknown error",
-      action: "Open the listing on Airbnb — it may be snoozed, deactivated or the URL changed. Try the check again later.",
-    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    // 404/410 from Airbnb means the listing itself is gone, not a blip: say
+    // so, and point at the fix instead of "try again later".
+    const gone = /HTTP (404|410)\b/.test(message);
+    const issue: Issue = gone
+      ? {
+          code: "DELISTED",
+          severity: "high",
+          title: "Listing no longer on Airbnb",
+          detail: message,
+          action: "If it moved to a new listing, update its Airbnb URL in the Knowledge Base. If it's gone for good, delete it there so it stops counting.",
+        }
+      : {
+          code: "UNREACHABLE",
+          severity: "high",
+          title: "Listing page couldn't be read",
+          detail: message,
+          action: "Open the listing on Airbnb. It may be snoozed or the URL changed. Try the check again later.",
+        };
     snapshot = await prisma.listingHealthSnapshot.create({
       data: { propertyId, ok: false, error: issue.detail, issues: [issue] as unknown as Prisma.InputJsonValue },
     });

@@ -18,7 +18,7 @@ export function CharlieHq3DWrapper({ nodes, teamName }: { nodes: ClientNode[]; t
     // Hidden below lg breakpoint per spec: "Disable or simplify it on mobile devices."
     <Card className="hidden overflow-hidden lg:block">
       <CardHeader>
-        <CardTitle>{teamName} — Live Client Map</CardTitle>
+        <CardTitle>{teamName} live client map</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
         <CharlieHq3D nodes={nodes} teamName={teamName} />

@@ -48,7 +48,7 @@ export async function saveTemplate(teamId: string, key: string, body: string | n
     return;
   }
   const text = body.trim();
-  if (!text || text.length > 3000) throw new ListingHealthError("Templates need 1–3000 characters.");
+  if (!text || text.length > 3000) throw new ListingHealthError("Templates need 1 to 3000 characters.");
   await prisma.messageTemplate.upsert({ where: { teamId_key: { teamId, key } }, create: { teamId, key, body: text }, update: { body: text } });
 }
 
@@ -84,11 +84,11 @@ async function syncStayTask(stayId: string, actorId: string | null) {
   const vars = { firstName: firstName(stay.guestName), listing };
   const tpl = (k: TemplateKey) => fillTemplate(templates.find((t) => t.key === k)!.body, vars);
   const steps: Record<string, string> = {
-    "follow-up": `Send this in Airbnb (or Akia), then open the stay in Reviews and mark "Follow-up sent" — or just complete this task.\n\n${tpl("FOLLOW_UP")}`,
+    "follow-up": `Send this in Airbnb (or Akia), then open the stay in Reviews and mark "Follow-up sent", or just complete this task.\n\n${tpl("FOLLOW_UP")}`,
     ask: `${firstName(stay.guestName)} was happy with the stay. 1) Leave them an honest review on Airbnb first. 2) Send this message, then complete this task (or mark "Request sent" in Reviews).
 
 ${tpl("REVIEW_REQUEST")}`,
-    issue: `${stay.guestName} mentioned a problem${stay.issueNote ? `: ${stay.issueNote}` : ""}.\nFix it and reply to the guest, then mark the issue resolved in Reviews (or complete this task) — the review request step comes after.\n\n${tpl("ISSUE_RECOVERY")}`,
+    issue: `${stay.guestName} mentioned a problem${stay.issueNote ? `: ${stay.issueNote}` : ""}.\nFix it and reply to the guest, then mark the issue resolved in Reviews (or complete this task). The review request step comes after.\n\n${tpl("ISSUE_RECOVERY")}`,
     respond: `Post a short, calm public response on Airbnb (future guests read it), then complete this task. The listing page in Listing Health can draft one with AI.`,
   };
   const categories = await prisma.category.findMany({ where: { teamId: stay.teamId }, select: { id: true, name: true } });
@@ -102,7 +102,7 @@ ${tpl("REVIEW_REQUEST")}`,
       categoryId: category?.id ?? null,
       title: `${stay.guestName} · ${stay.property?.internalName ?? "Airbnb stay"}: ${want.title}`.slice(0, 160),
       description: steps[want.key],
-      notes: `Review pipeline — /reviews?stay=${stay.id}`,
+      notes: `Review pipeline: /reviews?stay=${stay.id}`,
       date: startOfDayUTC(new Date(), tz),
       priority: want.priority,
       status: "UPCOMING",

@@ -49,7 +49,7 @@ function NoticeCard({ notice, canPinNotices, canManage }: { notice: Notice; canP
         router.refresh();
       } else {
         setPinned(previous);
-        toast.error("Could not update notice — change reverted");
+        toast.error("Could not update the notice. Change reverted.");
       }
     });
   }
@@ -66,7 +66,7 @@ function NoticeCard({ notice, canPinNotices, canManage }: { notice: Notice; canP
         router.refresh();
       } else {
         setHidden(false);
-        toast.error("Could not update notice — change reverted");
+        toast.error("Could not update the notice. Change reverted.");
       }
     });
   }
@@ -85,7 +85,7 @@ function NoticeCard({ notice, canPinNotices, canManage }: { notice: Notice; canP
         router.refresh();
       } else {
         setChecklist(previous);
-        toast.error("Could not update item — change reverted");
+        toast.error("Could not update the item. Change reverted.");
       }
     });
   }

@@ -25,8 +25,8 @@ export const CATEGORY_LABEL: Record<CategoryKey, string> = {
 
 const CATEGORY_ACTION: Record<CategoryKey, string> = {
   cleanliness: "Tighten the cleaning checklist (bathrooms, floors, linens), require photo proof after each turnover, and spot-inspect.",
-  accuracy: "Make the photos, title and description match what guests find — remove outdated photos, call out any limitations honestly.",
-  checkin: "Re-check the arrival guide: door code/lockbox steps, parking, photos of the entrance, and send it 24h before arrival.",
+  accuracy: "Make the photos, title and description match what guests find. Remove outdated photos, call out any limitations honestly.",
+  checkin: "Re-check the arrival guide: door code/lockbox steps, parking, photos of the entrance and send it 24h before arrival.",
   communication: "Reply faster (aim under 1 hour), send check-in/mid-stay/check-out messages, and answer questions fully the first time.",
   location: "Set expectations in the description (noise, distances, neighbourhood) so guests aren't surprised.",
   value: "Review the nightly price and cleaning fee against nearby listings, and make sure the basics (supplies, amenities) feel generous.",
@@ -126,7 +126,7 @@ export function detectIssues(
         severity: s.rating < 4.7 ? "high" : "medium",
         title: `Rating ${s.rating.toFixed(2)} is below 4.8`,
         detail: "Listings under ~4.8 lose Guest Favorite eligibility and rank lower in search.",
-        action: "Fix the lowest category below first — it moves the overall rating fastest.",
+        action: "Fix the lowest category below first. It moves the overall rating fastest.",
       });
     }
     if (context.previousRating && s.rating < context.previousRating - 0.02) {
@@ -134,7 +134,7 @@ export function detectIssues(
         code: "RATING_DROP",
         severity: "high",
         title: `Rating dropped ${(context.previousRating - s.rating).toFixed(2)} since the last check`,
-        detail: `Was ${context.previousRating.toFixed(2)}, now ${s.rating.toFixed(2)} — a recent stay went badly.`,
+        detail: `Was ${context.previousRating.toFixed(2)}, now ${s.rating.toFixed(2)}. A recent stay went badly.`,
         action: "Read the newest reviews (import them below) and contact the guest/cleaner while it's fresh.",
       });
     }
@@ -200,7 +200,7 @@ export function detectIssues(
       code: "SHORT_TITLE",
       severity: "medium",
       title: `Title is only ${titleLen} characters`,
-      detail: "Airbnb allows 50 — unused characters are lost selling points.",
+      detail: "Airbnb allows 50. Unused characters are lost selling points.",
       action: "Lead with the strongest hook (view, hot tub, walk to X, sleeps N) and use most of the 50 characters.",
     });
   }
@@ -231,7 +231,7 @@ export function detectIssues(
       severity: "low",
       title: `${missingKey.length} common amenities not listed`,
       detail: `Missing: ${missingKey.join(", ")}.`,
-      action: "Add any the property actually has — guests filter search by these.",
+      action: "Add any the property actually has. Guests filter search by these.",
     });
   }
 

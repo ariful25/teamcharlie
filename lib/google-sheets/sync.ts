@@ -256,7 +256,7 @@ async function refreshNotebookLm(spreadsheetId: string, clientId: string) {
   const items = await prisma.propertyKnowledgeItem.findMany({ where: { clientId }, orderBy: { internalName: "asc" } });
   const lines = items.length
     ? items.flatMap((item) => notebookLmBlockFor(item as any))
-    : ["No properties yet — this fills in automatically once properties are added and synced."];
+    : ["No properties yet. This fills in automatically once properties are added and synced."];
 
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.clear({ spreadsheetId, range: `${TABS.NOTEBOOK_LM}!A1:A` });

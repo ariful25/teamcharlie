@@ -14,7 +14,7 @@ export default async function InvitePage(props: { params: Promise<{ token: strin
 
   if (!invite) {
     return (
-      <AuthCard title="Invite not available" subtitle="This link is invalid, has expired, or was already used.">
+      <AuthCard title="Invite not available" subtitle="This link is invalid, has expired or was already used.">
         <p className="text-center text-sm text-muted-foreground">
           Ask your team admin to send a new invite from Settings → Members.
         </p>

@@ -33,7 +33,7 @@ export default async function TaskHistoryPage(
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Task History</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Completed and deleted tasks — nothing that leaves the board disappears, it just moves here.
+          Completed and deleted tasks. Nothing that leaves the board disappears; it moves here.
         </p>
       </div>
       <TaskHistoryView

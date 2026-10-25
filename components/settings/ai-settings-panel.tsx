@@ -85,7 +85,7 @@ export function AiSettingsPanel(props: Props) {
     <div className="space-y-3 text-sm">
       <p className="text-muted-foreground">
         Powers the AI tools in Listing Health (insights, check-in guide, title &amp; description ideas, review replies). Uses your
-        own API key — usage is billed by the provider to your account. Door codes and Wi-Fi passwords are never sent to the AI.
+        own API key. Usage is billed by the provider to your account. Door codes and Wi-Fi passwords are never sent to the AI.
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2">
@@ -118,7 +118,7 @@ export function AiSettingsPanel(props: Props) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2 rounded-xl border border-border p-3">
           <p className="font-medium">Anthropic</p>
-          <Field label={props.hasAnthropicKey ? "API key (saved — enter to replace)" : "API key"}>
+          <Field label={props.hasAnthropicKey ? "API key (saved; enter a new one to replace it)" : "API key"}>
             <input type="password" value={anthropicKey} onChange={(e) => setAnthropicKey(e.target.value)} placeholder="sk-ant-…" className={inputClass} autoComplete="off" />
           </Field>
           <Field label="Model">
@@ -132,7 +132,7 @@ export function AiSettingsPanel(props: Props) {
         </div>
         <div className="space-y-2 rounded-xl border border-border p-3">
           <p className="font-medium">OpenAI</p>
-          <Field label={props.hasOpenAiKey ? "API key (saved — enter to replace)" : "API key"}>
+          <Field label={props.hasOpenAiKey ? "API key (saved; enter a new one to replace it)" : "API key"}>
             <input type="password" value={openaiKey} onChange={(e) => setOpenaiKey(e.target.value)} placeholder="sk-…" className={inputClass} autoComplete="off" />
           </Field>
           <Field label="Model">

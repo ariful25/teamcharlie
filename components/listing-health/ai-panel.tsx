@@ -21,7 +21,7 @@ async function copyText(text: string) {
     await navigator.clipboard.writeText(text);
     toast.success("Copied");
   } catch {
-    toast.error("Couldn't copy — select the text instead");
+    toast.error("Couldn't copy. Select the text instead.");
   }
 }
 
@@ -102,7 +102,7 @@ export function AiAssistant({
         {ready && !insights && !copy && (
           <p className="text-muted-foreground">
             “Analyse with AI” reads the ratings, issues and imported reviews and writes a prioritised action plan. Results are saved
-            here — nothing is regenerated unless you ask.
+            here. Nothing is regenerated unless you ask.
           </p>
         )}
 

@@ -42,10 +42,10 @@ function reasonFor(v: RecordView, tz: string) {
   switch (v.state) {
     case "AUTO_STOPPED":
       return v.reportedCheckOutAt
-        ? `Forgot to check out — timer stopped ${timeIn(v.autoClosedAt, tz)}, pressed check-out ${timeIn(v.reportedCheckOutAt, tz)}`
-        : `Forgot to check out — timer stopped at ${timeIn(v.autoClosedAt, tz)}`;
+        ? `Forgot to check out. Timer stopped ${timeIn(v.autoClosedAt, tz)}, pressed check-out ${timeIn(v.reportedCheckOutAt, tz)}`
+        : `Forgot to check out. Timer stopped at ${timeIn(v.autoClosedAt, tz)}`;
     case "REQUESTED_CHECK_IN":
-      return `Locked out by an earlier shift — asked to check in at ${timeIn(v.checkInRequestedAt, tz)}`;
+      return `Locked out by an earlier shift. Asked to check in at ${timeIn(v.checkInRequestedAt, tz)}`;
     case "MISSED_SHIFT":
       return "Scheduled but never checked in or out";
     default:
@@ -204,7 +204,7 @@ export function TeamAttendanceConsole({
 
       {tab === "roster" && (
         <Panel
-          title={`Roster — ${dayLabel(day, "EEEE d MMM")}`}
+          title={`Roster for ${dayLabel(day, "EEEE d MMM")}`}
           action={
             <div className="flex flex-wrap gap-1">
               {(["ALL", "WORKING", "LATE", "NOT_IN", "REVIEW", "OFF"] as RosterFilter[]).map((f) => (
@@ -267,7 +267,7 @@ export function TeamAttendanceConsole({
                   <div className="flex justify-end">
                     {/* No action on a shift that's still running — "Correct" would end it. */}
                     {v.state === "OFF" || v.state === "NOT_STARTED" || v.state === "LEAVE" || v.state === "WORKING" ? (
-                      <span className="text-[11px] text-muted-foreground">—</span>
+                      <span className="text-[11px] text-muted-foreground">·</span>
                     ) : (
                       <Button
                         size="sm"
@@ -290,7 +290,7 @@ export function TeamAttendanceConsole({
         <div className="space-y-3">
           {queueByDay.length === 0 ? (
             <Panel>
-              <p className="px-5 py-12 text-center text-sm text-muted-foreground">Nothing to review — every shift is confirmed.</p>
+              <p className="px-5 py-12 text-center text-sm text-muted-foreground">Nothing to review. Every shift is confirmed.</p>
             </Panel>
           ) : (
             queueByDay.map(([date, items]) => (
@@ -319,7 +319,7 @@ export function TeamAttendanceConsole({
                         </p>
                       </div>
                       {v.userId === currentUser.id && currentUser.role !== "ADMIN" ? (
-                        <span className="text-[11px] text-muted-foreground">Your own shift — another lead or an admin reviews it</span>
+                        <span className="text-[11px] text-muted-foreground">Your own shift. Another lead or an admin reviews it.</span>
                       ) : (
                         <Button size="sm" onClick={() => open(v)}>
                           <ClipboardCheck className="h-3.5 w-3.5" /> Review
@@ -440,7 +440,7 @@ function OvertimeRow({ o, today, currentUser }: { o: OvertimeView; today: string
         </p>
       </div>
       {own ? (
-        <p className="text-[11px] text-muted-foreground">Your own request — another lead or an admin decides.</p>
+        <p className="text-[11px] text-muted-foreground">Your own request. Another lead or an admin decides.</p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <Select className="w-[110px]" value={minutes} onValueChange={setMinutes} options={options} />

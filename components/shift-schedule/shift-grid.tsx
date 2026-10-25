@@ -83,16 +83,16 @@ export function ShiftGrid({
               style={{ backgroundColor: `${group.shiftType.colorHex}22`, color: group.shiftType.colorHex }}
             >
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: group.shiftType.colorHex }} />
-              {group.shiftType.name} Staff — {group.rows.length}
+              {group.shiftType.name} staff · {group.rows.length}
               <span className="ml-auto font-normal text-muted-foreground">
-                {group.shiftType.startTime}–{group.shiftType.endTime}
+                {group.shiftType.startTime} to {group.shiftType.endTime}
               </span>
             </div>
             {group.rows.map((row) => (
               <div key={row.userId} className="grid grid-cols-[180px_120px_repeat(7,1fr)] items-center gap-2 px-2">
                 <div className="truncate text-sm font-medium">{row.employeeName}</div>
                 <div className="truncate text-xs text-muted-foreground">
-                  {row.days.find((d) => d?.note)?.note ?? `${group.shiftType.startTime}–${group.shiftType.endTime}`}
+                  {row.days.find((d) => d?.note)?.note ?? `${group.shiftType.startTime} to ${group.shiftType.endTime}`}
                 </div>
                 {row.days.map((assignment, i) => (
                   <div key={days[i]} data-shift-cell>
@@ -115,7 +115,7 @@ export function ShiftGrid({
       {unassignedRows.length > 0 && (
         <div className="min-w-[900px] space-y-1.5">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-muted/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-            <span>Unassigned Shift — {unassignedRows.length}</span>
+            <span>Unassigned shift · {unassignedRows.length}</span>
             {hasRemovedShiftAssignments && (
               <span className="font-normal text-muted-foreground/75">
                 These assignments reference a shift type that&apos;s been removed.
@@ -125,7 +125,7 @@ export function ShiftGrid({
           {unassignedRows.map((row) => (
             <div key={row.userId} className="grid grid-cols-[180px_120px_repeat(7,1fr)] items-center gap-2 px-2">
               <div className="truncate text-sm font-medium">{row.employeeName}</div>
-              <div className="truncate text-xs text-muted-foreground">—</div>
+              <div className="truncate text-xs text-muted-foreground">·</div>
               {row.days.map((assignment, i) => (
                 <div key={days[i]} data-shift-cell>
                   <DayCell

@@ -86,7 +86,7 @@ export default async function SettingsPage() {
       id: "team",
       group: "Workspace",
       label: "Team",
-      description: "Your team's name, the timezone every shift and report uses, and when a forgotten check-out stops the timer.",
+      description: "Your team's name, the timezone for shifts and reports, plus when a forgotten check-out stops the timer.",
       status: { text: team.timezone.split("/").pop()!.replace("_", " "), tone: "info" },
       content: (
         <TeamProfileForm
@@ -121,7 +121,7 @@ export default async function SettingsPage() {
       id: "members",
       group: "People",
       label: "Members",
-      description: canManageUsers ? "Everyone on the team: roles, shifts, and who can sign in." : "Everyone on the team.",
+      description: canManageUsers ? "Everyone on the team: roles, shifts and who can sign in." : "Everyone on the team.",
       status: { text: `${activeUsers.length} active`, tone: "info" },
       action: canManageUsers ? <AddUserModal shiftTypes={shiftTypes.map((s) => ({ id: s.id, name: s.name }))} /> : undefined,
       content: canManageUsers ? (
@@ -184,7 +184,7 @@ export default async function SettingsPage() {
             id: "reviews",
             group: "Integrations" as const,
             label: "Airbnb email sync",
-            description: "Brings Airbnb bookings, changes, cancellations and reviews in from your Gmail for the Reviews pipeline — no Airbnb API needed. Guest messages are never read.",
+            description: "Brings Airbnb bookings, changes, cancellations and reviews in from your Gmail for the Reviews pipeline. No Airbnb API needed. Guest messages are never read.",
             status: reviewSync.connected ? { text: "On", tone: "ok" as const } : { text: "Off", tone: "off" as const },
             content: <ReviewSyncPanel initial={reviewSync} />,
           },

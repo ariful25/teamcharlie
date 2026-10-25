@@ -16,7 +16,7 @@ export async function PATCH(
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!permissions.canManageIntegrations(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -25,7 +25,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Unknown integration provider" }, { status: 400 });
   }
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const client = await prisma.client.findFirst({ where: { id: params.id, teamId }, select: { id: true } });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 

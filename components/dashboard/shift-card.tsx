@@ -67,14 +67,14 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
 
   function startCheckOut() {
     if (checklistItems.length > 0) setChecklistOpen(true);
-    else post("/api/attendance/checkout", { checklist: [] }, state.kind === "auto_stopped" ? "Check-out confirmed — sent for review" : "Shift completed");
+    else post("/api/attendance/checkout", { checklist: [] }, state.kind === "auto_stopped" ? "Check-out confirmed and sent for review" : "Shift completed");
   }
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass glow-border relative overflow-hidden rounded-2xl p-5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-semibold text-foreground">Your shift</p>
-        <span className=" text-xs tabular-nums text-muted-foreground">{now === null ? "—" : formatClientTime(new Date(now), tz)}</span>
+        <span className=" text-xs tabular-nums text-muted-foreground">{now === null ? "·" : formatClientTime(new Date(now), tz)}</span>
       </div>
 
       {state.kind === "ready" && (
@@ -95,7 +95,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
               )}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-muted-foreground">No shift scheduled right now — checking in records an unscheduled shift.</p>
+            <p className="mt-3 text-sm text-muted-foreground">No shift scheduled right now. Checking in records an unscheduled shift.</p>
           )}
           <Button onClick={() => post("/api/attendance/checkin", {}, "Checked in")} disabled={isPending} className="mt-5 w-full" size="lg">
             <LogIn className="h-4 w-4" /> Check In
@@ -184,7 +184,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
               </Chip>
               <p className="text-xs text-muted-foreground">
                 You asked to check in at <span className=" text-foreground">{timeIn(state.request.checkInRequestedAt, tz)}</span>. A team lead
-                will confirm it — you&apos;ll be able to check out once they do.
+                will confirm it. You&apos;ll be able to check out once they do.
               </p>
             </>
           ) : (
@@ -202,7 +202,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
                   Check-in requested at {timeIn(state.request.checkInRequestedAt, tz)}
                 </Chip>
               ) : (
-                <Button onClick={() => post("/api/attendance/request-checkin", {}, "Request sent — your start time is recorded")} disabled={isPending} className="w-full" size="lg">
+                <Button onClick={() => post("/api/attendance/request-checkin", {}, "Request sent. Your start time is recorded.")} disabled={isPending} className="w-full" size="lg">
                   <Send className="h-4 w-4" /> Request check-in
                 </Button>
               )}
@@ -234,7 +234,7 @@ export function ShiftCard({ state, checklistItems = [], leads = [] }: { state: S
         onOpenChange={setChecklistOpen}
         items={checklistItems}
         onConfirm={(checklist) =>
-          post("/api/attendance/checkout", { checklist }, state.kind === "auto_stopped" ? "Check-out confirmed — sent for review" : "Shift completed")
+          post("/api/attendance/checkout", { checklist }, state.kind === "auto_stopped" ? "Check-out confirmed and sent for review" : "Shift completed")
         }
         submitting={isPending}
       />

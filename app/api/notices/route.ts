@@ -8,7 +8,7 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
 
   const notices = await prisma.notice.findMany({
     where: { teamId },
@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
-  const authorId = (session.user as any).id as string;
+  const teamId = session.user.teamId as string;
+  const authorId = session.user.id as string;
   const body = await req.json().catch(() => ({}));
   const parsed = noticeSchema.safeParse(body);
 

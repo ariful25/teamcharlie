@@ -150,7 +150,7 @@ function EditForm({
             className="mt-0.5"
           />
           <span>
-            Also apply to future occurrences of this recurring task — updates everything above except date and
+            Also apply to future occurrences of this recurring task. Updates everything above except date and
             assigned employee, starting tomorrow. Today&rsquo;s task always gets the change either way.
           </span>
         </label>
@@ -335,11 +335,11 @@ export function TaskDetailDialog({
               </div>
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground">Time</p>
-                <p className="mt-0.5">{task.startTime ?? "—"}–{task.dueTime ?? "—"}</p>
+                <p className="mt-0.5">{task.startTime ?? "·"} to {task.dueTime ?? "·"}</p>
               </div>
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground">Client</p>
-                <p className="mt-0.5">{task.client?.name ?? "—"}{task.propertyName ? ` · ${task.propertyName}` : ""}</p>
+                <p className="mt-0.5">{task.client?.name ?? "·"}{task.propertyName ? ` · ${task.propertyName}` : ""}</p>
               </div>
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground">Category</p>

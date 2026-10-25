@@ -136,7 +136,7 @@ export function parseReviewsCsv(text: string) {
     const rating = parseRating(cell(columns.rating));
     const comment = cell(columns.comment);
     const privateNote = cell(columns.privateNote) || null;
-    if (rating === null) return skipped.push({ line, reason: "No 1–5 rating" });
+    if (rating === null) return skipped.push({ line, reason: "No rating from 1 to 5" });
     if (!comment && !privateNote) return skipped.push({ line, reason: "Empty review text" });
     out.push({
       line,

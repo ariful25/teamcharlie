@@ -200,7 +200,7 @@ export function QuickAddTaskModal({
           {shiftTypeId ? (
             <Field label="Assigned Employee">
               <p className="flex h-10 items-center rounded-xl border border-dashed border-border bg-muted/20 px-3 text-xs text-muted-foreground">
-                Assigned automatically — whoever&apos;s on the {shiftTypes.find((s) => s.id === shiftTypeId)?.name} shift
+                Assigned automatically to whoever&apos;s on the {shiftTypes.find((s) => s.id === shiftTypeId)?.name} shift
               </p>
             </Field>
           ) : (
@@ -219,9 +219,9 @@ export function QuickAddTaskModal({
               <Select
                 value={shiftTypeId}
                 onValueChange={setShiftTypeId}
-                placeholder="No shift — use Assigned Employee"
+                placeholder="No shift, use Assigned Employee"
                 options={[
-                  { value: "", label: "No shift — use Assigned Employee" },
+                  { value: "", label: "No shift, use Assigned Employee" },
                   ...shiftTypes.map((s) => ({ value: s.id, label: s.name })),
                 ]}
               />

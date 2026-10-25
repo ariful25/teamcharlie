@@ -41,8 +41,8 @@ export async function runWeeklyChecks(budgetMs = 50_000) {
     const issues = (snapshot.issues as Issue[] | null) ?? [];
     const drop = issues.find((i) => i.code === "RATING_DROP");
     let line: string | null = null;
-    if (drop) line = `${listing.internalName} (${listing.client.name}): ${drop.title} — now ${snapshot.rating?.toFixed(2)}`;
-    else if (!snapshot.ok && wasOk) line = `${listing.internalName} (${listing.client.name}): listing page can't be read any more — snoozed, delisted or URL changed?`;
+    if (drop) line = `${listing.internalName} (${listing.client.name}): ${drop.title}, now ${snapshot.rating?.toFixed(2)}`;
+    else if (!snapshot.ok && wasOk) line = `${listing.internalName} (${listing.client.name}): listing page can't be read any more. Snoozed, delisted or URL changed?`;
     if (line) {
       const entry = alerts.get(listing.client.teamId) ?? { snapshotIds: [], lines: [] };
       entry.snapshotIds.push(snapshot.id);

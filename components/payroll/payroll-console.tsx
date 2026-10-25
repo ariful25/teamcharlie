@@ -187,7 +187,7 @@ export function PayrollConsole({
                         </td>
                         {!b ? (
                           <td colSpan={9} className="px-3 py-3 text-muted-foreground">
-                            No salary set —{" "}
+                            No salary set.{" "}
                             <button className="text-primary hover:underline" onClick={() => go(year, month, "salaries")}>
                               add one
                             </button>
@@ -204,9 +204,9 @@ export function PayrollConsole({
                               {b.unpaidLeaveDays} / {b.absentDays}
                             </td>
                             <td className="px-3 py-3">{b.lateCount}</td>
-                            <td className="px-3 py-3 text-danger">{b.deductions ? `−${money(b.deductions)}` : "—"}</td>
+                            <td className="px-3 py-3 text-danger">{b.deductions ? `−${money(b.deductions)}` : "·"}</td>
                             <td className="px-3 py-3">
-                              {status === "DRAFT" ? <AdjustmentInput row={r} year={year} month={month} /> : b.adjustment ? money(b.adjustment) : "—"}
+                              {status === "DRAFT" ? <AdjustmentInput row={r} year={year} month={month} /> : b.adjustment ? money(b.adjustment) : "·"}
                             </td>
                             <td className="px-3 py-3 font-semibold">{money(b.net)}</td>
                             <td className="px-3 py-3">
@@ -246,7 +246,7 @@ export function PayrollConsole({
                 label={`Late ${detail.breakdown.lateCount}× ${rules.lateDaysPerDeduction ? `(every ${rules.lateDaysPerDeduction} = 1 day)` : "(no deduction rule)"}`}
                 value={`−${money(detail.breakdown.lateDeduction)}`}
               />
-              <Line label={`Adjustment${detail.adjustmentNote ? ` — ${detail.adjustmentNote}` : ""}`} value={money(detail.breakdown.adjustment)} />
+              <Line label={`Adjustment${detail.adjustmentNote ? `: ${detail.adjustmentNote}` : ""}`} value={money(detail.breakdown.adjustment)} />
               <div className="flex justify-between border-t border-border pt-2 font-semibold">
                 <span>Net pay</span>
                 <span>{money(detail.breakdown.net)}</span>

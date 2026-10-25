@@ -97,7 +97,7 @@ export function ShiftDial({ v, size = 76, className }: { v: RecordView; size?: n
   const { out, schedule, autoStop, live, pct, pendingLike } = segments(v, tz, now);
   const large = size >= 120;
   const worked = v.credit.regularMinutes + v.credit.overtimeMinutes;
-  const label = pct === null ? (out.length ? hm(Math.round(out.reduce((a, s) => a + s.span, 0))) : "—") : `${pct}%`;
+  const label = pct === null ? (out.length ? hm(Math.round(out.reduce((a, s) => a + s.span, 0))) : "·") : `${pct}%`;
   const title = [
     schedule ? `${pct}% of the scheduled shift covered` : "No schedule",
     worked ? `${pendingLike ? "pending" : "paid"} ${hm(worked)}` : null,

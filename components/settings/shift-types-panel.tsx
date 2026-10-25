@@ -57,7 +57,7 @@ export function ShiftTypesPanel({ shiftTypes: initial }: { shiftTypes: any[] }) 
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.colorHex }} />
             <span className="font-medium">{s.name}</span>
             <span className="text-muted-foreground">
-              {s.startTime} – {s.endTime}
+              {s.startTime} to {s.endTime}
             </span>
           </div>
           <button onClick={() => deactivate(s.id)} className="text-xs text-muted-foreground hover:text-danger">

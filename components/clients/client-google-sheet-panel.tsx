@@ -86,7 +86,7 @@ function SyncLogModal({ clientId }: { clientId: string }) {
                 </div>
                 {log.field ? (
                   <p className="mt-1 text-muted-foreground">
-                    {log.field}: <span className="line-through">{log.oldValue || "—"}</span> → {log.newValue || "—"}
+                    {log.field}: <span className="line-through">{log.oldValue || "·"}</span> → {log.newValue || "·"}
                   </p>
                 ) : (
                   <p className="mt-1 text-muted-foreground">{log.message ?? log.action}</p>

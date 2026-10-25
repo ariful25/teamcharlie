@@ -115,11 +115,11 @@ export default async function AttendancePage(
 
       <LeavePanel balances={balances} requests={myLeave} today={dayKey(today)} />
 
-      <Panel title={isLead ? "Weekly hours — team" : "Weekly hours"} action={<WeekSelector weekStart={week.start} />}>
+      <Panel title={isLead ? "Team weekly hours" : "Weekly hours"} action={<WeekSelector weekStart={week.start} />}>
         <PeriodTable rows={weekRows} emptyLabel="No attendance this week." linkRows={isLead} />
       </Panel>
 
-      <Panel title={isLead ? "Monthly hours — team" : "Monthly hours"} action={<MonthSelector year={year} month={month} />}>
+      <Panel title={isLead ? "Team monthly hours" : "Monthly hours"} action={<MonthSelector year={year} month={month} />}>
         <PeriodTable rows={monthRows} linkRows={isLead} />
       </Panel>
     </div>

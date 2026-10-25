@@ -100,7 +100,7 @@ export default async function ClientWorkspacePage(props: { params: Promise<{ id:
                     <div>
                       <p className="font-medium">{t.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {t.startTime ?? "—"} · {t.assignedUser?.name ?? "Unassigned"}
+                        {t.startTime ?? "·"} · {t.assignedUser?.name ?? "Unassigned"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export default async function ClientWorkspacePage(props: { params: Promise<{ id:
                     <div>
                       <p className="font-medium">{r.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {r.startTime}–{r.dueTime} · {r.assignedUser?.name ?? "Unassigned"} ·{" "}
+                        {r.startTime} to {r.dueTime} · {r.assignedUser?.name ?? "Unassigned"} ·{" "}
                         {r.repeatMode === "DAILY" ? "Every day" : r.repeatMode}
                       </p>
                     </div>

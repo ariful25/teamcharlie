@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   const invite = await findUsableInvite(parsed.data.token);
   if (!invite) {
-    return NextResponse.json({ error: "This invite link is invalid, expired, or already used." }, { status: 404 });
+    return NextResponse.json({ error: "This invite link is invalid, expired or already used." }, { status: 404 });
   }
   if (await prisma.user.findUnique({ where: { email: invite.email }, select: { id: true } })) {
     return NextResponse.json({ error: "An account with this email already exists. Sign in instead." }, { status: 409 });

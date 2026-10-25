@@ -18,7 +18,7 @@ const CATEGORY_HINTS: { match: RegExp; names: string[] }[] = [
   { match: /CLEANLINESS|^cleanliness$|^smell$|^bathroom$|^supplies$/i, names: ["Cleaning", "Operations", "Maintenance"] },
   { match: /maintenance|^wifi$|^pests$|^temperature$|^beds$|^kitchen$|^noise$|MISSING_SAFETY/i, names: ["Maintenance", "Operations"] },
   { match: /CHECKIN|^checkin$|^parking$|COMMUNICATION|^communication$|NO_CHECKIN_INFO/i, names: ["Guest Communication", "Check-in", "Client Communication", "Operations"] },
-  { match: /ACCURACY|^accuracy$|PHOTOS|CAPTIONS|TITLE|DESCRIPTION|AMENITIES|NO_RULES|UNREACHABLE/i, names: ["Administrative", "Operations", "Reservation"] },
+  { match: /ACCURACY|^accuracy$|PHOTOS|CAPTIONS|TITLE|DESCRIPTION|AMENITIES|NO_RULES|UNREACHABLE|DELISTED/i, names: ["Administrative", "Operations", "Reservation"] },
   { match: /VALUE|^value$/i, names: ["Administrative", "Operations"] },
 ];
 

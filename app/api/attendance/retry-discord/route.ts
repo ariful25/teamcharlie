@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!permissions.canEditAttendance(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const owned = await prisma.attendanceRecord.findFirst({ where: { id: recordId, user: { teamId } }, select: { id: true } });
   if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

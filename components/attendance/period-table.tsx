@@ -39,15 +39,15 @@ export function PeriodTable({ rows, emptyLabel = "No attendance in this period."
               <td className="px-3 py-3 text-muted-foreground">{hm(r.scheduledMinutes)}</td>
               <td className="px-3 py-3 font-semibold text-primary">{hm(r.regularMinutes)}</td>
               <td className="px-3 py-3 text-accent">{hm(r.overtimeMinutes)}</td>
-              <td className="px-3 py-3 text-warning">{r.pendingMinutes ? hm(r.pendingMinutes) : "—"}</td>
-              <td className="px-3 py-3 text-danger">{r.extraMinutes ? hm(r.extraMinutes) : "—"}</td>
+              <td className="px-3 py-3 text-warning">{r.pendingMinutes ? hm(r.pendingMinutes) : "·"}</td>
+              <td className="px-3 py-3 text-danger">{r.extraMinutes ? hm(r.extraMinutes) : "·"}</td>
               <td className="px-3 py-3">{r.daysWorked}</td>
               <td className={`px-3 py-3 ${r.lateCount ? "text-warning" : "text-muted-foreground"}`}>{r.lateCount}</td>
               <td className={`px-3 py-3 ${r.missedPunches ? "text-danger" : "text-muted-foreground"}`}>{r.missedPunches}</td>
               <td className="px-3 py-3 text-muted-foreground">
                 {r.paidLeaveDays + r.unpaidLeaveDays + r.sickLeaveDays > 0
                   ? `${r.paidLeaveDays}P · ${r.unpaidLeaveDays}U · ${r.sickLeaveDays}S`
-                  : "—"}
+                  : "·"}
               </td>
             </tr>
           ))}

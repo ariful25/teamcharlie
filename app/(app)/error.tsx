@@ -21,7 +21,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
         <div>
           <p className="text-sm font-medium">Unable to load this page</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Something went wrong on our end. Your data is safe — try again.
+            Something went wrong on our end. Your data is safe. Try again.
           </p>
         </div>
         <Button onClick={() => reset()} className="mt-1">

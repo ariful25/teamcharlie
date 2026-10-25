@@ -91,7 +91,7 @@ test("guest names match across full and first-name emails", () => {
 });
 
 test("templates fill in, and the defaults pass the review-policy check", () => {
-  assert.match(fillTemplate(DEFAULT_TEMPLATES.FOLLOW_UP, { firstName: "Sarah", listing: "Jaeger Haus" }), /^Hi Sarah! Thank you for staying with us — we hope/);
+  assert.match(fillTemplate(DEFAULT_TEMPLATES.FOLLOW_UP, { firstName: "Sarah", listing: "Jaeger Haus" }), /^Hi Sarah! Thank you for staying with us. We hope/);
   for (const body of Object.values(DEFAULT_TEMPLATES)) assert.deepEqual(policyWarnings(body), []);
   assert.equal(policyWarnings("I'll be leaving you a 5-star review! If you enjoyed it, please leave us a 5-star rating as well.").length, 1);
   assert.equal(policyWarnings("Leave 5 stars and get a 10% discount next time").length, 1);

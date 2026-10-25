@@ -13,7 +13,7 @@ export function dayLabel(dayKey: string, pattern = "EEE d MMM") {
 }
 
 export function timeIn(isoValue: string | null, tz: string) {
-  return isoValue ? formatInTimeZone(new Date(isoValue), tz, "h:mm a") : "—";
+  return isoValue ? formatInTimeZone(new Date(isoValue), tz, "h:mm a") : "·";
 }
 
 /** "20:00 → 05:00 (+1)" — makes overnight shifts obvious. */

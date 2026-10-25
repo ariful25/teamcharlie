@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!permissions.canManageNotificationSettings(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   // The env webhooks belong to the home team only — any other team tests the
   // webhook saved in its own Settings.
-  const channels = await getTeamChannels((session.user as any).teamId as string);
+  const channels = await getTeamChannels(session.user.teamId as string);
   const url =
     channels.isHomeTeam && kind === "checkin"
       ? process.env.DISCORD_CHECKIN_WEBHOOK_URL

@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const client = await prisma.client.findFirst({ where: { id: params.id, teamId }, select: { id: true } });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 

@@ -74,7 +74,7 @@ export function AddUserModal({ shiftTypes }: { shiftTypes: { id: string; name: s
         {tempPassword ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Share this temporary password with <span className="font-medium text-foreground">{name}</span> — it
+              Share this temporary password with <span className="font-medium text-foreground">{name}</span>. It
               won&apos;t be shown again. They should change it after logging in.
             </p>
             <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-5 py-3">

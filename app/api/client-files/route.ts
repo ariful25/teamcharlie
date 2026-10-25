@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const clientId = req.nextUrl.searchParams.get("clientId") ?? undefined;
   const category = req.nextUrl.searchParams.get("category") ?? undefined;
 
@@ -28,12 +28,12 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!permissions.canManageClientFiles(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const parsed = clientFileSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   const file = await prisma.clientFile.create({
-    data: { ...parsed.data, createdById: (session.user as any).id ?? null },
+    data: { ...parsed.data, createdById: session.user.id ?? null },
   });
   return NextResponse.json({ file });
 }

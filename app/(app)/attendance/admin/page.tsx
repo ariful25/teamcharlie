@@ -37,7 +37,7 @@ export default async function TeamAttendancePage(props: { searchParams: Promise<
         </Link>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Team Attendance</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Who&apos;s working, who missed a punch, and everything waiting for your confirmation — by day.
+          Who&apos;s working, who missed a punch and everything waiting for your confirmation, day by day.
         </p>
       </div>
 

@@ -12,7 +12,7 @@ type Status = { connected: boolean; tokenHint: string | null; lastSeenAt: string
 
 /** The Google Apps Script the team pastes into script.google.com. */
 function appsScript(url: string, token: string) {
-  return `// TeamHQ — Airbnb review email sync.
+  return `// TeamHQ: Airbnb email sync.
 // Runs inside your own Gmail: finds Airbnb's booking, change, cancellation
 // and review emails and sends only those to TeamHQ. Guest message threads
 // and everything else in the mailbox are never read or sent.
@@ -94,7 +94,7 @@ export function ReviewSyncPanel({ initial }: { initial: Status }) {
       await navigator.clipboard.writeText(text);
       toast.success("Script copied");
     } catch {
-      toast.error("Couldn't copy — select the text instead");
+      toast.error("Couldn't copy. Select the text instead.");
     }
   }
 
@@ -141,7 +141,7 @@ export function ReviewSyncPanel({ initial }: { initial: Status }) {
             </li>
             <li>Delete what&apos;s there, paste the script below and press Save.</li>
             <li>
-              Choose <b>setUp</b> in the function menu and press <b>Run</b>. Allow access when Google asks — it&apos;s your own script.
+              Choose <b>setUp</b> in the function menu and press <b>Run</b>. Allow access when Google asks. It&apos;s your own script.
             </li>
             <li>That&apos;s it: the past year comes in now (reviews, bookings, changes, cancellations), new emails every hour.</li>
           </ol>

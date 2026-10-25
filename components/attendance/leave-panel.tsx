@@ -23,7 +23,7 @@ export function leaveStatusTone(status: string) {
 }
 
 export function leaveRange(r: { startDate: string; endDate: string }) {
-  return r.startDate === r.endDate ? dayLabel(r.startDate) : `${dayLabel(r.startDate)} – ${dayLabel(r.endDate)}`;
+  return r.startDate === r.endDate ? dayLabel(r.startDate) : `${dayLabel(r.startDate)} to ${dayLabel(r.endDate)}`;
 }
 
 /** The signed-in person's leave: balances, request form and their requests. */
@@ -50,7 +50,7 @@ export function LeavePanel({ balances, requests, today }: { balances: Balances; 
       toast.error(data.error ?? "Could not send the request");
       return;
     }
-    toast.success(`Leave requested (${data.request.days} day${data.request.days === 1 ? "" : "s"}) — waiting for approval`);
+    toast.success(`Leave requested (${data.request.days} day${data.request.days === 1 ? "" : "s"}), waiting for approval`);
     setOpen(false);
     setReason("");
     router.refresh();
@@ -105,7 +105,7 @@ export function LeavePanel({ balances, requests, today }: { balances: Balances; 
                   </span>
                 </div>
                 <p className="truncate text-xs text-muted-foreground">{r.reason}</p>
-                {r.reviewNote && <p className="text-xs text-muted-foreground">“{r.reviewNote}”{r.reviewedByName ? ` — ${r.reviewedByName}` : ""}</p>}
+                {r.reviewNote && <p className="text-xs text-muted-foreground">“{r.reviewNote}”{r.reviewedByName ? `, ${r.reviewedByName}` : ""}</p>}
               </div>
               {r.status === "PENDING" && (
                 <IconTooltip label="Cancel request">
@@ -167,7 +167,7 @@ export function LeaveBoard({ pending, recent, currentUser }: { pending: LeaveVie
       toast.error(data.error ?? "Could not save");
       return;
     }
-    toast.success(action === "APPROVE" ? "Leave approved — added to the Shift Schedule" : action === "REJECT" ? "Leave rejected" : "Leave revoked");
+    toast.success(action === "APPROVE" ? "Leave approved and added to the Shift Schedule" : action === "REJECT" ? "Leave rejected" : "Leave revoked");
     router.refresh();
   }
 
@@ -193,7 +193,7 @@ export function LeaveBoard({ pending, recent, currentUser }: { pending: LeaveVie
                     <p className="text-xs">{r.reason}</p>
                   </div>
                   {own ? (
-                    <p className="text-xs text-muted-foreground">Your own request — another lead or an admin decides.</p>
+                    <p className="text-xs text-muted-foreground">Your own request. Another lead or an admin decides.</p>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2">
                       <input

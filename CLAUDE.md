@@ -119,6 +119,10 @@ never just hidden in the UI. Job-field changes are logged as
 - Shifts are shown as a 24-hour dial (`components/attendance/shift-dial.tsx`),
   people as a ringed avatar (`components/people/person-avatar.tsx`) — reuse
   these rather than adding progress bars.
+- Copy style: no em/en dashes in user-facing text (use a full stop, comma
+  or colon), "·" for an empty value, "to" for ranges ("08:00 to 17:00"),
+  no Oxford comma. AI output passes through `undash()`
+  (`lib/listing-health/ai.ts`) for the same reason.
 
 Charlie HQ already has an established visual identity in `app/globals.css`
 and `tailwind.config.ts`. Reuse these tokens; don't hardcode new colors.
@@ -157,6 +161,25 @@ completion, issue status changes (see `components/tasks/task-card.tsx`,
 update, then rollback on a failed request). Never optimistic: deletes,
 client creation, financial actions, integration/sync operations, permission
 changes.
+
+## Security, CI and monitoring
+
+- `lib/prisma.ts` omits `User.passwordHash` globally; only sign-in opts back
+  in (`omit: { passwordHash: false }`). Never return it any other way.
+- `readUser()` (`lib/session.ts`) rejects sessions missing id, teamId or
+  role. Prisma treats `teamId: undefined` as "no filter", so this matters.
+- Sign-in lockout and rate limits are DB-backed (`lib/rate-limit.ts`,
+  `RateLimit` table) because serverless memory doesn't persist. In raw SQL,
+  pass times as ISO strings with `CAST(... AS timestamp)`, never `now()` or a
+  JS Date (both shift by the session timezone).
+- A team can't lose its last active admin (`app/api/users/[id]`).
+- `npm run test:unit` runs every pure-logic suite. `npm run test:security`
+  needs `BASE_URL` + `DATABASE_URL` of a **local** server and DB (it refuses
+  anything else) and checks cross-team access, escalation, hash leaks,
+  lockout and the inbound sync key. CI (`.github/workflows/ci.yml`) runs
+  both against a Postgres service.
+- Sentry stays off unless `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` are set;
+  `beforeSend` strips cookies, headers and bodies.
 
 ## Credentials
 

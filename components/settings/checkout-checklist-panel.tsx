@@ -71,7 +71,7 @@ export function CheckoutChecklistPanel({ items: initial }: { items: ChecklistIte
   return (
     <div className="space-y-2">
       {items.length === 0 && (
-        <p className="text-sm text-muted-foreground">No checklist items yet — add one below.</p>
+        <p className="text-sm text-muted-foreground">No checklist items yet. Add one below.</p>
       )}
       {items.map((item) => (
         <div

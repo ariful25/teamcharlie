@@ -13,12 +13,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!permissions.canManageProperties(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const existing = await canAccessUnit(params.id, teamId);
   if (!existing) return NextResponse.json({ error: "Unit not found" }, { status: 404 });
 
@@ -47,12 +47,12 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!permissions.canManageProperties(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const existing = await canAccessUnit(params.id, teamId);
   if (!existing) return NextResponse.json({ error: "Unit not found" }, { status: 404 });
 

@@ -98,7 +98,7 @@ export function formatDayFull(day: Date) {
 
 export function formatWeekRange(weekStart: Date) {
   const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
-  return `${formatDayShort(weekStart)} – ${formatInTimeZone(weekEnd, "UTC", "d MMM yyyy")}`;
+  return `${formatDayShort(weekStart)} to ${formatInTimeZone(weekEnd, "UTC", "d MMM yyyy")}`;
 }
 
 // ---- Conversions ----

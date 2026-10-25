@@ -102,23 +102,23 @@ export function StayDialog({ stay, templates, onClose }: { stay: Stay; templates
               <div className="flex flex-wrap gap-2">
                 <OutcomeButtons busy={busy} note={note} setNote={setNote} act={act} />
                 <Button size="sm" variant="ghost" disabled={busy} onClick={() => act("REVIEW_REQUESTED")}>
-                  No reply — send the request anyway
+                  No reply? Send the request anyway
                 </Button>
               </div>
             </Step>
           )}
 
           {stay.stage === "ISSUE" && (
-            <Step title="Fix the issue first" hint={stay.issueNote ? `Guest said: ${stay.issueNote}` : "Reply, fix it, and only then ask for a review."}>
+            <Step title="Fix the issue first" hint={stay.issueNote ? `Guest said: ${stay.issueNote}` : "Reply, fix it and only then ask for a review."}>
               <MessageBox text={tpl("ISSUE_RECOVERY")} />
               <Button size="sm" disabled={busy} onClick={() => act("ISSUE_RESOLVED")}>
-                <CheckCircle2 className="h-4 w-4" /> Issue resolved — guest is OK
+                <CheckCircle2 className="h-4 w-4" /> Issue resolved, guest is OK
               </Button>
             </Step>
           )}
 
           {stay.stage === "ASK_REVIEW" && (
-            <Step title="3. Review the guest, then ask" hint="Our review is honest and independent — never offered in exchange for theirs.">
+            <Step title="3. Review the guest, then ask" hint="Our review is honest and independent, never offered in exchange for theirs.">
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={!!stay.hostReviewedAt} disabled={busy || !!stay.hostReviewedAt} onChange={() => act("HOST_REVIEWED")} />
                 We&apos;ve left our review of {stay.firstName} on Airbnb
@@ -139,7 +139,7 @@ export function StayDialog({ stay, templates, onClose }: { stay: Stay; templates
           )}
 
           {stay.stage === "REVIEWED" && (
-            <Step title={`${stay.firstName} left ${stay.rating}★`} hint={stay.rating === 5 ? "Thank them in a public response." : "Respond calmly in public — future guests read it. A task is on the board."}>
+            <Step title={`${stay.firstName} left ${stay.rating}★`} hint={stay.rating === 5 ? "Thank them in a public response." : "Respond calmly in public. Future guests read it. A task is on the board."}>
               {stay.rating === 5 && <MessageBox text={tpl("THANK_YOU")} />}
             </Step>
           )}
@@ -181,9 +181,9 @@ function MessageBox({ text }: { text: string }) {
   async function copy() {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Message copied — paste it in Airbnb or Akia");
+      toast.success("Message copied. Paste it in Airbnb or Akia.");
     } catch {
-      toast.error("Couldn't copy — select the text instead");
+      toast.error("Couldn't copy. Select the text instead.");
     }
   }
   return (

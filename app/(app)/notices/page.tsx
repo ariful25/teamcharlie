@@ -19,7 +19,7 @@ export default async function NoticesPage() {
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Notices</h1>
-        <p className="mt-1 text-sm text-muted-foreground">The team&apos;s shared notice board — post a reminder or tip for everyone to see.</p>
+        <p className="mt-1 text-sm text-muted-foreground">The team&apos;s shared notice board. Post a reminder or tip for everyone to see.</p>
       </div>
       <NoticeBoard
         notices={plainNotices}

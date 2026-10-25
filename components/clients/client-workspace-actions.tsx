@@ -109,7 +109,7 @@ function DeactivateButton({ client }: { client: Client }) {
 
   async function toggle() {
     const verb = client.active ? "deactivate" : "reactivate";
-    if (!confirm(`${verb === "deactivate" ? "Deactivate" : "Reactivate"} ${client.name}? ${verb === "deactivate" ? "Historical tasks, issues, properties, files, and knowledge base entries are kept — the client just disappears from active dropdowns." : ""}`)) {
+    if (!confirm(`${verb === "deactivate" ? "Deactivate" : "Reactivate"} ${client.name}? ${verb === "deactivate" ? "Historical tasks, issues, properties, files and knowledge base entries are kept. The client just disappears from active dropdowns." : ""}`)) {
       return;
     }
     setBusy(true);

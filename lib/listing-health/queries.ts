@@ -179,6 +179,7 @@ function genericIssueTitle(i: Issue) {
     case "NO_RULES": return "House rules missing in Knowledge Base";
     case "NO_CHECKIN_INFO": return "Check-in instructions missing in Knowledge Base";
     case "UNREACHABLE": return "Listing page unreachable";
+    case "DELISTED": return "No longer on Airbnb";
     default: return i.title;
   }
 }

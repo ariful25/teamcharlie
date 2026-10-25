@@ -25,7 +25,7 @@ function ForgotPasswordDialog() {
       </button>
       <DialogContent title="Forgot your password?" className="max-w-sm">
         <p className="text-sm text-muted-foreground">
-          {PRODUCT_NAME} doesn&apos;t have self-service password resets yet — accounts are managed by your team admin.
+          {PRODUCT_NAME} doesn&apos;t have self-service password resets yet. Your team admin manages accounts.
           Reach out to them directly and they can issue you a new temporary password from Settings.
         </p>
       </DialogContent>
@@ -98,7 +98,7 @@ function LoginForm() {
             <Radar className="h-7 w-7 text-primary" />
           </div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Sign in to {PRODUCT_NAME}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your team&apos;s tasks, shifts, and operations in one place.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Your team&apos;s tasks, shifts and operations in one place.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -190,7 +190,7 @@ function LoginForm() {
           <Link href="/signup" className="font-medium text-primary hover:brightness-110">
             Create a team
           </Link>{" "}
-          — or ask your admin for an invite link.
+          or ask your admin for an invite link.
         </p>
 
         <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border pt-5 lg:hidden">

@@ -19,7 +19,7 @@ import { TemplatesEditor } from "./templates-editor";
 
 type Tab = "pipeline" | "reviews" | "inbox" | "messages";
 
-const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)}%`);
+const pct = (v: number | null) => (v === null ? "·" : `${Math.round(v * 100)}%`);
 
 export function ReviewHub({ hub, canManage }: { hub: Hub; canManage: boolean }) {
   const router = useRouter();
@@ -54,7 +54,7 @@ export function ReviewHub({ hub, canManage }: { hub: Hub; canManage: boolean }) 
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Reviews</h1>
           <p className="mt-1 max-w-[68ch] text-sm text-muted-foreground">
-            Every Airbnb guest from booking to review: follow up after checkout, fix problems, and ask happy guests for a 5-star review.
+            Every Airbnb guest from booking to review: follow up after checkout, fix problems and ask happy guests for a 5-star review.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
@@ -78,7 +78,7 @@ export function ReviewHub({ hub, canManage }: { hub: Hub; canManage: boolean }) 
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="5★ share" value={pct(hub.kpis.fiveStarShare)} hint={`${hub.kpis.reviews90} reviews · 90 days`} tone={hub.kpis.fiveStarShare !== null && hub.kpis.fiveStarShare < 0.8 ? "text-warning" : "text-success"} />
-        <Kpi label="Average rating" value={hub.kpis.average === null ? "—" : hub.kpis.average.toFixed(2)} hint="90 days" />
+        <Kpi label="Average rating" value={hub.kpis.average === null ? "·" : hub.kpis.average.toFixed(2)} hint="90 days" />
         <Kpi label="Review rate" value={pct(hub.kpis.reviewRate)} hint="checked-out guests who reviewed" />
         <Kpi label="Needs a response" value={String(hub.kpis.needsResponse)} hint="under-5★ reviews not answered" tone={hub.kpis.needsResponse ? "text-warning" : undefined} />
       </div>

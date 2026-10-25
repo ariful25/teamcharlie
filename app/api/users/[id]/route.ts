@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (losesAdmin) {
     const otherAdmins = await prisma.user.count({ where: { teamId: currentUser.teamId, role: "ADMIN", active: true, id: { not: existing.id } } });
     if (otherAdmins === 0) {
-      return NextResponse.json({ error: "Make someone else an admin first — a team always needs at least one active admin." }, { status: 400 });
+      return NextResponse.json({ error: "Make someone else an admin first. A team always needs at least one active admin." }, { status: 400 });
     }
   }
 

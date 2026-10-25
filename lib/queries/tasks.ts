@@ -78,3 +78,7 @@ export async function getTaskHistory(teamId: string, filters: TaskHistoryFilters
     take: 300,
   });
 }
+
+export type TasksPageData = Awaited<ReturnType<typeof getTasksPageData>>;
+/** One task as the board receives it (Dates arrive as Dates from the server component). */
+export type BoardTask = TasksPageData["tasks"][number];

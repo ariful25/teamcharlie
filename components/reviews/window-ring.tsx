@@ -12,7 +12,7 @@ export function WindowRing({ daysLeft, size = 44, rating }: { daysLeft: number |
   const left = daysLeft === null ? null : Math.max(0, Math.min(14, daysLeft));
   const share = done ? rating! / 5 : left === null ? 0 : left / 14;
   const tone = done ? (rating === 5 ? "var(--success)" : rating! >= 4 ? "var(--warning)" : "var(--danger)") : left !== null && left < 2 ? "var(--danger)" : left !== null && left < 5 ? "var(--warning)" : "var(--primary)";
-  const label = done ? `${rating}★` : left === null ? "—" : `${left}d`;
+  const label = done ? `${rating}★` : left === null ? "·" : `${left}d`;
   const title = done ? `Reviewed ${rating}★` : left === null ? "No checkout date" : `${left} day${left === 1 ? "" : "s"} left in the review window`;
 
   return (

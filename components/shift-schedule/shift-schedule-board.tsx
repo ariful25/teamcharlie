@@ -130,7 +130,7 @@ export function ShiftScheduleBoard({
   const weekLabel = (() => {
     const start = new Date(roster.weekStart);
     const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
-    return `${formatDayShort(start)} – ${formatDayShort(end)}`;
+    return `${formatDayShort(start)} to ${formatDayShort(end)}`;
   })();
 
   const selectedDate = new Date(roster.days[selectedDayIndex] ?? roster.weekStart);

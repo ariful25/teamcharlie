@@ -37,7 +37,7 @@ export async function createOvertimeRequest(
   const target = await prisma.user.findFirst({ where: { id: targetId, teamId: actor.teamId, active: true } });
   if (!target) throw new AttendanceError("NOT_FOUND", "Employee not found.", 404);
   if (input.approveNow && !canReview(actor, targetId)) {
-    throw new AttendanceError("SELF_REVIEW", "You can't pre-approve your own overtime — ask another team lead or an admin.", 403);
+    throw new AttendanceError("SELF_REVIEW", "You can't pre-approve your own overtime. Ask another team lead or an admin.", 403);
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) throw new AttendanceError("INVALID_DATE", "Pick a valid date.");
   if (!Number.isInteger(input.minutes) || input.minutes < OVERTIME_MIN_MINUTES || input.minutes > OVERTIME_MAX_MINUTES) {
@@ -61,7 +61,7 @@ export async function createOvertimeRequest(
     where: { userId: targetId, date, status: { in: ["PENDING", "APPROVED"] } },
   });
   if (active) {
-    throw new AttendanceError("DUPLICATE", "There's already an overtime request for that day — cancel or update it instead.", 409);
+    throw new AttendanceError("DUPLICATE", "There's already an overtime request for that day. Cancel or update it instead.", 409);
   }
 
   const shiftEnd = await shiftEndFor(targetId, date, team.timezone);
@@ -100,7 +100,7 @@ export async function reviewOvertime(
   const request = await prisma.overtimeRequest.findFirst({ where: { id, teamId: reviewer.teamId } });
   if (!request) throw new AttendanceError("NOT_FOUND", "Overtime request not found.", 404);
   if (!canReview(reviewer, request.userId)) {
-    throw new AttendanceError("SELF_REVIEW", "You can't approve your own overtime — ask another team lead or an admin.", 403);
+    throw new AttendanceError("SELF_REVIEW", "You can't approve your own overtime. Ask another team lead or an admin.", 403);
   }
   // Pending requests can be decided; an approved one can be revoked or have
   // its minutes changed (with a note) — never silently.

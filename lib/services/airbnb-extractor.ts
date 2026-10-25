@@ -265,7 +265,7 @@ export async function fetchListingPage(airbnbUrl: string): Promise<ListingPage> 
       });
 
       if (!res.ok) {
-        throw new Error(`Airbnb returned HTTP ${res.status}. The listing may be private, removed, or temporarily blocking automated requests.`);
+        throw new Error(`Airbnb returned HTTP ${res.status}. The listing may be private, removed or temporarily blocking automated requests.`);
       }
 
       const html = await res.text();
@@ -360,7 +360,7 @@ export async function extractAirbnbListing(airbnbUrl: string): Promise<Extracted
 
   if (!isMeaningfulExtraction(listing)) {
     throw new Error(
-      "Airbnb did not return usable listing information (the page may have been blocked, redirected to a challenge page, or changed format). Fill in the details manually and try extraction again later."
+      "Airbnb did not return usable listing information (the page may have been blocked, redirected to a challenge page or changed format). Fill in the details manually and try extraction again later."
     );
   }
 

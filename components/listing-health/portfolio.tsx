@@ -112,7 +112,7 @@ export function ListingHealthPortfolio({
       }
     };
     await Promise.all([worker(), worker()]);
-    toast.success(failed ? `Checked ${done} listings — ${failed} couldn't be read` : `Checked ${done} listings`);
+    toast.success(failed ? `Checked ${done} listings. ${failed} couldn't be read.` : `Checked ${done} listings`);
     setProgress(null);
     router.refresh();
   }
@@ -209,11 +209,11 @@ export function ListingHealthPortfolio({
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
             <Tile label="Listings checked" value={`${summary.checked}/${summary.listings}`} hint={summary.unreachable ? `${summary.unreachable} unreachable` : undefined} />
-            <Tile label="Average rating" value={summary.averageRating?.toFixed(2) ?? "—"} hint={`${summary.totalReviews.toLocaleString()} reviews`} />
+            <Tile label="Average rating" value={summary.averageRating?.toFixed(2) ?? "·"} hint={`${summary.totalReviews.toLocaleString()} reviews`} />
             <Tile label="Below 4.8" value={summary.below48} hint="listings" tone={summary.below48 ? "text-warning" : undefined} />
             <Tile label="Guest Favorites" value={summary.guestFavorites} />
-            <Tile label="Avg health" value={summary.averageHealth !== null ? Math.round(summary.averageHealth) : "—"} hint="guest experience" />
-            <Tile label="Avg listing quality" value={summary.averageQuality !== null ? Math.round(summary.averageQuality) : "—"} hint="search readiness" />
+            <Tile label="Avg health" value={summary.averageHealth !== null ? Math.round(summary.averageHealth) : "·"} hint="guest experience" />
+            <Tile label="Avg listing quality" value={summary.averageQuality !== null ? Math.round(summary.averageQuality) : "·"} hint="search readiness" />
           </div>
 
           <div className="grid gap-3 lg:grid-cols-3">
@@ -227,7 +227,7 @@ export function ListingHealthPortfolio({
                   <Bar key={n} label={`${n} star${n === 1 ? "" : "s"}`} value={(est[n] / Math.max(1, est[4] + est[3] + est[2] + est[1])) * 100} display={`~${est[n]}`} tone={n >= 4 ? "bg-warning" : "bg-danger"} />
                 ))}
                 <a href={`/api/listing-health/reviews?clientId=${clientId}&maxRating=4`} className="inline-flex items-center gap-1 pt-1 text-xs text-primary hover:underline">
-                  <Download className="h-3 w-3" /> Download imported 1–4★ reviews (CSV)
+                  <Download className="h-3 w-3" /> Download imported 1 to 4★ reviews (CSV)
                 </a>
               </CardContent>
             </Card>
@@ -242,7 +242,7 @@ export function ListingHealthPortfolio({
                     key={c.key}
                     label={c.label}
                     value={c.average !== null ? ((c.average - 4) / 1) * 100 : 0}
-                    display={c.average?.toFixed(2) ?? "—"}
+                    display={c.average?.toFixed(2) ?? "·"}
                     tone={categoryBarTone(c.average)}
                   />
                 ))}
@@ -282,7 +282,7 @@ export function ListingHealthPortfolio({
               {summary.importedReviews === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Airbnb doesn&apos;t show review texts on the public page, so complaints need the reviews themselves. Import a review CSV
-                  (Guesty or another PMS export) or add reviews on a listing&apos;s page — this then lists the repeated problems with real
+                  (Guesty or another PMS export) or add reviews on a listing&apos;s page. This then lists the repeated problems with real
                   guest quotes.
                 </p>
               ) : summary.themes.length === 0 ? (
@@ -365,7 +365,7 @@ export function ListingHealthPortfolio({
                         {r.internalName}
                       </Link>
                       <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-                        {r.listingName ?? "—"}
+                        {r.listingName ?? "·"}
                         <IconTooltip label="Open on Airbnb">
                           <a href={r.airbnbUrl} target="_blank" rel="noreferrer" aria-label="Open on Airbnb" className="shrink-0 hover:text-primary">
                             <ExternalLink className="h-3 w-3" />
@@ -383,18 +383,18 @@ export function ListingHealthPortfolio({
                       ) : s ? (
                         <Badge tone="danger">Unreachable</Badge>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">·</span>
                       )}
                     </td>
-                    <td className="px-3 py-3">{s?.ok ? <ScoreBadge score={s.healthScore} /> : "—"}</td>
-                    <td className="px-3 py-3">{s?.ok ? <ScoreBadge score={s.qualityScore} /> : "—"}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{w ? `${LABEL[w[0]]} ${w[1].toFixed(2)}` : "—"}</td>
+                    <td className="px-3 py-3">{s?.ok ? <ScoreBadge score={s.healthScore} /> : "·"}</td>
+                    <td className="px-3 py-3">{s?.ok ? <ScoreBadge score={s.qualityScore} /> : "·"}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{w ? `${LABEL[w[0]]} ${w[1].toFixed(2)}` : "·"}</td>
                     <td className="px-3 py-3 tabular-nums text-muted-foreground">
-                      {s?.estimatedStars ? `${s.estimatedStars["4"]} / ${s.estimatedStars["3"]} / ${s.estimatedStars["2"]} / ${s.estimatedStars["1"]}` : "—"}
+                      {s?.estimatedStars ? `${s.estimatedStars["4"]} / ${s.estimatedStars["3"]} / ${s.estimatedStars["2"]} / ${s.estimatedStars["1"]}` : "·"}
                       {r.imported.total > 0 && <span className="ml-2 text-xs text-primary">{r.imported.total} imported</span>}
                     </td>
                     <td className="max-w-[220px] px-3 py-3">
-                      {s?.issues[0] ? <span className="block truncate text-xs">{s.issues[0].title}</span> : <span className="text-muted-foreground">—</span>}
+                      {s?.issues[0] ? <span className="block truncate text-xs">{s.issues[0].title}</span> : <span className="text-muted-foreground">·</span>}
                     </td>
                     <td className="px-3 py-3 text-xs text-muted-foreground">{s ? formatClientDateTime(new Date(s.fetchedAt), tz) : "Never"}</td>
                   </tr>

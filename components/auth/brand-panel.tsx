@@ -6,9 +6,9 @@ import { PRODUCT_NAME } from "@/lib/brand";
 
 // Shared by /login, /signup and /invite/[token].
 export const FEATURES = [
-  { icon: Building2, title: "Clients", body: "Every client, property, and knowledge base in one place" },
+  { icon: Building2, title: "Clients", body: "Every client, property and knowledge base in one place" },
   { icon: ListChecks, title: "Tasks", body: "Keep your whole team aligned, every shift" },
-  { icon: Users, title: "Teamwork", body: "Roles, permissions, and visibility that fit how you operate" },
+  { icon: Users, title: "Teamwork", body: "Roles, permissions and visibility that fit how you operate" },
 ];
 
 export function BrandPanel() {
@@ -36,8 +36,8 @@ export function BrandPanel() {
           Great teams run on great operations.
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          {PRODUCT_NAME} helps operations teams stay organized and on schedule — one shared source of truth for
-          every client, task, shift, and teammate.
+          {PRODUCT_NAME} helps operations teams stay organized and on schedule, with one shared source of truth for
+          every client, task, shift and teammate.
         </p>
 
         <div className="mt-10 space-y-5">

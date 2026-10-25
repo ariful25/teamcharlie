@@ -9,6 +9,8 @@ import { formatDateLong, formatTime, greeting, startOfDayUTC } from "@/lib/time"
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ClientStatusCard } from "@/components/dashboard/client-status-card";
 import { TodaysOperations } from "@/components/dashboard/todays-operations";
+import { SetupChecklist } from "@/components/dashboard/setup-checklist";
+import { getSetupChecklist } from "@/lib/queries/setup";
 import { ShiftCard } from "@/components/dashboard/shift-card";
 import { AttendanceWidget } from "@/components/dashboard/attendance-widget";
 import { CharlieHq3DWrapper } from "@/components/dashboard/charlie-hq-3d-wrapper";
@@ -44,6 +46,7 @@ export default async function DashboardPage() {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       }),
     ]);
+  const setup = currentUser.role === "ADMIN" ? await getSetupChecklist(currentUser.teamId) : [];
 
   const clientColor = new Map(clients.map((c, i) => [c.id, CLIENT_PALETTE[i % CLIENT_PALETTE.length]]));
 
@@ -83,6 +86,8 @@ export default async function DashboardPage() {
           tone="success"
         />
       </div>
+
+      <SetupChecklist items={setup} />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-golden">
         <div className="min-w-0 space-y-8">

@@ -21,6 +21,11 @@ import { Button } from "@/components/ui/button";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { TaskDetailDialog } from "./task-detail-dialog";
+import type { BoardTask } from "@/lib/queries/tasks";
+
+// completedAt may be an optimistic ISO string until the server refresh lands.
+type KanbanTask = Omit<BoardTask, "completedAt"> & { completedAt: Date | string | null };
+type TaskStatus = BoardTask["status"];
 
 type Option = { id: string; name: string };
 
@@ -36,7 +41,7 @@ const COLUMNS: { status: string; label: string; droppable: boolean }[] = [
   { status: "COMPLETED", label: "Completed", droppable: true },
 ];
 
-function TaskCardMini({ task, dragging }: { task: any; dragging?: boolean }) {
+function TaskCardMini({ task, dragging }: { task: KanbanTask; dragging?: boolean }) {
   return (
     <div
       className={`glass space-y-2 rounded-xl border border-border/60 p-3 text-sm shadow-card transition ${
@@ -52,7 +57,7 @@ function TaskCardMini({ task, dragging }: { task: any; dragging?: boolean }) {
       </p>
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1">
-          <Clock className="h-3 w-3" /> {task.startTime ?? "—"}–{task.dueTime ?? "—"}
+          <Clock className="h-3 w-3" /> {task.startTime ?? "·"} to {task.dueTime ?? "·"}
         </span>
         <span className="flex items-center gap-1">
           <User2 className="h-3 w-3" /> {task.assignedUser?.name ?? "Unassigned"}
@@ -74,7 +79,7 @@ function DraggableCard({
   employees,
   categories,
 }: {
-  task: any;
+  task: KanbanTask;
   onDelete: (id: string) => void;
   clients: Option[];
   employees: Option[];
@@ -130,7 +135,7 @@ function Column({
   status: string;
   label: string;
   droppable: boolean;
-  tasks: any[];
+  tasks: KanbanTask[];
   onDelete: (id: string) => void;
   clients: Option[];
   employees: Option[];
@@ -203,7 +208,7 @@ export function TasksKanban({
   employees = [],
   categories = [],
 }: {
-  tasks: any[];
+  tasks: KanbanTask[];
   clients?: Option[];
   employees?: Option[];
   categories?: Option[];
@@ -214,11 +219,11 @@ export function TasksKanban({
   // Optimistic per-task overrides (status + blockedReason), same pattern as
   // components/dashboard/todays-operations.tsx — `tasks` only changes on
   // router.refresh(), so a drag needs its own local state to move instantly.
-  const [overrides, setOverrides] = useState<Record<string, { status?: string; blockedReason?: string | null; completedAt?: string | null }>>({});
+  const [overrides, setOverrides] = useState<Record<string, { status?: TaskStatus; blockedReason?: string | null; completedAt?: string | null }>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingBlock, setPendingBlock] = useState<{ id: string; previousStatus: string } | null>(null);
 
-  function effectiveTask(task: any) {
+  function effectiveTask(task: KanbanTask): KanbanTask {
     const override = overrides[task.id];
     return override ? { ...task, ...override } : task;
   }
@@ -254,7 +259,7 @@ export function TasksKanban({
       // Dropping the override reverts both status and blockedReason to the
       // server's values (the old code only restored status).
       dropOverride(id);
-      toast.error("Could not update task — change reverted");
+      toast.error("Could not update the task. Change reverted.");
     }
   }
 
@@ -265,7 +270,8 @@ export function TasksKanban({
   function handleDragEnd(event: DragEndEvent) {
     setActiveId(null);
     const taskId = String(event.active.id);
-    const overStatus = event.over?.id ? String(event.over.id) : null;
+    // Column droppable ids are task statuses (see COLUMNS).
+    const overStatus = event.over?.id ? (String(event.over.id) as TaskStatus) : null;
     if (!overStatus) return;
 
     const task = tasks.find((t) => t.id === taskId);

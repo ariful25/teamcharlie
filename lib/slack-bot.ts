@@ -202,7 +202,7 @@ export async function sendTasksOverdue(tasks: TaskForMessage[]) {
   if (tasks.length === 0) return { ok: true } as SlackResult;
   const text = [
     `⏰ *${tasks.length} Task${tasks.length > 1 ? "s" : ""} Overdue*`,
-    ...tasks.map((t) => `• ${taskLine(t)} — ${t.assignedUser ? mentionFor(t.assignedUser) : "Unassigned"}`),
+    ...tasks.map((t) => `• ${taskLine(t)}: ${t.assignedUser ? mentionFor(t.assignedUser) : "Unassigned"}`),
   ].join("\n");
   return postMessage(channelFor(undefined), text);
 }
@@ -231,14 +231,14 @@ function digestBlocks(tasks: TaskForMessage[]) {
 
 export function buildDailyDigestText(user: { name: string; slackUserId?: string | null }, tasks: TaskForMessage[]) {
   if (tasks.length === 0) {
-    return `👋 Good morning ${mentionFor(user)} — no tasks assigned for today.`;
+    return `👋 Good morning ${mentionFor(user)}! No tasks assigned for today.`;
   }
   const remaining = tasks.filter((t) => t.status !== "COMPLETED").length;
   const lines = tasks.map((t, i) =>
     t.status === "COMPLETED" ? `${i + 1}. ✅ ~${taskLine(t)}~` : `${i + 1}. ${PRIORITY_EMOJI[t.priority] ?? ""} ${taskLine(t)}`
   );
   return [
-    `👋 Good morning ${mentionFor(user)} — here's today's tasks:`,
+    `👋 Good morning ${mentionFor(user)}! Here are today's tasks:`,
     ...lines,
     remaining > 0 ? `Tap a button below to mark that task complete once it's done.` : `All done for today 🎉`,
   ].join("\n");

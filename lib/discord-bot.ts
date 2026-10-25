@@ -141,7 +141,7 @@ export async function sendTasksOverdue(tasks: TaskForMessage[], target?: TaskTar
   const content = [
     `⏰ **${tasks.length} Task${tasks.length > 1 ? "s" : ""} Overdue**`,
     ``,
-    ...tasks.map((t) => `• ${taskLine(t)} — ${t.assignedUser ? mentionFor(t.assignedUser) : "Unassigned"}`),
+    ...tasks.map((t) => `• ${taskLine(t)}: ${t.assignedUser ? mentionFor(t.assignedUser) : "Unassigned"}`),
   ].join("\n");
   return postToTaskChannel({ content }, target);
 }
@@ -174,14 +174,14 @@ function digestComponents(tasks: TaskForMessage[]) {
 
 export function buildDailyDigestContent(user: { name: string; discordUserId?: string | null }, tasks: TaskForMessage[]) {
   if (tasks.length === 0) {
-    return `👋 Good morning ${mentionFor(user)} — no tasks assigned for today.`;
+    return `👋 Good morning ${mentionFor(user)}! No tasks assigned for today.`;
   }
   const remaining = tasks.filter((t) => t.status !== "COMPLETED").length;
   const lines = tasks.map((t, i) =>
     t.status === "COMPLETED" ? `${i + 1}. ✅ ~~${taskLine(t)}~~` : `${i + 1}. ${PRIORITY_EMOJI[t.priority] ?? ""} ${taskLine(t)}`
   );
   return [
-    `👋 Good morning ${mentionFor(user)} — here's today's tasks:`,
+    `👋 Good morning ${mentionFor(user)}! Here are today's tasks:`,
     ``,
     ...lines,
     ``,

@@ -62,7 +62,7 @@ export function ClaimDialog({
         <form onSubmit={submit} className="space-y-3 text-sm">
           <p className="text-xs text-muted-foreground">
             {mode === "start"
-              ? "Your check-in stays as recorded. Tell your team lead when you really started — they confirm both times after your shift."
+              ? "Your check-in stays as recorded. Tell your team lead when you really started. They confirm both times after your shift."
               : "Forgot to check in or out? Enter what really happened. Nothing changes until your team lead confirms it."}
           </p>
           <Field label="Shift day">

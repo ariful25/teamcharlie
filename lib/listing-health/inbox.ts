@@ -59,7 +59,7 @@ async function readWithAi(teamId: string, userId: string, text: string): Promise
       feature: "listing-health:read-reviews",
       maxTokens: 6000,
       system:
-        "You extract guest reviews from text a short-term-rental host copied from Airbnb. Copy review wording exactly; never invent a rating — use null when the text doesn't state one. Reply with JSON only.",
+        "You extract guest reviews from text a short-term-rental host copied from Airbnb. Copy review wording exactly; never invent a rating; use null when the text doesn't state one. Reply with JSON only.",
       prompt: `Text:\n"""\n${part}\n"""\n\nReturn {"reviews": [{"guestName": string|null, "reviewDate": "yyyy-MM-dd"|null, "rating": 1-5|null, "comment": string, "privateNote": string|null, "listingRef": string|null}]}.\nSkip the host's own responses and page interface text. "listingRef" is the listing title or Airbnb room id if the text shows which listing the review is for.`,
     });
     const json = extractJson<{ reviews?: TextReview[] }>(result.text);
@@ -82,7 +82,7 @@ async function readWithAi(teamId: string, userId: string, text: string): Promise
 export async function readPastedReviews(input: { teamId: string; userId: string; clientId?: string | null; propertyId?: string | null; text: string; useAi: boolean }) {
   const listings = await clientListings(input.teamId, input.clientId);
   if (input.propertyId && !listings.some((l) => l.id === input.propertyId)) throw new ListingHealthError("Listing not found.", 404);
-  if (input.text.length > 200_000) throw new ListingHealthError("That's too much text at once — paste up to about 100 reviews.");
+  if (input.text.length > 200_000) throw new ListingHealthError("That's too much text at once. Paste up to about 100 reviews.");
 
   let method: "ai" | "text" = "text";
   let reviews: TextReview[] = [];

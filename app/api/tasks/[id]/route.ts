@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
+  const teamId = session.user.teamId as string;
   const body = await req.json().catch(() => ({}));
 
   // Restoring is the one operation allowed on an already-deleted task — it's
@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const existing = await prisma.task.findFirst({ where: { id: params.id, teamId, deletedAt: null } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const userId = (session.user as any).id as string;
+  const userId = session.user.id as string;
 
   // The full edit form (title/client/property/category/assignee/date/times/
   // priority/notes) — kept as its own branch, separate from the lightweight
@@ -177,8 +177,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = (session.user as any).teamId as string;
-  const userId = (session.user as any).id as string;
+  const teamId = session.user.teamId as string;
+  const userId = session.user.id as string;
   const existing = await prisma.task.findFirst({ where: { id: params.id, teamId, deletedAt: null } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

@@ -139,7 +139,7 @@ export function PasteReviewsDialog({
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">
               Found <b className="text-foreground">{rows.length}</b> review{rows.length === 1 ? "" : "s"} ({method === "ai" ? "read with AI" : "read with the built-in reader"}). Check
-              each one{missing ? ` — ${missing} still need${missing === 1 ? "s" : ""} a ${propertyId ? "" : "listing or "}star rating` : ""}.
+              each one{missing ? `; ${missing} still need${missing === 1 ? "s" : ""} a ${propertyId ? "" : "listing or "}star rating` : ""}.
             </p>
             {!propertyId && (
               <div className="flex flex-wrap items-center gap-2">

@@ -9,6 +9,7 @@ import { AlertTriangle, CheckCircle2, Clock, Trash2, User2 } from "lucide-react"
 import { toast } from "sonner";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { TaskDetailDialog } from "./task-detail-dialog";
+import type { BoardTask } from "@/lib/queries/tasks";
 
 type Option = { id: string; name: string };
 
@@ -18,7 +19,7 @@ export function TaskCard({
   employees = [],
   categories = [],
 }: {
-  task: any;
+  task: BoardTask;
   clients?: Option[];
   employees?: Option[];
   categories?: Option[];
@@ -54,7 +55,7 @@ export function TaskCard({
         router.refresh();
       } else {
         setStatus(previousStatus);
-        toast.error("Could not update task — change reverted");
+        toast.error("Could not update the task. Change reverted.");
       }
     });
   }
@@ -103,7 +104,7 @@ export function TaskCard({
 
         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" /> {task.startTime ?? "—"} - {task.dueTime ?? "—"}
+            <Clock className="h-3 w-3" /> {task.startTime ?? "·"} to {task.dueTime ?? "·"}
           </span>
           <span className="flex items-center gap-1">
             <User2 className="h-3 w-3" /> {task.assignedUser?.name ?? "Unassigned"}

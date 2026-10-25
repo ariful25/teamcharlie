@@ -41,7 +41,7 @@ export function TeamWebhookPanel({ configured }: { configured: boolean }) {
       body: JSON.stringify({ kind: "team" }),
     });
     setBusy(false);
-    if (res.ok) toast.success("Test message sent — check your Discord channel");
+    if (res.ok) toast.success("Test message sent. Check your Discord channel.");
     else {
       const data = await res.json().catch(() => ({}));
       toast.error(data.error ?? "Test failed");
@@ -53,7 +53,7 @@ export function TeamWebhookPanel({ configured }: { configured: boolean }) {
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm">
         <span className="flex items-center gap-2">
           {configured ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
-          {configured ? "Discord webhook connected" : "No webhook yet — notifications are off"}
+          {configured ? "Discord webhook connected" : "No webhook yet, so notifications are off"}
         </span>
         {configured && (
           <div className="flex gap-2">

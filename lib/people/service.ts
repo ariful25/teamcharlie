@@ -96,7 +96,7 @@ export async function updateProfile(actor: Actor, userId: string, raw: unknown) 
     if (!manager) throw new PeopleError("Pick a manager from your team.");
     const profiles = await prisma.employeeProfile.findMany({ where: { user: { teamId: actor.teamId } }, select: { userId: true, managerId: true } });
     const managerOf = new Map(profiles.map((p) => [p.userId, p.managerId]));
-    if (createsManagerLoop(userId, managerId, managerOf)) throw new PeopleError("That would make a reporting loop — someone can't manage their own manager.");
+    if (createsManagerLoop(userId, managerId, managerOf)) throw new PeopleError("That would make a reporting loop. Someone can't manage their own manager.");
   }
 
   const before = (subject.profile ?? {}) as Record<string, unknown>;
