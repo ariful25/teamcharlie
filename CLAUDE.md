@@ -70,6 +70,20 @@ throttled to one fetch per listing per 10 minutes.
 - Payroll (`lib/payroll/`): pure maths in `calc.ts` (`npm run test:payroll`);
   a month can't be finalized while shifts still need review.
 
+## Reviews pipeline
+
+`/reviews` tracks every Airbnb guest from booking to review (`lib/reviews/`,
+`npm run test:reviews`). Airbnb's emails (via the Gmail Apps Script →
+`/api/inbound/reviews`) create and update `GuestStay` rows: confirmed /
+altered / cancelled / "write a review for…" / "… left a review". Guest
+message threads are never ingested (OTHER emails keep no body). Stages and
+rules are pure in `pipeline.ts`; each stage gets at most one open task
+(`sourceRef stay:<id>:<step>`), and completing that task on the Tasks board
+advances the stay (`onStayTaskCompleted`). Messages are sent by people in
+Airbnb/Akia — the app never messages guests. Templates must stay inside
+Airbnb's Reviews Policy (no incentives, pressure or review swaps —
+`policyWarnings()` flags them).
+
 ## Task board visibility
 
 `lib/tasks/visibility.ts` decides what's on the board (`npm run test:tasks`):

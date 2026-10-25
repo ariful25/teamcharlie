@@ -40,7 +40,8 @@ export function PasteReviewsDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  clientId: string;
+  /** Omit to paste across every listing in the team. */
+  clientId?: string | null;
   listings: { id: string; name: string }[];
   propertyId?: string;
   listingLabel?: string;
@@ -66,7 +67,7 @@ export function PasteReviewsDialog({
     const res = await fetch("/api/listing-health/reviews/paste", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "read", clientId, propertyId: propertyId ?? null, text, useAi }),
+      body: JSON.stringify({ action: "read", clientId: clientId ?? null, propertyId: propertyId ?? null, text, useAi }),
     });
     setBusy(null);
     const data = await res.json().catch(() => ({}));
@@ -86,7 +87,7 @@ export function PasteReviewsDialog({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "save",
-        clientId,
+        clientId: clientId ?? null,
         rows: chosen.map(({ include: _i, ...r }) => r),
       }),
     });

@@ -62,9 +62,9 @@ export function SettingsShell({ teamName, sections }: { teamName: string; sectio
   const Icon = ICONS[current.id] ?? Building2;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[16.5rem_minmax(0,1fr)] lg:items-start">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[16.5rem_minmax(0,1fr)] lg:items-start">
       {/* Section list — a sticky rail on desktop, a scrolling tab row on phones */}
-      <nav aria-label="Settings sections" className="lg:sticky lg:top-6">
+      <nav aria-label="Settings sections" className="min-w-0 lg:sticky lg:top-6">
         <div className="glass hidden overflow-hidden rounded-2xl shadow-card lg:block">
           <div className="border-b border-border/60 px-5 py-5">
             <p className="font-display text-base font-semibold">{teamName}</p>

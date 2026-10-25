@@ -13,16 +13,17 @@ type Status = { connected: boolean; tokenHint: string | null; lastSeenAt: string
 /** The Google Apps Script the team pastes into script.google.com. */
 function appsScript(url: string, token: string) {
   return `// TeamHQ — Airbnb review email sync.
-// Runs inside your own Gmail: finds Airbnb review emails and sends only
-// those to TeamHQ. Nothing else in the mailbox is read or sent.
+// Runs inside your own Gmail: finds Airbnb's booking, change, cancellation
+// and review emails and sends only those to TeamHQ. Guest message threads
+// and everything else in the mailbox are never read or sent.
 const TEAMHQ_URL = '${url}';
 const TEAMHQ_TOKEN = '${token}';
-const SEARCH = 'from:(airbnb.com) subject:(review)';
+const SEARCH = 'from:(airbnb.com) -subject:(RE) -subject:(message) -subject:(inquiry) subject:(review OR confirmed OR cancelled OR canceled OR cancellation OR altered OR changed OR updated)';
 
 // Runs every hour (see setUp): the last 3 days, duplicates are skipped.
 function syncRecent() { send_(SEARCH + ' newer_than:3d'); }
 
-// One-off: imports the last year of review emails.
+// One-off: imports the last year of these emails.
 function backfillLastYear() { send_(SEARCH + ' newer_than:365d'); }
 
 function send_(query) {
@@ -142,7 +143,7 @@ export function ReviewSyncPanel({ initial }: { initial: Status }) {
             <li>
               Choose <b>setUp</b> in the function menu and press <b>Run</b>. Allow access when Google asks — it&apos;s your own script.
             </li>
-            <li>That&apos;s it: the past year of review emails comes in now, new ones every hour.</li>
+            <li>That&apos;s it: the past year comes in now (reviews, bookings, changes, cancellations), new emails every hour.</li>
           </ol>
           <div className="relative">
             <pre className="max-h-72 overflow-auto rounded-xl border border-border bg-muted/30 p-3 text-[11px] leading-relaxed">{script}</pre>

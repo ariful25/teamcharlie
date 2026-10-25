@@ -183,8 +183,8 @@ export default async function SettingsPage() {
           {
             id: "reviews",
             group: "Integrations" as const,
-            label: "Review email sync",
-            description: "Bring Airbnb guest reviews in automatically from your Gmail — no Airbnb API needed.",
+            label: "Airbnb email sync",
+            description: "Brings Airbnb bookings, changes, cancellations and reviews in from your Gmail for the Reviews pipeline — no Airbnb API needed. Guest messages are never read.",
             status: reviewSync.connected ? { text: "On", tone: "ok" as const } : { text: "Off", tone: "off" as const },
             content: <ReviewSyncPanel initial={reviewSync} />,
           },

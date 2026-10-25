@@ -10,9 +10,11 @@ import { inputClass } from "@/components/shared/form-field";
 import { useTeamTimezone } from "@/components/providers/team-timezone";
 import { formatClientDateTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export type InboxItem = {
   id: string;
+  kind?: string;
   subject: string;
   receivedAt: string;
   snippet: string;
@@ -34,13 +36,13 @@ export function ReviewInbox({ items, listings }: { items: InboxItem[]; listings:
         <Inbox className="h-4 w-4 text-primary" />
         <h2 className="text-sm font-semibold">Review inbox</h2>
         <span className="text-xs text-muted-foreground">
-          {items.length === 1 ? "1 Airbnb email needs" : `${items.length} Airbnb emails need`} a listing, rating or text before {items.length === 1 ? "it's" : "they're"} saved
+          {items.length === 1 ? "1 Airbnb email needs" : `${items.length} Airbnb emails need`} a person to finish {items.length === 1 ? "it" : "them"}
         </span>
       </header>
       <ul className="divide-y divide-border/60">
-        {items.map((i) => (
-          <InboxRow key={i.id} item={i} listings={listings} />
-        ))}
+        {items.map((i) =>
+          i.kind && i.kind !== "GUEST_REVIEW" ? <StayRow key={i.id} item={i} listings={listings} /> : <InboxRow key={i.id} item={i} listings={listings} />
+        )}
       </ul>
     </section>
   );
@@ -99,6 +101,60 @@ function InboxRow({ item, listings }: { item: InboxItem; listings: { id: string;
         </Button>
         <Button size="sm" disabled={busy || !f.propertyId || !f.rating || !f.comment.trim()} onClick={() => act("SAVE")}>
           Save review
+        </Button>
+      </div>
+    </li>
+  );
+}
+
+const KIND_LABEL: Record<string, string> = { CONFIRMED: "Booking", ALTERED: "Change", CANCELLED: "Cancellation", CHECKOUT: "Checkout" };
+
+/** A reservation/checkout email we couldn't tie to a guest or listing: start tracking the stay by hand. */
+function StayRow({ item, listings }: { item: InboxItem; listings: { id: string; name: string }[] }) {
+  const router = useRouter();
+  const tz = useTeamTimezone();
+  const [f, setF] = useState({ guestName: item.guestName ?? "", propertyId: item.propertyId ?? "", checkOut: "" });
+  const [busy, setBusy] = useState(false);
+
+  async function act(action: "STAY" | "IGNORE") {
+    setBusy(true);
+    const res = await fetch(`/api/listing-health/review-inbox/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(action === "IGNORE" ? { action } : { action, ...f }),
+    });
+    setBusy(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return toast.error(data.error ?? "Couldn't update that email");
+    toast.success(action === "STAY" ? "Now tracking this stay" : "Email dismissed");
+    router.refresh();
+  }
+
+  return (
+    <li className="space-y-3 px-5 py-4 text-sm">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-medium">
+          <span className="mr-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{KIND_LABEL[item.kind ?? ""] ?? "Airbnb"}</span>
+          {item.subject}
+        </p>
+        <span className="text-xs text-muted-foreground">{formatClientDateTime(new Date(item.receivedAt), tz)}</span>
+      </div>
+      <p className="line-clamp-2 text-xs text-muted-foreground">{item.snippet}</p>
+      <div className="flex flex-wrap gap-2">
+        <input value={f.guestName} onChange={(e) => setF({ ...f, guestName: e.target.value })} placeholder="Guest" aria-label="Guest name" className={cn(inputClass, "h-9 w-40 py-1")} />
+        <div className="min-w-[12rem] flex-1">
+          <Select value={f.propertyId} onValueChange={(v) => setF({ ...f, propertyId: v })} placeholder="Which listing?" options={listings.map((l) => ({ value: l.id, label: l.name }))} className="h-9" />
+        </div>
+        <div className="w-44">
+          <DatePicker value={f.checkOut} onChange={(v) => setF({ ...f, checkOut: v })} placeholder="Checkout date" className="h-9" />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => act("IGNORE")}>
+          Dismiss
+        </Button>
+        <Button size="sm" disabled={busy || !f.guestName.trim() || !f.propertyId || !f.checkOut} onClick={() => act("STAY")}>
+          Start tracking
         </Button>
       </div>
     </li>

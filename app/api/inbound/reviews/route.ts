@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { inboundSchema, receiveReviewEmails, teamForToken } from "@/lib/listing-health/inbox";
+import { inboundSchema, teamForToken } from "@/lib/listing-health/inbox";
+import { ingestAirbnbEmails } from "@/lib/reviews/service";
 
 // Called hourly by the team's Google Apps Script (Settings → Review email
-// sync) with Airbnb review emails from their Gmail. No session: the bearer
+// sync) with Airbnb reservation and review emails from their Gmail (never
+// guest messages). No session: the bearer
 // token identifies the team, and only its SHA-256 hash is stored.
 export async function POST(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
@@ -15,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Expected { messages: [{ id, subject, from, date, body }] }." }, { status: 400 });
 
   try {
-    return NextResponse.json(await receiveReviewEmails(teamId, parsed.data.messages));
+    return NextResponse.json(await ingestAirbnbEmails(teamId, parsed.data.messages));
   } catch (err) {
     console.error("inbound reviews", err);
     return NextResponse.json({ error: "Could not store those emails." }, { status: 500 });

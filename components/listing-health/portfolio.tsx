@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Download, ExternalLink, ClipboardPaste, RefreshCw, Search, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, ExternalLink, ClipboardPaste, Inbox, RefreshCw, Search, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import type { PortfolioRow } from "@/lib/listing-health/queries";
 import { Bar, Rating, SEVERITY_TONE, ScoreBadge, categoryBarTone } from "./shared";
 import { ImportReviewsDialog } from "./review-dialogs";
 import { PasteReviewsDialog } from "./paste-reviews";
-import { ReviewInbox, type InboxItem } from "./review-inbox";
+import { type InboxItem } from "./review-inbox";
 
 type Summary = {
   listings: number;
@@ -181,7 +181,15 @@ export function ListingHealthPortfolio({
         </div>
       </div>
 
-      {canManage && <ReviewInbox items={inbox} listings={teamListings} />}
+      {canManage && inbox.length > 0 && (
+        <Link href="/reviews?tab=inbox" className="glass flex items-center gap-3 rounded-2xl px-5 py-3 text-sm shadow-card transition-colors hover:border-primary/40">
+          <Inbox className="h-4 w-4 text-primary" />
+          <span>
+            {inbox.length} Airbnb email{inbox.length === 1 ? "" : "s"} need{inbox.length === 1 ? "s" : ""} a person to finish
+          </span>
+          <span className="ml-auto text-primary">Open the Reviews inbox</span>
+        </Link>
+      )}
 
       {progress && (
         <div className="h-1.5 overflow-hidden rounded-full bg-muted/50">

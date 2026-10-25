@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { generateRecurringTaskInstances, refreshOverdueTasks } from "@/lib/services/task-generation";
 import { autoStopOpenSessions } from "@/lib/services/attendance";
+import { advanceStays } from "@/lib/reviews/service";
 
 const TASK_GENERATION_THROTTLE_MS = 5 * 60 * 1000;
 
@@ -34,5 +35,7 @@ export async function runTeamMaintenance(teamId: string) {
     generateRecurringTaskInstances(teamId),
     refreshOverdueTasks(teamId),
     autoStopOpenSessions({ teamId }),
+    // Review pipeline: checkout reached → follow-up task; window closed → expired.
+    advanceStays(teamId).catch((err) => console.error("advanceStays", err)),
   ]);
 }

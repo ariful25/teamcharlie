@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Wallet,
   Users,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconTooltip } from "@/components/ui/tooltip";
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/notices", label: "Notices", icon: StickyNote },
   { href: "/knowledge-base", label: "Knowledge Base", icon: FileSpreadsheet },
   { href: "/listing-health", label: "Listing Health", icon: HeartPulse },
+  { href: "/reviews", label: "Reviews", icon: Star },
 ];
 
 export function Sidebar({

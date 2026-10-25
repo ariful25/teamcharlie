@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { taskEditSchema, taskQuickUpdateSchema } from "@/lib/validations";
 import { combineDateAndTime } from "@/lib/time";
 import { getTeamTimezone } from "@/lib/team-timezone";
+import { onStayTaskCompleted } from "@/lib/reviews/service";
 import { notifyTaskEdited, notifyTaskDeleted, notifyTaskStatusChanged } from "@/lib/notifications";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -159,6 +160,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // Blocked); any other lightweight field change (priority, reassignment)
   // falls back to the generic "updated" message. Never both for one PATCH.
   const actorName = session.user.name ?? "Someone";
+  // Review pipeline tasks move their guest's stay forward when completed.
+  if (q.status === "COMPLETED") await onStayTaskCompleted(teamId, existing.sourceRef, userId);
   if (q.status === "IN_PROGRESS" || q.status === "COMPLETED" || q.status === "BLOCKED") {
     await notifyTaskStatusChanged(teamId, task, q.status, actorName);
   } else {

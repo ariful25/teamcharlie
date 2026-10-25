@@ -158,7 +158,7 @@ export function TasksBoard({
             options={[{ value: "", label: "All Categories" }, ...categories.map((c) => ({ value: c.name, label: c.name }))]}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {doneToday.length > 0 && (
             <Button
               variant="ghost"

@@ -11,6 +11,7 @@
     "test:listing-health": "tsx scripts/test-listing-health.ts",
     "test:people": "tsx scripts/test-people.ts",
     "test:tasks": "tsx scripts/test-tasks.ts",
+    "test:reviews": "tsx scripts/test-reviews.ts",
     "test:payroll": "tsx scripts/test-payroll.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

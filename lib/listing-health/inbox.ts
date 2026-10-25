@@ -6,7 +6,8 @@ import { AiError, isAiReady, runAi } from "@/lib/ai/client";
 import { extractJson } from "@/lib/ai/providers";
 import { reviewFingerprint } from "./csv";
 import { ListingHealthError, matchListing } from "./service";
-import { looksLikeReviewEmail, parsePastedReviews, parseReviewEmail, type TextReview } from "./review-text";
+import { parsePastedReviews, type TextReview } from "./review-text";
+import { createStay, linkReviewToStay } from "@/lib/reviews/service";
 import { redactCodes } from "./ai";
 
 // Two ways reviews get in without an API:
@@ -18,11 +19,14 @@ import { redactCodes } from "./ai";
 
 type Listing = { id: string; airbnbListingId: string | null; airbnbUrl: string; internalName: string; listingName: string | null };
 
-async function clientListings(teamId: string, clientId: string) {
-  const client = await prisma.client.findFirst({ where: { id: clientId, teamId } });
-  if (!client) throw new ListingHealthError("Client not found.", 404);
+/** A client's listings, or every listing in the team when no client is given. */
+async function clientListings(teamId: string, clientId?: string | null) {
+  if (clientId) {
+    const client = await prisma.client.findFirst({ where: { id: clientId, teamId } });
+    if (!client) throw new ListingHealthError("Client not found.", 404);
+  }
   return prisma.propertyKnowledgeItem.findMany({
-    where: { clientId },
+    where: clientId ? { clientId } : { client: { teamId } },
     select: { id: true, airbnbListingId: true, airbnbUrl: true, internalName: true, listingName: true },
   });
 }
@@ -75,7 +79,7 @@ async function readWithAi(teamId: string, userId: string, text: string): Promise
   return out;
 }
 
-export async function readPastedReviews(input: { teamId: string; userId: string; clientId: string; propertyId?: string | null; text: string; useAi: boolean }) {
+export async function readPastedReviews(input: { teamId: string; userId: string; clientId?: string | null; propertyId?: string | null; text: string; useAi: boolean }) {
   const listings = await clientListings(input.teamId, input.clientId);
   if (input.propertyId && !listings.some((l) => l.id === input.propertyId)) throw new ListingHealthError("Listing not found.", 404);
   if (input.text.length > 200_000) throw new ListingHealthError("That's too much text at once — paste up to about 100 reviews.");
@@ -117,7 +121,7 @@ const rowSchema = z.object({
   privateNote: z.string().trim().max(5000).nullable().optional(),
 });
 
-export async function savePastedReviews(input: { teamId: string; actorId: string; clientId: string; rows: unknown[] }) {
+export async function savePastedReviews(input: { teamId: string; actorId: string; clientId?: string | null; rows: unknown[] }) {
   const listings = await clientListings(input.teamId, input.clientId);
   const ids = new Set(listings.map((l) => l.id));
   if (!Array.isArray(input.rows) || input.rows.length === 0) throw new ListingHealthError("Nothing to save.");
@@ -142,6 +146,11 @@ export async function savePastedReviews(input: { teamId: string; actorId: string
     });
   }
   const created = await prisma.listingReview.createMany({ data, skipDuplicates: true });
+  // Tie each new review to its guest's stay in the review pipeline, if tracked.
+  const saved = await prisma.listingReview.findMany({
+    where: { createdById: input.actorId, source: "PASTE", stayId: null, fingerprint: { in: data.map((d) => d.fingerprint) } },
+  });
+  for (const r of saved) await linkReviewToStay(input.teamId, r, input.actorId);
   return { saved: created.count, duplicates: data.length - created.count };
 }
 
@@ -194,62 +203,6 @@ export const inboundSchema = z.object({
     .max(100),
 });
 
-/** Handles a batch from the Apps Script. Token checked by the caller via teamForToken(). */
-export async function receiveReviewEmails(teamId: string, messages: z.infer<typeof inboundSchema>["messages"]) {
-  const settings = await prisma.teamSettings.findUnique({ where: { teamId }, select: { reviewInboxCreatedById: true } });
-  const actorId = settings?.reviewInboxCreatedById;
-  const existing = new Set(
-    (await prisma.reviewInboxItem.findMany({ where: { teamId, externalId: { in: messages.map((m) => m.id) } }, select: { externalId: true } })).map((x) => x.externalId)
-  );
-  const listings: Listing[] = await prisma.propertyKnowledgeItem.findMany({
-    where: { client: { teamId } },
-    select: { id: true, airbnbListingId: true, airbnbUrl: true, internalName: true, listingName: true },
-  });
-
-  const result = { received: messages.length, duplicates: 0, saved: 0, needsReview: 0, ignored: 0 };
-  for (const m of messages) {
-    if (existing.has(m.id)) {
-      result.duplicates++;
-      continue;
-    }
-    const receivedAt = isNaN(Date.parse(m.date)) ? new Date() : new Date(m.date);
-    const base = { teamId, externalId: m.id, subject: m.subject.slice(0, 500), fromAddress: m.from.slice(0, 300), receivedAt, body: m.body.slice(0, 60_000) };
-
-    if (!looksLikeReviewEmail(m.subject, m.from)) {
-      await prisma.reviewInboxItem.create({ data: { ...base, status: "IGNORED" } });
-      result.ignored++;
-      continue;
-    }
-    const parsed = parseReviewEmail({ subject: m.subject, body: m.body });
-    const listing = matchListing(parsed.listingRef, listings);
-    const complete = !!(listing && parsed.rating && parsed.comment && actorId);
-    let reviewId: string | null = null;
-    if (complete) {
-      const reviewDate = new Date(`${receivedAt.toISOString().slice(0, 10)}T00:00:00Z`);
-      const fingerprint = reviewFingerprint({ rating: parsed.rating!, comment: parsed.comment, reviewDate });
-      const review = await prisma.listingReview.upsert({
-        where: { propertyId_fingerprint: { propertyId: listing!.id, fingerprint } },
-        create: { propertyId: listing!.id, source: "EMAIL", rating: parsed.rating!, comment: parsed.comment, guestName: parsed.guestName, reviewDate, fingerprint, createdById: actorId! },
-        update: {},
-      });
-      reviewId = review.id;
-    }
-    await prisma.reviewInboxItem.create({
-      data: {
-        ...base,
-        status: complete ? "SAVED" : "NEEDS_REVIEW",
-        propertyId: listing?.id ?? null,
-        reviewId,
-        parsed: { ...parsed } as Prisma.InputJsonValue,
-      },
-    });
-    if (complete) result.saved++;
-    else result.needsReview++;
-  }
-  await prisma.teamSettings.update({ where: { teamId }, data: { reviewInboxLastSeenAt: new Date() } });
-  return result;
-}
-
 export async function teamForToken(token: string | null) {
   if (!token || !token.startsWith("thq_rev_")) return null;
   const s = await prisma.teamSettings.findUnique({ where: { reviewInboxTokenHash: hash(token) }, select: { teamId: true } });
@@ -268,6 +221,7 @@ export async function listInbox(teamId: string, clientId?: string) {
     const p = (i.parsed ?? {}) as Partial<TextReview>;
     return {
       id: i.id,
+      kind: i.kind,
       subject: i.subject,
       receivedAt: i.receivedAt.toISOString(),
       snippet: i.body.replace(/\s+/g, " ").slice(0, 400),
@@ -283,6 +237,7 @@ export async function listInbox(teamId: string, clientId?: string) {
 
 const resolveSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("IGNORE") }),
+  z.object({ action: z.literal("STAY"), guestName: z.string(), propertyId: z.string(), checkOut: z.string(), checkIn: z.string().nullable().optional(), confirmationCode: z.string().nullable().optional() }),
   z.object({
     action: z.literal("SAVE"),
     propertyId: z.string().min(1, "Pick the listing."),
@@ -301,6 +256,12 @@ export async function resolveInboxItem(teamId: string, actorId: string, id: stri
     await prisma.reviewInboxItem.update({ where: { id }, data: { status: "IGNORED" } });
     return { ok: true };
   }
+  if (parsed.data.action === "STAY") {
+    const { action: _a, ...fields } = parsed.data;
+    const stay = await createStay(teamId, actorId, fields);
+    await prisma.reviewInboxItem.update({ where: { id }, data: { status: "SAVED", stayId: stay.id, propertyId: stay.propertyId } });
+    return { ok: true };
+  }
   const d = parsed.data;
   const listing = await prisma.propertyKnowledgeItem.findFirst({ where: { id: d.propertyId, client: { teamId } } });
   if (!listing) throw new ListingHealthError("Listing not found.", 404);
@@ -312,5 +273,6 @@ export async function resolveInboxItem(teamId: string, actorId: string, id: stri
     update: {},
   });
   await prisma.reviewInboxItem.update({ where: { id }, data: { status: "SAVED", propertyId: listing.id, reviewId: review.id } });
+  await linkReviewToStay(teamId, review, actorId);
   return { ok: true };
 }

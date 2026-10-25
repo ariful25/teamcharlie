@@ -700,6 +700,8 @@ model PropertyKnowledgeItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  stays GuestStay[]
+
   @@unique([clientId, airbnbUrl])
   @@index([clientId])
   @@index([clientId, status])
@@ -1044,6 +1046,10 @@ model ListingReview {
   privateNote String?
   // Duplicate guard for re-imports: hash of date + rating + comment.
   fingerprint String
+  // The stay this review belongs to (review pipeline), and when the team
+  // posted its public response on Airbnb.
+  stayId      String?
+  respondedAt DateTime?
   createdById String
   createdAt   DateTime              @default(now())
 
@@ -1301,6 +1307,9 @@ model ReviewInboxItem {
   receivedAt  DateTime
   body        String
   status      String // SAVED | NEEDS_REVIEW | IGNORED
+  // GUEST_REVIEW | CHECKOUT | CONFIRMED | ALTERED | CANCELLED | OTHER
+  kind        String   @default("GUEST_REVIEW")
+  stayId      String?
   propertyId  String?
   reviewId    String?
   // What the reader found: { guestName, rating, comment, listingRef }
@@ -1310,4 +1319,62 @@ model ReviewInboxItem {
 
   @@unique([teamId, externalId])
   @@index([teamId, status])
+}
+
+// ---- Review pipeline (lib/reviews) ---------------------------------------
+// One row per Airbnb reservation, built from Airbnb's emails (confirmed,
+// altered, cancelled, "write a review for…", "… left a review"). Guest
+// message emails are never ingested. Stages:
+// BOOKED → CHECKED_OUT → FOLLOW_UP_SENT → (ISSUE) → REVIEW_REQUESTED →
+// REVIEWED, or CANCELLED / EXPIRED (14-day review window passed).
+model GuestStay {
+  id                String                 @id @default(cuid())
+  teamId            String
+  propertyId        String?
+  property          PropertyKnowledgeItem? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  confirmationCode  String?
+  guestName         String
+  guests            Int?
+  checkIn           DateTime? // calendar day (UTC midnight)
+  checkOut          DateTime?
+  stage             String                 @default("BOOKED")
+  issueNote         String?
+  followUpSentAt    DateTime?
+  guestRepliedAt    DateTime?
+  reviewRequestedAt DateTime?
+  hostReviewedAt    DateTime?
+  guestReviewedAt   DateTime?
+  rating            Int?
+  reviewId          String?
+  events            StayEvent[]
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@unique([teamId, confirmationCode])
+  @@index([teamId, stage])
+  @@index([teamId, checkOut])
+}
+
+model StayEvent {
+  id      String    @id @default(cuid())
+  stayId  String
+  stay    GuestStay @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  kind    String // BOOKED, ALTERED, CANCELLED, CHECKED_OUT, FOLLOW_UP_SENT, HAPPY, ISSUE, REVIEW_REQUESTED, HOST_REVIEWED, REVIEWED, EXPIRED, NOTE
+  detail  String?
+  actorId String?
+  at      DateTime  @default(now())
+
+  @@index([stayId, at])
+}
+
+// Guest message templates for the pipeline, editable per team. Defaults
+// live in lib/reviews/templates.ts and are used until a team edits one.
+model MessageTemplate {
+  id        String   @id @default(cuid())
+  teamId    String
+  key       String // FOLLOW_UP | REVIEW_REQUEST | ISSUE_RECOVERY | THANK_YOU
+  body      String
+  updatedAt DateTime @updatedAt
+
+  @@unique([teamId, key])
 }

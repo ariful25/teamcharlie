@@ -6,12 +6,12 @@ import { listingHealthErrorResponse, requireListingManager } from "@/lib/listing
 
 const readSchema = z.object({
   action: z.literal("read"),
-  clientId: z.string().min(1),
+  clientId: z.string().min(1).nullable().optional(),
   propertyId: z.string().optional().nullable(),
   text: z.string().min(1, "Paste some reviews first."),
   useAi: z.boolean().default(true),
 });
-const saveSchema = z.object({ action: z.literal("save"), clientId: z.string().min(1), rows: z.array(z.unknown()) });
+const saveSchema = z.object({ action: z.literal("save"), clientId: z.string().min(1).nullable().optional(), rows: z.array(z.unknown()) });
 
 // Pasted reviews: "read" returns a preview (nothing saved), "save" stores
 // the rows the person confirmed.
