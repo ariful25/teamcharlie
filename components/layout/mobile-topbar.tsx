@@ -1,6 +1,6 @@
 "use client";
 
-import { signOut } from "next-auth/react";
+import { signOutOfDevice } from "@/components/pwa/push";
 import { LogOut, Radar } from "lucide-react";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { PRODUCT_NAME } from "@/lib/brand";
@@ -10,10 +10,10 @@ import { PRODUCT_NAME } from "@/lib/brand";
 // user had no way to sign out at all.
 export function MobileTopbar({ userName, teamName }: { userName: string; teamName: string }) {
   return (
-    <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border glass px-4 py-3 md:hidden">
+    <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border glass px-4 pb-3 pt-[calc(13px+env(safe-area-inset-top))] md:hidden">
       <div className="flex min-w-0 items-center gap-2">
         <Radar className="h-4 w-4 shrink-0 text-primary" />
-        <span className="text-sm font-semibold uppercase">{PRODUCT_NAME}</span>
+        <span className="text-sm font-semibold">{PRODUCT_NAME}</span>
         <span className="truncate text-xs text-muted-foreground">· {teamName}</span>
       </div>
       <div className="flex items-center gap-2">
@@ -22,7 +22,7 @@ export function MobileTopbar({ userName, teamName }: { userName: string; teamNam
         </div>
         <IconTooltip label="Sign out">
           <button
-            onClick={() => signOut({ callbackUrl: "/login?signedOut=1" })}
+            onClick={signOutOfDevice}
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
             aria-label="Sign out"
           >

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
@@ -36,12 +36,23 @@ export const metadata: Metadata = {
     title: PRODUCT_NAME,
     description: PRODUCT_TAGLINE,
   },
+  // Installed on an iPhone home screen: full screen, the page's own navy
+  // behind the status bar (the top bar pads itself by safe-area-inset-top).
+  appleWebApp: { capable: true, title: PRODUCT_NAME, statusBarStyle: "black-translucent" },
   robots: {
     // Internal tool with no public content — real credentials sit behind
     // /login, but there's no reason to let it get indexed either.
     index: false,
     follow: false,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#080c16",
+  colorScheme: "dark",
+  // Lets the layout reach under the notch and home bar; the mobile top bar
+  // and bottom navigation pad themselves with env(safe-area-inset-*).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

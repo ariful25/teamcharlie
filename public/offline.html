@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#080c16" />
+    <title>Offline · TeamHQ</title>
+    <!-- Static page served by the service worker with no connection, so it
+         can't use the app's stylesheet: the values below are the brand
+         tokens from app/globals.css (background, card, primary, muted). -->
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 21px;
+        box-sizing: border-box;
+        background: radial-gradient(ellipse at top, hsl(189 94% 55% / 0.08), transparent 60%), hsl(222 47% 6%);
+        color: hsl(210 40% 96%);
+        font: 15px/1.6 "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+      }
+      .card {
+        max-width: 340px;
+        padding: 34px 21px;
+        border-radius: 21px;
+        text-align: center;
+        background: hsl(222 40% 9% / 0.7);
+        border: 1px solid hsl(189 94% 55% / 0.25);
+        box-shadow: 0 0 34px hsl(189 94% 55% / 0.12);
+      }
+      h1 { margin: 13px 0 8px; font-size: 21px; font-weight: 600; }
+      p { margin: 0 0 21px; color: hsl(215 20% 65%); }
+      button {
+        font: inherit;
+        font-weight: 500;
+        padding: 8px 21px;
+        border-radius: 13px;
+        border: 0;
+        background: hsl(189 94% 55%);
+        color: hsl(222 47% 6%);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="hsl(189, 94%, 55%)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" /><path d="M4 6h.01" /><path d="M2.29 9.62A10 10 0 1 0 21.31 8.35" /><path d="M16.24 7.76A6 6 0 1 0 8.23 16.67" /><path d="M12 18h.01" /><path d="M17.99 11.66A6 6 0 0 1 15.77 16.67" /><circle cx="12" cy="12" r="2" /><path d="m13.41 10.59 5.66-5.66" />
+      </svg>
+      <h1>You're offline</h1>
+      <p>TeamHQ needs a connection to check you in, load tasks and save changes. Nothing was lost.</p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>

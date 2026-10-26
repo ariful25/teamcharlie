@@ -52,3 +52,11 @@ export function dueAt(task: { date: Date; dueTime: string | null; shiftType?: { 
   const start = combineDateAndTime(task.date, task.shiftType.startTime, tz);
   return due.getTime() < start.getTime() ? new Date(due.getTime() + 24 * 60 * 60 * 1000) : due;
 }
+
+/** "09:00 to 10:00", "Due 10:00", "From 09:00", or null when the task has no times. */
+export function timeWindow(startTime: string | null, dueTime: string | null): string | null {
+  if (startTime && dueTime) return `${startTime} to ${dueTime}`;
+  if (dueTime) return `Due ${dueTime}`;
+  if (startTime) return `From ${startTime}`;
+  return null;
+}

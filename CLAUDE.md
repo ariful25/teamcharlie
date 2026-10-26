@@ -103,6 +103,22 @@ are never marked overdue before then; one-off tasks and shift-less
 recurring tasks are there from the start of the team's day. The dashboard's
 operations table uses the same rules; its stats still count the whole day.
 
+## Phone app (installable web app)
+
+There is no native app: Charlie HQ installs from the browser ("Add to Home
+Screen") via `app/manifest.ts`, icons from `app/app-icon/[size]` and
+`public/sw.js`. The service worker never caches pages or API responses
+(per-user data must not survive sign-out on a shared phone), only
+`/_next/static` files, plus `public/offline.html`. Below `md` the bottom
+nav has Home, Tasks, Time (attendance and leave), Notices and More.
+Push notifications (Web Push, `lib/push/`): who gets what is pure in
+`messages.ts` (`npm run test:push`, which also runs the real `sw.js`);
+notice text never goes in a notification because lock screens are public.
+Sign-out unsubscribes the device (`signOutOfDevice`). Needs
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`; without them the
+toggle hides and nothing is sent. iPhones only get pushes once the app is
+on the home screen.
+
 ## People
 
 `/people` is the directory (cards + org chart) and `/people/[userId]` the

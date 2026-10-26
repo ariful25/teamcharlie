@@ -22,6 +22,7 @@ import { IconTooltip } from "@/components/ui/tooltip";
 import { Field, inputClass } from "@/components/shared/form-field";
 import { TaskDetailDialog } from "./task-detail-dialog";
 import type { BoardTask } from "@/lib/queries/tasks";
+import { timeWindow } from "@/lib/tasks/visibility";
 
 // completedAt may be an optimistic ISO string until the server refresh lands.
 type KanbanTask = Omit<BoardTask, "completedAt"> & { completedAt: Date | string | null };
@@ -56,9 +57,13 @@ function TaskCardMini({ task, dragging }: { task: KanbanTask; dragging?: boolean
         {task.client?.name ?? "No client"} {task.category ? `· ${task.category.name}` : ""}
       </p>
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Clock className="h-3 w-3" /> {task.startTime ?? "·"} to {task.dueTime ?? "·"}
-        </span>
+        {timeWindow(task.startTime, task.dueTime) ? (
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" /> {timeWindow(task.startTime, task.dueTime)}
+          </span>
+        ) : (
+          <span />
+        )}
         <span className="flex items-center gap-1">
           <User2 className="h-3 w-3" /> {task.assignedUser?.name ?? "Unassigned"}
         </span>

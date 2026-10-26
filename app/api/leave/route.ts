@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUserOrNull } from "@/lib/session";
 import { requestLeave } from "@/lib/leave/service";
+import { pushLeaveRequested } from "@/lib/push/notify";
 import { attendanceErrorResponse } from "@/lib/attendance/http";
 
 const schema = z.object({
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   try {
     const request = await requestLeave({ id: user.id, name: user.name, role: user.role, teamId: user.teamId }, parsed.data);
+    await pushLeaveRequested(user.teamId, request, user);
     return NextResponse.json({ request });
   } catch (err) {
     return attendanceErrorResponse(err, "Could not send the leave request.");

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentUserOrNull } from "@/lib/session";
 import { permissions } from "@/lib/auth";
 import { cancelLeave, reviewLeave } from "@/lib/leave/service";
+import { pushLeaveDecided } from "@/lib/push/notify";
 import { attendanceErrorResponse } from "@/lib/attendance/http";
 
 const schema = z.object({ action: z.enum(["APPROVE", "REJECT", "REVOKE"]), note: z.string().max(500).optional().nullable() });
@@ -17,6 +18,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   try {
     const request = await reviewLeave({ id: user.id, name: user.name, role: user.role, teamId: user.teamId }, params.id, parsed.data);
+    await pushLeaveDecided(user.teamId, request, parsed.data.action, user);
     return NextResponse.json({ request });
   } catch (err) {
     return attendanceErrorResponse(err, "Could not save the decision.");

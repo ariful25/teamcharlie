@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOutOfDevice } from "@/components/pwa/push";
 import {
   LayoutDashboard,
   CalendarClock,
@@ -176,7 +176,7 @@ export function Sidebar({
           </div>
           <IconTooltip label="Sign out">
             <button
-              onClick={() => signOut({ callbackUrl: "/login?signedOut=1" })}
+              onClick={signOutOfDevice}
               className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               aria-label="Sign out"
             >

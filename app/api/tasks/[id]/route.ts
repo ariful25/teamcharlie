@@ -7,6 +7,7 @@ import { combineDateAndTime } from "@/lib/time";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { onStayTaskCompleted } from "@/lib/reviews/service";
 import { notifyTaskEdited, notifyTaskDeleted, notifyTaskStatusChanged } from "@/lib/notifications";
+import { pushTaskAssigned } from "@/lib/push/notify";
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -84,6 +85,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       include: { client: true, assignedUser: true },
     });
     await notifyTaskEdited(teamId, task, session.user.name ?? "Someone");
+    await pushTaskAssigned(teamId, task, { id: userId, name: session.user.name ?? "Someone" }, existing.assignedUserId);
 
     // "Also apply to future occurrences" pushes only the content fields —
     // never date, status, or assignedUserId, which are instance-specific (a
@@ -168,6 +170,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   } else {
     await notifyTaskEdited(teamId, task, actorName);
   }
+  await pushTaskAssigned(teamId, task, { id: userId, name: actorName }, existing.assignedUserId);
 
   return NextResponse.json({ task });
 }

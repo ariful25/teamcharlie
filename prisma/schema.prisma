@@ -214,22 +214,23 @@ enum KnowledgeColumnType {
 // ---------- CORE ----------
 
 model Team {
-  id              String          @id @default(cuid())
-  name            String          @unique // "Charlie"
-  slug            String          @unique // "charlie"
-  timezone        String          @default("Asia/Dhaka")
-  users           User[]
-  clients         Client[]
-  tasks           Task[]
-  notices         Notice[]
-  shiftTypes      ShiftType[]
-  settings        TeamSettings?
-  checklistItems  ChecklistItem[]
-  categories      Category[]
-  invites         TeamInvite[]
-  lastGeneratedAt DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                String             @id @default(cuid())
+  pushSubscriptions PushSubscription[]
+  name              String             @unique // "Charlie"
+  slug              String             @unique // "charlie"
+  timezone          String             @default("Asia/Dhaka")
+  users             User[]
+  clients           Client[]
+  tasks             Task[]
+  notices           Notice[]
+  shiftTypes        ShiftType[]
+  settings          TeamSettings?
+  checklistItems    ChecklistItem[]
+  categories        Category[]
+  invites           TeamInvite[]
+  lastGeneratedAt   DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 model TeamSettings {
@@ -309,15 +310,16 @@ model ChecklistItem {
 }
 
 model User {
-  id           String  @id @default(cuid())
-  name         String
-  email        String  @unique
-  passwordHash String
-  avatarUrl    String?
-  role         Role    @default(EMPLOYEE)
-  teamId       String
-  team         Team    @relation(fields: [teamId], references: [id])
-  active       Boolean @default(true)
+  id                String             @id @default(cuid())
+  name              String
+  email             String             @unique
+  pushSubscriptions PushSubscription[]
+  passwordHash      String
+  avatarUrl         String?
+  role              Role               @default(EMPLOYEE)
+  teamId            String
+  team              Team               @relation(fields: [teamId], references: [id])
+  active            Boolean            @default(true)
 
   // Their Discord user ID (an 18-ish digit snowflake, not a username) — set
   // in Settings so the bot can @mention the right person in task/digest
@@ -1387,4 +1389,23 @@ model RateLimit {
   key        String   @id
   count      Int
   windowEnds DateTime
+}
+
+// One row per phone/browser that allowed notifications (Web Push). The
+// endpoint is the push service's address for that device; p256dh and auth
+// encrypt the payload so only that device can read it. Rows are deleted when
+// the push service says the device has gone (404/410) or on sign-out.
+model PushSubscription {
+  id         String    @id @default(cuid())
+  teamId     String
+  team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([teamId, userId])
 }

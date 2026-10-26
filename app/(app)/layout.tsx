@@ -52,11 +52,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             it, wide unwrapped content (e.g. the Tasks Kanban board) forces
             this whole column wider instead of scrolling inside itself,
             causing real page-level horizontal scroll on mobile. */}
-        <div className="min-w-0 flex-1 pb-20 md:pb-0 md:pl-64">
+        <div className="min-w-0 flex-1 pb-[calc(76px+env(safe-area-inset-bottom))] md:pb-0 md:pl-64">
           <MobileTopbar userName={user.name} teamName={user.team.name} />
           <main className="mx-auto max-w-[1600px] px-4 py-6 md:px-8 md:py-8">{children}</main>
         </div>
-        <MobileNav />
+        <MobileNav role={user.role} />
       </div>
     </TooltipProvider>
     </TeamTimezoneProvider>

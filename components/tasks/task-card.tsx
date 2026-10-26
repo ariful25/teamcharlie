@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { IconTooltip } from "@/components/ui/tooltip";
 import { TaskDetailDialog } from "./task-detail-dialog";
 import type { BoardTask } from "@/lib/queries/tasks";
+import { timeWindow } from "@/lib/tasks/visibility";
 
 type Option = { id: string; name: string };
 
@@ -103,9 +104,13 @@ export function TaskCard({
         </div>
 
         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" /> {task.startTime ?? "·"} to {task.dueTime ?? "·"}
-          </span>
+          {timeWindow(task.startTime, task.dueTime) ? (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" /> {timeWindow(task.startTime, task.dueTime)}
+            </span>
+          ) : (
+            <span />
+          )}
           <span className="flex items-center gap-1">
             <User2 className="h-3 w-3" /> {task.assignedUser?.name ?? "Unassigned"}
           </span>

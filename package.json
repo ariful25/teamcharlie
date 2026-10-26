@@ -12,7 +12,8 @@
     "test:people": "tsx scripts/test-people.ts",
     "test:tasks": "tsx scripts/test-tasks.ts",
     "test:reviews": "tsx scripts/test-reviews.ts",
-    "test:unit": "npm run -s test:attendance && npm run -s test:listing-health && npm run -s test:payroll && npm run -s test:people && npm run -s test:tasks && npm run -s test:reviews",
+    "test:unit": "npm run -s test:attendance && npm run -s test:listing-health && npm run -s test:payroll && npm run -s test:people && npm run -s test:tasks && npm run -s test:reviews && npm run -s test:push",
+    "test:push": "tsx scripts/test-push.ts",
     "test:security": "tsx scripts/test-security.ts",
     "test:reviews-e2e": "tsx scripts/e2e-review-emails.ts",
     "test:payroll": "tsx scripts/test-payroll.ts",
@@ -58,6 +59,7 @@
     "three": "0.170.0",
     "tweetnacl": "^1.0.3",
     "typescript": "5.5.4",
+    "web-push": "^3.6.7",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -67,6 +69,7 @@
     "@types/papaparse": "5.3.16",
     "@types/react": "19.1.12",
     "@types/react-dom": "19.1.9",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "10.4.19",
     "dotenv": "^17.4.2",
     "eslint": "8.57.0",

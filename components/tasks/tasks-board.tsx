@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Search, LayoutGrid, List as ListIcon, History, CheckCircle2, ChevronDown, Clock3 } from "lucide-react";
+import { Search, LayoutGrid, List as ListIcon, History, CheckCircle2, ChevronDown, Clock3, SlidersHorizontal } from "lucide-react";
 import { boardPhase } from "@/lib/tasks/visibility";
 import type { BoardTask, TasksPageData } from "@/lib/queries/tasks";
 import { useTeamTimezone } from "@/components/providers/team-timezone";
@@ -40,6 +40,13 @@ export function TasksBoard({
   const [myTasksOnly, setMyTasksOnly] = useState(false);
   const [showDone, setShowDone] = useState(searchParams.get("status") === "COMPLETED");
   const [laterOpen, setLaterOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilters = [status, clientId, assignedUserId, category].filter(Boolean).length;
+
+  // A phone shows one Kanban column at a time, so it starts on the list.
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) setView("list");
+  }, []);
   const tz = useTeamTimezone();
 
   // Ticks so completed tasks leave after their 5-minute window and shift
@@ -104,12 +111,12 @@ export function TasksBoard({
               <ListIcon className="h-3.5 w-3.5" /> List
             </button>
           </div>
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2">
-            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+          <div className="order-first flex w-full min-w-0 items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 md:order-none md:w-auto">
+            <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <input
               placeholder="Search tasks..."
               aria-label="Search tasks"
-              className="bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
+              className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
@@ -119,47 +126,61 @@ export function TasksBoard({
               myTasksOnly ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            My Tasks
+            My tasks
           </button>
-          {view === "list" && (
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((v) => !v)}
+            aria-expanded={filtersOpen}
+            className={cn(
+              "flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium md:hidden",
+              filtersOpen || activeFilters ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
+            )}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" /> Filters{activeFilters ? ` (${activeFilters})` : ""}
+          </button>
+          {/* On a phone the dropdowns fold behind the Filters button; from md up they sit inline. */}
+          <div className={cn("flex w-full flex-wrap gap-2 md:contents", !filtersOpen && "max-md:hidden")}>
+            {view === "list" && (
+              <Select
+                className="w-auto min-w-[140px]"
+                value={status}
+                onValueChange={setStatus}
+                placeholder="All Statuses"
+                options={[
+                  { value: "", label: "All Statuses" },
+                  { value: "UPCOMING", label: "Upcoming" },
+                  { value: "IN_PROGRESS", label: "In Progress" },
+                  { value: "COMPLETED", label: "Completed" },
+                  { value: "OVERDUE", label: "Overdue" },
+                  { value: "BLOCKED", label: "Blocked" },
+                ]}
+              />
+            )}
             <Select
               className="w-auto min-w-[140px]"
-              value={status}
-              onValueChange={setStatus}
-              placeholder="All Statuses"
-              options={[
-                { value: "", label: "All Statuses" },
-                { value: "UPCOMING", label: "Upcoming" },
-                { value: "IN_PROGRESS", label: "In Progress" },
-                { value: "COMPLETED", label: "Completed" },
-                { value: "OVERDUE", label: "Overdue" },
-                { value: "BLOCKED", label: "Blocked" },
-              ]}
+              value={clientId}
+              onValueChange={setClientId}
+              placeholder="All Clients"
+              options={[{ value: "", label: "All Clients" }, ...clients.map((c) => ({ value: c.id, label: c.name }))]}
             />
-          )}
-          <Select
-            className="w-auto min-w-[140px]"
-            value={clientId}
-            onValueChange={setClientId}
-            placeholder="All Clients"
-            options={[{ value: "", label: "All Clients" }, ...clients.map((c) => ({ value: c.id, label: c.name }))]}
-          />
-          {!myTasksOnly && (
+            {!myTasksOnly && (
+              <Select
+                className="w-auto min-w-[150px]"
+                value={assignedUserId}
+                onValueChange={setAssignedUserId}
+                placeholder="All Employees"
+                options={[{ value: "", label: "All Employees" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
+              />
+            )}
             <Select
               className="w-auto min-w-[150px]"
-              value={assignedUserId}
-              onValueChange={setAssignedUserId}
-              placeholder="All Employees"
-              options={[{ value: "", label: "All Employees" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
+              value={category}
+              onValueChange={setCategory}
+              placeholder="All Categories"
+              options={[{ value: "", label: "All Categories" }, ...categories.map((c) => ({ value: c.name, label: c.name }))]}
             />
-          )}
-          <Select
-            className="w-auto min-w-[150px]"
-            value={category}
-            onValueChange={setCategory}
-            placeholder="All Categories"
-            options={[{ value: "", label: "All Categories" }, ...categories.map((c) => ({ value: c.name, label: c.name }))]}
-          />
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {doneToday.length > 0 && (

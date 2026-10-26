@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { taskSchema } from "@/lib/validations";
 import { notifyTaskCreated } from "@/lib/notifications";
+import { pushTaskAssigned } from "@/lib/push/notify";
 import { generateRecurringTaskInstances } from "@/lib/services/task-generation";
 
 export async function GET(req: NextRequest) {
@@ -108,6 +109,7 @@ export async function POST(req: NextRequest) {
   // (notifyTaskCreated is a best-effort no-op on any channel that isn't
   // configured).
   await notifyTaskCreated(teamId, task, session.user.name ?? "Someone");
+  await pushTaskAssigned(teamId, task, { id: teamUserId, name: session.user.name ?? "Someone" }, null);
 
   // A recurring task is saved as a hidden template; the board only ever
   // shows generated instances. Generate now (idempotent) so a series that

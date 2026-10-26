@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Suspense } from "react";
 import { SettingsShell, type SettingsSection } from "@/components/settings/settings-shell";
+import { PushToggle } from "@/components/pwa/push";
 import { NotificationSettingsPanel } from "@/components/settings/notification-settings-panel";
 import { ShiftTypesPanel } from "@/components/settings/shift-types-panel";
 import { AddUserModal } from "@/components/settings/add-user-modal";
@@ -96,6 +97,14 @@ export default async function SettingsPage() {
           canEdit={canManageNotifications}
         />
       ),
+    },
+    {
+      id: "device",
+      group: "Workspace",
+      label: "This device",
+      description: "Notifications on this phone or computer: new tasks for you, leave decisions and team notices. Each device is turned on separately.",
+      status: { text: "Per device", tone: "info" },
+      content: <PushToggle explainSetup />,
     },
     {
       id: "shifts",

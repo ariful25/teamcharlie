@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { noticeSchema } from "@/lib/validations";
+import { pushNoticePosted } from "@/lib/push/notify";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -44,6 +45,8 @@ export async function POST(req: NextRequest) {
     },
     include: { author: { select: { id: true, name: true, avatarUrl: true } } },
   });
+
+  await pushNoticePosted(teamId, notice, { id: authorId, name: notice.author.name });
 
   return NextResponse.json({ notice });
 }

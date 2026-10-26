@@ -12,6 +12,7 @@ import { Field, inputClass } from "@/components/shared/form-field";
 import { TimePicker } from "@/components/ui/time-picker";
 import { formatDayLong } from "@/lib/time";
 import { DatePicker } from "@/components/ui/date-picker";
+import { timeWindow } from "@/lib/tasks/visibility";
 
 type Option = { id: string; name: string };
 
@@ -335,7 +336,7 @@ export function TaskDetailDialog({
               </div>
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground">Time</p>
-                <p className="mt-0.5">{task.startTime ?? "·"} to {task.dueTime ?? "·"}</p>
+                <p className="mt-0.5">{timeWindow(task.startTime, task.dueTime) ?? "·"}</p>
               </div>
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground">Client</p>
