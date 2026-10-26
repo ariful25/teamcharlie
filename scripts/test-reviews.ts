@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { classifyEmail, cleanGuest, dateNear, dateRange, readAirbnbEmail } from "../lib/reviews/airbnb-email";
 import * as F from "./fixtures/airbnb-emails";
 import { daysLeft, sameGuest, stageAfter, taskFor, timedStage } from "../lib/reviews/pipeline";
+import { appsScript } from "../lib/reviews/apps-script";
 import { DEFAULT_TEMPLATES, fillTemplate, policyWarnings } from "../lib/reviews/templates";
 
 let passed = 0;
@@ -146,6 +147,61 @@ test("group names and nameless guests", () => {
   assert.equal(cleanGuest("Maureen and Kata"), "Maureen");
   assert.equal(cleanGuest("A recent guest"), null);
   assert.deepEqual(dateRange("Dec 30 – Jan 2, 2027", new Date("2026-12-01")), ["2026-12-30", "2027-01-02"]);
+});
+
+test("Gmail sync script: the one-year import goes in chunks, survives the quota and finishes", () => {
+  // Runs the real generated script against a fake Gmail of 700 threads.
+  const run = () => {
+    const props = new Map<string, string>();
+    const posted: string[] = [];
+    let reads = 0;
+    let quotaAfter = Infinity;
+    const env = {
+      PropertiesService: {
+        getScriptProperties: () => ({
+          getProperty: (k: string) => props.get(k) ?? null,
+          setProperty: (k: string, v: string) => void props.set(k, v),
+          deleteProperty: (k: string) => void props.delete(k),
+        }),
+      },
+      GmailApp: {
+        search: (q: string, start: number, max: number) => {
+          if (++reads > quotaAfter) throw new Error("Service invoked too many times for one day: gmail.");
+          const total = q.includes("365d") ? 700 : 5;
+          return Array.from({ length: Math.max(0, Math.min(max, total - start)) }, (_, k) => ({ i: start + k }));
+        },
+        getMessagesForThreads: (ts: { i: number }[]) =>
+          ts.map((t) => [{ getId: () => `m${t.i}`, getSubject: () => "s", getFrom: () => "a@airbnb.com", getDate: () => new Date(0), getPlainBody: () => "b" }]),
+      },
+      UrlFetchApp: {
+        fetch: (_u: string, o: { payload: string }) => {
+          JSON.parse(o.payload).messages.forEach((m: { id: string }) => posted.push(m.id));
+          return { getResponseCode: () => 200, getContentText: () => "ok" };
+        },
+      },
+      ScriptApp: { getProjectTriggers: () => [], deleteTrigger: () => {}, newTrigger: () => ({ timeBased: () => ({ everyHours: () => ({ create: () => {} }) }) }) },
+      Logger: { log: () => {} },
+    };
+    const api = new Function(...Object.keys(env), `${appsScript("https://x/api", "k")}; return { setUp, syncRecent };`)(...Object.values(env));
+    return { api, props, posted, quota: (n: number) => void (quotaAfter = reads + n) };
+  };
+
+  const g = run();
+  g.api.setUp();
+  assert.equal(g.props.get("IMPORT_AT"), "300");
+  g.api.syncRecent();
+  g.api.syncRecent();
+  assert.equal(g.props.has("IMPORT_AT"), false);
+  assert.equal(new Set(g.posted).size, 700);
+
+  const q = run();
+  q.quota(3); // Gmail's daily quota runs out after 3 searches
+  q.api.setUp();
+  assert.equal(q.props.get("IMPORT_AT"), "120");
+  q.quota(Infinity);
+  for (let i = 0; i < 3; i++) q.api.syncRecent();
+  assert.equal(q.props.has("IMPORT_AT"), false);
+  assert.equal(new Set(q.posted).size, 700);
 });
 
 console.log(`\n${passed} passed`);

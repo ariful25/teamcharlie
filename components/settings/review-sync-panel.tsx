@@ -7,57 +7,9 @@ import { Copy, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTeamTimezone } from "@/components/providers/team-timezone";
 import { formatClientDateTime } from "@/lib/time";
+import { appsScript } from "@/lib/reviews/apps-script";
 
 type Status = { connected: boolean; tokenHint: string | null; lastSeenAt: string | null; saved: number; needsReview: number; ignored: number };
-
-/** The Google Apps Script the team pastes into script.google.com. */
-function appsScript(url: string, token: string) {
-  return `// TeamHQ: Airbnb email sync.
-// Runs inside your own Gmail: finds Airbnb's booking, change, cancellation
-// and review emails and sends only those to TeamHQ. Guest message threads
-// and everything else in the mailbox are never read or sent.
-const TEAMHQ_URL = '${url}';
-const TEAMHQ_TOKEN = '${token}';
-const SEARCH = 'from:(airbnb.com) -subject:(RE) -subject:(message) -subject:(inquiry) subject:(review OR confirmed OR cancelled OR canceled OR cancellation OR altered OR change OR changed OR updated)';
-
-// Runs every hour (see setUp): the last 3 days, duplicates are skipped.
-function syncRecent() { send_(SEARCH + ' newer_than:3d'); }
-
-// One-off: imports the last year of these emails.
-function backfillLastYear() { send_(SEARCH + ' newer_than:365d'); }
-
-function send_(query) {
-  for (let start = 0; start < 2000; start += 40) {
-    const threads = GmailApp.search(query, start, 40);
-    if (!threads.length) return;
-    const messages = [];
-    threads.forEach(function (t) {
-      t.getMessages().forEach(function (m) {
-        messages.push({ id: m.getId(), subject: m.getSubject(), from: m.getFrom(), date: m.getDate().toISOString(), body: m.getPlainBody().slice(0, 40000) });
-      });
-    });
-    for (let i = 0; i < messages.length; i += 40) {
-      const res = UrlFetchApp.fetch(TEAMHQ_URL, {
-        method: 'post',
-        contentType: 'application/json',
-        headers: { Authorization: 'Bearer ' + TEAMHQ_TOKEN },
-        payload: JSON.stringify({ messages: messages.slice(i, i + 40) }),
-        muteHttpExceptions: true,
-      });
-      Logger.log(res.getResponseCode() + ' ' + res.getContentText());
-      if (res.getResponseCode() !== 200) return;
-    }
-  }
-}
-
-// Run this once: schedules the hourly sync and imports the past year.
-function setUp() {
-  ScriptApp.getProjectTriggers().forEach(function (t) { ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger('syncRecent').timeBased().everyHours(1).create();
-  backfillLastYear();
-}
-`;
-}
 
 export function ReviewSyncPanel({ initial }: { initial: Status }) {
   const router = useRouter();
@@ -143,7 +95,7 @@ export function ReviewSyncPanel({ initial }: { initial: Status }) {
             <li>
               Choose <b>setUp</b> in the function menu and press <b>Run</b>. Allow access when Google asks. It&apos;s your own script.
             </li>
-            <li>That&apos;s it: the past year comes in now (reviews, bookings, changes, cancellations), new emails every hour.</li>
+            <li>That&apos;s it: new emails arrive every hour, and the past year comes in a chunk at a time over the next hours (Gmail limits how much a script may read per day).</li>
           </ol>
           <div className="relative">
             <pre className="max-h-72 overflow-auto rounded-xl border border-border bg-muted/30 p-3 text-[11px] leading-relaxed">{script}</pre>
