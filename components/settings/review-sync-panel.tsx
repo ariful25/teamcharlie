@@ -18,7 +18,7 @@ function appsScript(url: string, token: string) {
 // and everything else in the mailbox are never read or sent.
 const TEAMHQ_URL = '${url}';
 const TEAMHQ_TOKEN = '${token}';
-const SEARCH = 'from:(airbnb.com) -subject:(RE) -subject:(message) -subject:(inquiry) subject:(review OR confirmed OR cancelled OR canceled OR cancellation OR altered OR changed OR updated)';
+const SEARCH = 'from:(airbnb.com) -subject:(RE) -subject:(message) -subject:(inquiry) subject:(review OR confirmed OR cancelled OR canceled OR cancellation OR altered OR change OR changed OR updated)';
 
 // Runs every hour (see setUp): the last 3 days, duplicates are skipped.
 function syncRecent() { send_(SEARCH + ' newer_than:3d'); }

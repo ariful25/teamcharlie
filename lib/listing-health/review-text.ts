@@ -151,11 +151,15 @@ export function parseReviewEmail(input: { subject: string; body: string }): Text
     subject.match(/review from (.+?)(?: for|$)/i)?.[1] ??
     null;
 
+  // Airbnb's "left a n-star review" layout: "OVERALL RATING 4", then the text
+  // (cut with "+ More" when long) up to a blank line or a bracketed link.
+  const overall = flat.match(/OVERALL RATING\s*([1-5])\b[^\n]*\n\s*\n?((?:[^\n[][^\n]*\n?)+)/);
+  const overallText = overall?.[2].split(/\n\s*\n/)[0].replace(/\s*\+\s*More\s*$/i, "…");
   // Quoted review text: “…” or "…" spanning at least a few words.
   const quoted = flat.match(/[“"]([^”"]{20,})[”"]/)?.[1];
   // Or the paragraph after a "… wrote:" / "… said:" line.
   const after = flat.match(/(?:wrote|said|review)[:\s]*\n+([\s\S]{20,}?)(?:\n\s*\n|$)/i)?.[1];
-  const comment = (quoted ?? after ?? "")
+  const comment = (overallText ?? quoted ?? after ?? "")
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l && !isNoise(l) && !/^https?:\/\//i.test(l))
@@ -168,7 +172,7 @@ export function parseReviewEmail(input: { subject: string; body: string }): Text
   return {
     guestName: name?.trim().replace(/^(your guest|guest)\s+/i, "") || null,
     reviewDate: null,
-    rating: ratingInText(subject) ?? ratingInText(flat.slice(0, 1500)),
+    rating: overall ? Number(overall[1]) : (ratingInText(subject) ?? ratingInText(flat.slice(0, 1500))),
     comment,
     privateNote: null,
     listingRef: airbnbRoomId(flat) ?? titleRef,

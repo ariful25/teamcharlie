@@ -77,7 +77,7 @@ export function PipelineBoard({ hub, stays }: { hub: ReviewHub; stays: Stay[] })
                     <span className="min-w-0 flex-1 truncate">
                       {s.guestName} <span className="text-muted-foreground">· {s.listing?.name ?? "No listing"}</span>
                     </span>
-                    <span className="text-xs text-muted-foreground">{s.stage === "REVIEWED" ? `${s.rating}★` : s.stage === "EXPIRED" ? "No review" : "Cancelled"}</span>
+                    <span className="text-xs text-muted-foreground">{s.stage === "REVIEWED" ? (s.rating === null ? "Hidden" : `${s.rating}★`) : s.stage === "EXPIRED" ? "No review" : "Cancelled"}</span>
                   </button>
                 </li>
               ))}

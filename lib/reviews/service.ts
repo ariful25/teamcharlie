@@ -63,7 +63,7 @@ const stayRef = (stayId: string, key: string) => `stay:${stayId}:${key}`;
 async function syncStayTask(stayId: string, actorId: string | null) {
   const stay = await prisma.guestStay.findUnique({ where: { id: stayId }, include: { property: true } });
   if (!stay) return;
-  const want = taskFor(stay.stage as Stage, stay.rating);
+  const want = taskFor(stay.stage as Stage, stay.rating, !!stay.hostReviewedAt);
   const open = await prisma.task.findMany({
     where: { teamId: stay.teamId, sourceRef: { startsWith: `stay:${stay.id}:` }, deletedAt: null, status: { not: "COMPLETED" } },
   });
@@ -89,6 +89,7 @@ async function syncStayTask(stayId: string, actorId: string | null) {
 
 ${tpl("REVIEW_REQUEST")}`,
     issue: `${stay.guestName} mentioned a problem${stay.issueNote ? `: ${stay.issueNote}` : ""}.\nFix it and reply to the guest, then mark the issue resolved in Reviews (or complete this task). The review request step comes after.\n\n${tpl("ISSUE_RECOVERY")}`,
+    "review-guest": `${firstName(stay.guestName)} already reviewed the stay. Airbnb shows their review once we've reviewed them (or after 14 days). Write an honest review of ${firstName(stay.guestName)} on Airbnb, then complete this task. Their rating arrives by email after.`,
     respond: `Post a short, calm public response on Airbnb (future guests read it), then complete this task. The listing page in Listing Health can draft one with AI.`,
   };
   const categories = await prisma.category.findMany({ where: { teamId: stay.teamId }, select: { id: true, name: true } });
@@ -115,9 +116,10 @@ ${tpl("REVIEW_REQUEST")}`,
 
 /** Called when someone completes a task on the board: advance the stay to match. */
 export async function onStayTaskCompleted(teamId: string, sourceRef: string | null, actorId: string) {
-  const m = sourceRef?.match(/^stay:([^:]+):(follow-up|issue|ask|respond)$/);
+  const m = sourceRef?.match(/^stay:([^:]+):(follow-up|issue|ask|respond|review-guest)$/);
   if (!m) return;
   const [, stayId, key] = m;
+  if (key === "review-guest") await applyStayAction(teamId, actorId, stayId, { action: "HOST_REVIEWED" }).catch(() => {});
   if (key === "follow-up") await applyStayAction(teamId, actorId, stayId, { action: "FOLLOW_UP_SENT" }).catch(() => {});
   if (key === "issue") await applyStayAction(teamId, actorId, stayId, { action: "ISSUE_RESOLVED" }).catch(() => {});
   if (key === "ask") await applyStayAction(teamId, actorId, stayId, { action: "REVIEW_REQUESTED" }).catch(() => {});
@@ -179,6 +181,7 @@ export async function applyStayAction(teamId: string, actorId: string, stayId: s
   if (action === "HOST_REVIEWED") {
     await prisma.guestStay.update({ where: { id: stay.id }, data: extra });
     await log(stay.id, "HOST_REVIEWED", note, actorId);
+    await syncStayTask(stay.id, actorId); // closes a "review them to see it" task
     return;
   }
   await moveStay(stay.id, to, actorId, extra, note ?? (action === "CLOSE" ? "Closed by the team" : undefined));
@@ -186,7 +189,18 @@ export async function applyStayAction(teamId: string, actorId: string, stayId: s
 
 /* --------------------------------------------------------------- matching */
 
-async function findStayForGuest(teamId: string, propertyId: string | null, guestName: string | null, around: Date, daysBack: number) {
+/**
+ * The stay an email is about. With a listing and checkout day (review emails
+ * carry both) that alone decides, so "A recent guest left a 1-star review"
+ * still finds its stay; otherwise the guest's name near the date.
+ */
+async function findStayForGuest(teamId: string, propertyId: string | null, guestName: string | null, around: Date, daysBack: number, checkOut?: string | null) {
+  if (propertyId && checkOut) {
+    const onDay = await prisma.guestStay.findMany({ where: { teamId, propertyId, stage: { not: "CANCELLED" }, checkOut: day(checkOut) } });
+    const named = guestName ? onDay.find((s) => sameGuest(s.guestName, guestName)) : null;
+    if (named) return named;
+    if (onDay.length === 1) return onDay[0];
+  }
   if (!guestName) return null;
   const candidates = await prisma.guestStay.findMany({
     where: {
@@ -201,9 +215,15 @@ async function findStayForGuest(teamId: string, propertyId: string | null, guest
 }
 
 /** Ties a saved review to its stay (any source) and moves the stay to REVIEWED. */
-export async function linkReviewToStay(teamId: string, review: { id: string; propertyId: string; guestName: string | null; rating: number; reviewDate: Date | null }, actorId: string | null) {
-  const stay = await findStayForGuest(teamId, review.propertyId, review.guestName, review.reviewDate ?? new Date(), 30);
-  if (!stay || stay.stage === "REVIEWED") return null;
+export async function linkReviewToStay(
+  teamId: string,
+  review: { id: string; propertyId: string; guestName: string | null; rating: number; reviewDate: Date | null },
+  actorId: string | null,
+  checkOut?: string | null,
+) {
+  const stay = await findStayForGuest(teamId, review.propertyId, review.guestName, review.reviewDate ?? new Date(), 30, checkOut);
+  // A hidden review (REVIEWED, no rating yet) still takes its rating when it arrives.
+  if (!stay || stay.reviewId) return null;
   await prisma.listingReview.update({ where: { id: review.id }, data: { stayId: stay.id } });
   await moveStay(stay.id, "REVIEWED", actorId, { rating: review.rating, reviewId: review.id, guestReviewedAt: new Date() }, `${review.rating}★`);
   return stay.id;
@@ -274,25 +294,45 @@ export async function ingestAirbnbEmails(teamId: string, messages: InboundMessag
         if (read.kind === "CANCELLED") {
           if (existing.stage !== "CANCELLED") await moveStay(existing.id, "CANCELLED", null, {}, m.subject, receivedAt);
         } else {
+          // Airbnb's "Reservation updated" email has no dates: they're in the
+          // guest's change request, which we matched to this stay earlier.
+          let dates = { checkIn: read.checkIn, checkOut: read.checkOut };
+          if (read.kind === "ALTERED" && !dates.checkIn && !dates.checkOut) {
+            const request = await prisma.reviewInboxItem.findFirst({
+              where: { teamId, kind: "ALTER_REQUEST", stayId: existing.id, receivedAt: { gte: new Date(receivedAt.getTime() - 14 * DAY), lte: receivedAt } },
+              orderBy: { receivedAt: "desc" },
+            });
+            const asked = request?.parsed as { checkIn?: string | null; checkOut?: string | null } | null;
+            if (asked) dates = { checkIn: asked.checkIn ?? null, checkOut: asked.checkOut ?? null };
+          }
           const changes: string[] = [];
           const data: Prisma.GuestStayUpdateInput = {};
-          if (read.checkIn && existing.checkIn?.toISOString().slice(0, 10) !== read.checkIn) {
-            data.checkIn = day(read.checkIn);
-            changes.push(`check-in ${existing.checkIn?.toISOString().slice(0, 10) ?? "?"} → ${read.checkIn}`);
+          if (dates.checkIn && existing.checkIn?.toISOString().slice(0, 10) !== dates.checkIn) {
+            data.checkIn = day(dates.checkIn);
+            changes.push(`check-in ${existing.checkIn?.toISOString().slice(0, 10) ?? "?"} → ${dates.checkIn}`);
           }
-          if (read.checkOut && existing.checkOut?.toISOString().slice(0, 10) !== read.checkOut) {
-            data.checkOut = day(read.checkOut);
-            changes.push(`checkout ${existing.checkOut?.toISOString().slice(0, 10) ?? "?"} → ${read.checkOut}`);
+          if (dates.checkOut && existing.checkOut?.toISOString().slice(0, 10) !== dates.checkOut) {
+            data.checkOut = day(dates.checkOut);
+            changes.push(`checkout ${existing.checkOut?.toISOString().slice(0, 10) ?? "?"} → ${dates.checkOut}`);
           }
           if (read.guests && read.guests !== existing.guests) data.guests = read.guests;
           if (!existing.propertyId && listing) data.property = { connect: { id: listing.id } };
           if (Object.keys(data).length) await prisma.guestStay.update({ where: { id: existing.id }, data });
           await log(existing.id, read.kind === "ALTERED" ? "ALTERED" : "BOOKED", changes.join(", ") || m.subject, null, receivedAt);
           // An alteration that moves checkout back to the future reopens a "checked out" stay.
-          if (read.kind === "ALTERED" && data.checkOut && existing.stage === "CHECKED_OUT" && day(read.checkOut!).getTime() > startOfDayUTC(new Date(), tz).getTime()) {
+          if (read.kind === "ALTERED" && data.checkOut && existing.stage === "CHECKED_OUT" && day(dates.checkOut!).getTime() > startOfDayUTC(new Date(), tz).getTime()) {
             await moveStay(existing.id, "BOOKED", null, {}, "Dates changed");
           }
         }
+      }
+    } else if (read.kind === "ALTER_REQUEST") {
+      // Only a request: note it on the stay; the dates change when Airbnb says it was accepted.
+      const was = read.original;
+      const stay = was ? await findStayForGuest(teamId, propertyId, read.guestName, day(was[1]), 1, was[1]) : null;
+      if (stay) {
+        stayId = stay.id;
+        propertyId = propertyId ?? stay.propertyId;
+        if (read.checkIn && read.checkOut) await log(stay.id, "CHANGE_REQUESTED", `${was![0]} to ${was![1]} → ${read.checkIn} to ${read.checkOut}`, null, receivedAt);
       }
     } else if (read.kind === "CHECKOUT") {
       const stay =
@@ -313,6 +353,23 @@ export async function ingestAirbnbEmails(teamId: string, messages: InboundMessag
         await moveStay(created.id, "CHECKED_OUT", null, {}, "Airbnb asked us to review the guest", receivedAt);
       } else status = "NEEDS_REVIEW";
       if (stayId && !propertyId) status = "NEEDS_REVIEW";
+    } else if (read.hidden) {
+      // "Priya wrote you a review": reviewed, text hidden until we review them.
+      let stay = await findStayForGuest(teamId, propertyId, read.guestName, receivedAt, 30, read.checkOut);
+      if (!stay && propertyId && read.guestName && read.checkOut) {
+        stay = await prisma.guestStay.create({
+          data: { teamId, guestName: read.guestName, propertyId, checkIn: read.checkIn ? day(read.checkIn) : null, checkOut: day(read.checkOut), stage: "CHECKED_OUT" },
+        });
+        await log(stay.id, "BOOKED", "Started from Airbnb's review notice", null, receivedAt);
+        result.stays++;
+      }
+      if (stay) {
+        stayId = stay.id;
+        propertyId = propertyId ?? stay.propertyId;
+        if (stay.stage !== "REVIEWED" && stay.stage !== "CANCELLED") {
+          await moveStay(stay.id, "REVIEWED", null, { guestReviewedAt: receivedAt }, "Hidden until we review them", receivedAt);
+        }
+      } else status = "NEEDS_REVIEW";
     } else {
       // GUEST_REVIEW
       const complete = !!(listing && read.rating && read.comment && actorId);
@@ -325,11 +382,11 @@ export async function ingestAirbnbEmails(teamId: string, messages: InboundMessag
           update: {},
         });
         reviewId = review.id;
-        stayId = await linkReviewToStay(teamId, review, null);
+        stayId = await linkReviewToStay(teamId, review, null, read.checkOut);
         result.reviews++;
       } else {
         status = "NEEDS_REVIEW";
-        stayId = (await findStayForGuest(teamId, propertyId, read.guestName, receivedAt, 30))?.id ?? null;
+        stayId = (await findStayForGuest(teamId, propertyId, read.guestName, receivedAt, 30, read.checkOut))?.id ?? null;
       }
     }
 

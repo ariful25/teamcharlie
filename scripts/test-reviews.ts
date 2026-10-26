@@ -1,7 +1,8 @@
 // Tests for lib/reviews — run with `npm run test:reviews`.
 
 import assert from "node:assert/strict";
-import { classifyEmail, dateNear, readAirbnbEmail } from "../lib/reviews/airbnb-email";
+import { classifyEmail, cleanGuest, dateNear, dateRange, readAirbnbEmail } from "../lib/reviews/airbnb-email";
+import * as F from "./fixtures/airbnb-emails";
 import { daysLeft, sameGuest, stageAfter, taskFor, timedStage } from "../lib/reviews/pipeline";
 import { DEFAULT_TEMPLATES, fillTemplate, policyWarnings } from "../lib/reviews/templates";
 
@@ -95,6 +96,56 @@ test("templates fill in, and the defaults pass the review-policy check", () => {
   for (const body of Object.values(DEFAULT_TEMPLATES)) assert.deepEqual(policyWarnings(body), []);
   assert.equal(policyWarnings("I'll be leaving you a 5-star review! If you enjoyed it, please leave us a 5-star rating as well.").length, 1);
   assert.equal(policyWarnings("Leave 5 stars and get a 10% discount next time").length, 1);
+});
+
+/* Real Airbnb layouts (Oct 2026, anonymized). Each one broke the old reader. */
+const real = (e: { subject: string; from: string; body: string; date: string }) => readAirbnbEmail({ ...e, date: new Date(e.date) });
+
+test("real: confirmation dates sit side by side under 'Check-in Checkout'", () => {
+  const r = real(F.CONFIRMED);
+  assert.deepEqual([r.kind, r.confirmationCode, r.guestName, r.checkIn, r.checkOut, r.guests, r.listingRef], ["CONFIRMED", "HMAB12CD34", "Dana Kirby", "2027-01-15", "2027-01-17", 16, "1500000000000000001"]);
+});
+
+test("real: cancellation gives guest, dates and listing number", () => {
+  const r = real(F.CANCELLED);
+  assert.deepEqual([r.kind, r.confirmationCode, r.guestName, r.checkIn, r.checkOut, r.listingRef], ["CANCELLED", "HMCD34EF56", "Theo", "2026-10-27", "2026-10-29", "1400000000000000002"]);
+});
+
+test("real: a change request carries original and requested dates; the update carries neither", () => {
+  const req = real(F.CHANGE_REQUEST);
+  assert.deepEqual([req.kind, req.guestName, req.listingRef, req.checkIn, req.checkOut], ["ALTER_REQUEST", "Rosa", "Mountain View Chalet Near the Peaks", "2026-10-23", "2026-10-28"]);
+  assert.deepEqual(req.original, ["2026-10-23", "2026-10-26"]);
+  const upd = real(F.UPDATED);
+  assert.deepEqual([upd.kind, upd.confirmationCode, upd.guestName, upd.checkOut], ["ALTERED", "HMEF56GH78", "Rosa", null]);
+});
+
+test("real: 'Write a review for Lena’s group' is Lena", () => {
+  const r = real(F.CHECKOUT);
+  assert.deepEqual([r.kind, r.guestName], ["CHECKOUT", "Lena"]);
+});
+
+test("real: 'wrote you a review' is a hidden review with listing and dates", () => {
+  const r = real(F.WROTE_YOU);
+  assert.deepEqual([r.kind, r.hidden, r.rating, r.guestName, r.listingRef, r.checkOut], ["GUEST_REVIEW", true, null, "Priya", "Modern Uptown Retreat | Hot Tub & Game Room", "2026-10-25"]);
+  assert.equal(taskFor("REVIEWED", null)?.key, "review-guest");
+  assert.equal(taskFor("REVIEWED", null, true), null);
+});
+
+test("real: n-star reviews give rating, text (cut ones end in …), listing and dates", () => {
+  const five = real(F.FIVE_STAR);
+  assert.deepEqual([five.rating, five.guestName, five.listingRef, five.checkOut], [5, "Omar", "Hot Tub & Sky Views | WoodStove | CountryRetreat", "2026-10-10"]);
+  assert.match(five.comment, /^This was such an incredible experience! .+ so helpful\.$/);
+  const four = real(F.FOUR_STAR);
+  assert.deepEqual([four.rating, four.listingRef, four.checkOut], [4, "1650000000000000008", "2026-10-05"]);
+  assert.match(four.comment, /Also the home is…$/);
+  const one = real(F.ONE_STAR);
+  assert.deepEqual([one.rating, one.guestName, one.listingRef, one.checkIn, one.checkOut, one.comment], [1, null, "Serene Ridge Retreat", "2026-09-21", "2026-09-22", "مش حلو"]);
+});
+
+test("group names and nameless guests", () => {
+  assert.equal(cleanGuest("Maureen and Kata"), "Maureen");
+  assert.equal(cleanGuest("A recent guest"), null);
+  assert.deepEqual(dateRange("Dec 30 – Jan 2, 2027", new Date("2026-12-01")), ["2026-12-30", "2027-01-02"]);
 });
 
 console.log(`\n${passed} passed`);

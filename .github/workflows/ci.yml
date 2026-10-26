@@ -57,6 +57,9 @@ jobs:
       - name: Migrate a fresh database
         run: npx prisma migrate deploy
 
+      - name: Airbnb emails end to end (real layouts through the review pipeline)
+        run: npm run test:reviews-e2e
+
       - name: Build
         run: npx next build
 

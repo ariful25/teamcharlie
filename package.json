@@ -14,6 +14,7 @@
     "test:reviews": "tsx scripts/test-reviews.ts",
     "test:unit": "npm run -s test:attendance && npm run -s test:listing-health && npm run -s test:payroll && npm run -s test:people && npm run -s test:tasks && npm run -s test:reviews",
     "test:security": "tsx scripts/test-security.ts",
+    "test:reviews-e2e": "tsx scripts/e2e-review-emails.ts",
     "test:payroll": "tsx scripts/test-payroll.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

@@ -107,7 +107,7 @@ function InboxRow({ item, listings }: { item: InboxItem; listings: { id: string;
   );
 }
 
-const KIND_LABEL: Record<string, string> = { CONFIRMED: "Booking", ALTERED: "Change", CANCELLED: "Cancellation", CHECKOUT: "Checkout" };
+const KIND_LABEL: Record<string, string> = { CONFIRMED: "Booking", ALTERED: "Change", ALTER_REQUEST: "Change request",CANCELLED: "Cancellation", CHECKOUT: "Checkout" };
 
 /** A reservation/checkout email we couldn't tie to a guest or listing: start tracking the stay by hand. */
 function StayRow({ item, listings }: { item: InboxItem; listings: { id: string; name: string }[] }) {

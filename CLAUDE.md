@@ -84,6 +84,16 @@ Airbnb/Akia — the app never messages guests. Templates must stay inside
 Airbnb's Reviews Policy (no incentives, pressure or review swaps —
 `policyWarnings()` flags them).
 
+The email reader is tested against **real** Airbnb layouts
+(`scripts/fixtures/airbnb-emails.ts`, anonymized). Facts that shaped it:
+review emails have no confirmation code (matched by listing title + checkout
+day, since low ratings arrive as "A recent guest"); "Reservation updated" has
+no dates (they come from the earlier "wants to change" request); "wrote you a
+review" means reviewed-but-hidden (task: review the guest to reveal it).
+`npm run test:reviews-e2e` replays them through the service on a local DB
+(also in CI). When Airbnb changes a layout, add the new real email as a
+fixture first.
+
 ## Task board visibility
 
 `lib/tasks/visibility.ts` decides what's on the board (`npm run test:tasks`):

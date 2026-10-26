@@ -79,7 +79,11 @@ export function stageAfter(stage: Stage, action: StayAction): Stage | null {
 }
 
 /** Task the team should do for a stay in this stage (one open task per stay). */
-export function taskFor(stage: Stage, rating: number | null | undefined): { key: string; title: string; priority: "NORMAL" | "IMPORTANT" | "URGENT" } | null {
+export function taskFor(stage: Stage, rating: number | null | undefined, hostReviewed = false): { key: string; title: string; priority: "NORMAL" | "IMPORTANT" | "URGENT" } | null {
+  // The guest reviewed but Airbnb hides it until we review them.
+  if (stage === "REVIEWED" && (rating === null || rating === undefined)) {
+    return hostReviewed ? null : { key: "review-guest", title: "Guest reviewed us. Review them to see it", priority: "IMPORTANT" };
+  }
   switch (stage) {
     case "CHECKED_OUT":
       return { key: "follow-up", title: "Follow up: ask how the stay was", priority: "IMPORTANT" };

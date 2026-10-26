@@ -23,6 +23,7 @@ type Templates = ReviewHub["templates"];
 const EVENT_LABEL: Record<string, string> = {
   BOOKED: "Booking received",
   ALTERED: "Reservation changed",
+  CHANGE_REQUESTED: "Guest asked to change dates",
   CANCELLED: "Cancelled",
   CHECKED_OUT: "Checked out",
   FOLLOW_UP_SENT: "Follow-up sent",
@@ -138,7 +139,13 @@ export function StayDialog({ stay, templates, onClose }: { stay: Stay; templates
             </Step>
           )}
 
-          {stay.stage === "REVIEWED" && (
+          {stay.stage === "REVIEWED" && stay.rating === null && (
+            <Step title={`${stay.firstName} reviewed the stay`} hint="Airbnb hides it until we review them (or the 14 days end). Review them honestly on Airbnb; their rating arrives by email after.">
+              {null}
+            </Step>
+          )}
+
+          {stay.stage === "REVIEWED" && stay.rating !== null && (
             <Step title={`${stay.firstName} left ${stay.rating}★`} hint={stay.rating === 5 ? "Thank them in a public response." : "Respond calmly in public. Future guests read it. A task is on the board."}>
               {stay.rating === 5 && <MessageBox text={tpl("THANK_YOU")} />}
             </Step>
