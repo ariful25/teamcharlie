@@ -452,3 +452,11 @@ export const teamSettingsSchema = z.object({
 
 // Teams inside the company. "Team Bravo" and "Bravo" are the same name.
 export const squadNameSchema = z.string().trim().min(1, "Give the team a name").max(40).transform((n) => n.replace(/^team\s+/i, "").trim()).pipe(z.string().min(1, "Give the team a name"));
+
+// Client portal.
+export const portalInviteSchema = z.object({ name: z.string().trim().min(1, "Their name is required").max(80), email: z.string().trim().email("Enter a valid email") });
+export const clientRequestSchema = z.object({
+  kind: z.enum(["KNOWLEDGE_BASE", "LISTING", "REVIEW", "OTHER"]),
+  message: z.string().trim().min(3, "Tell the team what you need").max(2000),
+  propertyId: z.string().min(1).nullable().optional(),
+});

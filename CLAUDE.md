@@ -53,6 +53,23 @@ never creates or changes an admin. Unmatched guest stays and the review
 inbox are shared triage for every team. `npm run test:security` covers
 cross-team access inside one company.
 
+## Client portal
+
+`/portal` is the property owner's own login (separate `ClientUser` table and
+`client-credentials` NextAuth provider, so an owner never appears in staff
+lists and a client token has no staff role: every staff page treats it as
+signed out). Owners see only their client's listings, listing health,
+reviews and property details; every read is an explicit `select` in
+`lib/portal/queries.ts`. Never shown: door codes, Wi-Fi passwords, internal
+notes, AI notes, staff, tasks, guest private feedback, other clients. Codes
+typed into free text are hidden by `hideCodes()` (`lib/portal/rules.ts`,
+`npm run test:portal`). Owners never edit data: a request becomes a task
+for the client's team (`sourceRef creq:<id>`), and completing it marks the
+request done. Admin or the client's own team lead invites owners from the
+client page (Owner portal card). `lib/portal/session.ts` re-reads the owner
+on every request. Streamed pages answer 200 even when they crash, so portal
+security tests check rendered content, not status codes.
+
 ## Attendance & overtime
 
 The rules (auto-stop after 10h, lead approval for missed punches, the

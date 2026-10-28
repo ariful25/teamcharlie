@@ -72,9 +72,48 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+    // Property owners signing in to the client portal (/portal). A separate
+    // provider and table (ClientUser), so a client token never carries a
+    // staff role and every staff page treats it as signed out.
+    CredentialsProvider({
+      id: "client-credentials",
+      name: "Client portal",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials, req) {
+        if (!credentials?.email || !credentials?.password) throw new Error(AUTH_ERROR_INVALID_CREDENTIALS);
+        const email = credentials.email.toLowerCase();
+        const accountKey = `login:client:${email}`;
+        const ipKey = `login:ip:${clientIp(req?.headers ?? {})}`;
+        if ((await peek(accountKey)) >= LOGIN_MAX_PER_ACCOUNT || (await peek(ipKey)) >= LOGIN_MAX_PER_IP) {
+          throw new Error(AUTH_ERROR_TOO_MANY_ATTEMPTS);
+        }
+        const fail = async (code: string) => {
+          await Promise.all([hit(accountKey, LOGIN_WINDOW_MS), hit(ipKey, LOGIN_WINDOW_MS)]);
+          throw new Error(code);
+        };
+        const owner = await prisma.clientUser.findUnique({ where: { email }, include: { client: { select: { active: true } } } });
+        if (!owner) return fail(AUTH_ERROR_INVALID_CREDENTIALS);
+        if (!owner.active || !owner.client.active) throw new Error(AUTH_ERROR_ACCOUNT_DISABLED);
+        if (!(await bcrypt.compare(credentials.password, owner.passwordHash))) return fail(AUTH_ERROR_INVALID_CREDENTIALS);
+        await clear(accountKey);
+        await prisma.clientUser.update({ where: { id: owner.id }, data: { lastLoginAt: new Date() } });
+        return { id: owner.id, name: owner.name, email: owner.email, kind: "client" as const, clientId: owner.clientId, teamId: owner.teamId, rememberMe: true };
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
+      if (user?.kind === "client") {
+        token.kind = "client";
+        token.id = user.id;
+        token.clientId = user.clientId;
+        token.teamId = user.teamId;
+        token.rememberMe = true;
+        return token;
+      }
       if (user) {
         token.role = user.role;
         token.teamId = user.teamId;
@@ -85,6 +124,16 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      // A portal session: no role, so staff pages and APIs see no user
+      // (lib/session.ts); the portal reads it with lib/portal/session.ts.
+      if (token.kind === "client") {
+        if (!session.user || !token.id || !token.clientId || !token.teamId) return { expires: session.expires } as typeof session;
+        session.user.id = token.id;
+        session.user.kind = "client";
+        session.user.clientId = token.clientId;
+        session.user.teamId = token.teamId;
+        return session;
+      }
       // An incomplete token (malformed, or from before teams existed) gets NO
       // user: every route then answers 401. Never let it through with
       // teamId undefined — Prisma reads `where: { teamId: undefined }` as

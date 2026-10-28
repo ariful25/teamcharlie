@@ -1,18 +1,14 @@
 "use client";
 
 import { Star } from "lucide-react";
-import { Badge, type Tone } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ratingTone, scoreTone } from "@/lib/listing-health/tones";
+
+export { categoryBarTone, ratingTone, scoreTone, SEVERITY_TONE } from "@/lib/listing-health/tones";
 
 // Small display pieces shared by the Listing Health pages. Built on the
 // app's own Badge/glass styles — no separate visual language.
-
-export function scoreTone(score: number | null): Tone {
-  if (score === null) return "neutral";
-  if (score >= 80) return "success";
-  if (score >= 60) return "warning";
-  return "danger";
-}
 
 export function ScoreBadge({ score, label }: { score: number | null; label?: string }) {
   return (
@@ -21,13 +17,6 @@ export function ScoreBadge({ score, label }: { score: number | null; label?: str
       {score === null ? "·" : score}
     </Badge>
   );
-}
-
-export function ratingTone(rating: number | null): string {
-  if (rating === null) return "text-muted-foreground";
-  if (rating >= 4.8) return "text-success";
-  if (rating >= 4.6) return "text-warning";
-  return "text-danger";
 }
 
 export function Rating({ value, className }: { value: number | null; className?: string }) {
@@ -62,12 +51,3 @@ export function Bar({ label, value, display, tone = "bg-primary" }: { label: str
   );
 }
 
-/** Category scores (4.0–5.0 range stretched across the bar so differences show). */
-export function categoryBarTone(v: number | null) {
-  if (v === null) return "bg-muted";
-  if (v >= 4.8) return "bg-success";
-  if (v >= 4.6) return "bg-warning";
-  return "bg-danger";
-}
-
-export const SEVERITY_TONE: Record<string, Tone> = { high: "danger", medium: "warning", low: "neutral" };

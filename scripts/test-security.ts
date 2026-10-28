@@ -47,11 +47,11 @@ class Client {
     return { status: res.status, text: await res.text() };
   }
   /** Signs in; returns the NextAuth error code, or null on success. */
-  async signIn(email: string, password: string, ip = "10.1.1.1"): Promise<string | null> {
+  async signIn(email: string, password: string, ip = "10.1.1.1", provider = "credentials"): Promise<string | null> {
     const csrfRes = await fetch(BASE + "/api/auth/csrf", { headers: { cookie: this.header() } });
     this.store(csrfRes);
     const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
-    const res = await fetch(BASE + "/api/auth/callback/credentials", {
+    const res = await fetch(BASE + `/api/auth/callback/${provider}`, {
       method: "POST",
       redirect: "manual",
       headers: { cookie: this.header(), "content-type": "application/x-www-form-urlencoded", "x-forwarded-for": ip },
@@ -106,6 +106,7 @@ async function cleanup(teamIds: string[]) {
   await prisma.team.deleteMany({ where: { id: { in: teamIds } } });
   await prisma.rateLimit.deleteMany({ where: { key: { contains: run } } });
   await prisma.rateLimit.deleteMany({ where: { key: { in: users.map((u) => `login:account:${u.email}`) } } });
+  await prisma.rateLimit.deleteMany({ where: { key: { startsWith: "login:client:owner" } } });
 }
 
 /** Two teams inside one company: the victim's existing lead, employee and
@@ -265,6 +266,79 @@ async function main() {
       await prisma.user.update({ where: { id: victim.users.EMPLOYEE.id }, data: { active: false } });
       assert.equal((await charlieEmp.req("GET", "/api/tasks")).status, 401, "deactivated mid-session loses access at once");
       await prisma.user.update({ where: { id: victim.users.EMPLOYEE.id }, data: { active: true, squadId: sq.charlie.id } });
+    });
+
+    // --- Client portal: an owner of the Charlie client, and one of Alfa's.
+    await prisma.propertyKnowledgeItem.update({ where: { id: victim.property.id }, data: { doorCode: `DOOR-${run}`, wifiPassword: `WIFI-${run}`, internalNotes: `INTERNAL-${run}`, checkInInfo: "Lockbox on the side door, code 48213. Park in the driveway." } });
+    const ownerPw = pw();
+    const owner = await prisma.clientUser.create({
+      data: { teamId: victim.team.id, clientId: victim.client.id, name: "Dana Owner", email: `owner-${run}@example.test`, passwordHash: await bcrypt.hash(ownerPw, 4) },
+    });
+    await prisma.clientUser.create({
+      data: { teamId: victim.team.id, clientId: sq.client.id, name: "Alfa Owner", email: `owner-alfa-${run}@example.test`, passwordHash: await bcrypt.hash(pw(), 4) },
+    });
+    const dana = new Client();
+
+    await test("an owner signs in to the portal, never to the staff app", async () => {
+      assert.equal(await dana.signIn(owner.email, "wrong", "10.8.8.1", "client-credentials"), "INVALID_CREDENTIALS");
+      assert.equal(await dana.signIn(owner.email, ownerPw, "10.8.8.2", "credentials"), "INVALID_CREDENTIALS", "an owner email isn't a staff login");
+      assert.equal(await dana.signIn(owner.email, ownerPw, "10.8.8.3", "client-credentials"), null);
+      for (const path of ["/api/tasks", "/api/users", "/api/notices", "/api/payroll?month=2026-10"]) {
+        const r = await dana.req("GET", path);
+        assert.ok(r.status === 401 || r.status === 403, `${path} answered ${r.status} to an owner`);
+      }
+      assert.ok([302, 303, 307].includes((await dana.req("GET", "/dashboard")).status), "staff pages send an owner to sign in");
+      assert.equal((await dana.req("GET", "/portal")).status, 200);
+    });
+
+    await test("an owner sees only their own client, and never codes, notes or staff", async () => {
+      const pages = [await dana.req("GET", "/portal"), await dana.req("GET", `/portal/listings/${victim.property.id}`), await dana.req("GET", "/portal/reviews"), await dana.req("GET", "/portal/requests")];
+      // Streamed pages answer 200 even when they crash, so check real content
+      // rendered and no error screen, not just the status.
+      for (const p of pages) assert.ok(!/couldn.t load|Something went wrong|data-dgst=/i.test(p.text), "a portal page crashed");
+      assert.ok(pages[0].text.includes("Victim home") && pages[1].text.includes("Victim home"), "their own listing shows");
+      for (const p of pages) {
+        for (const secret of [`DOOR-${run}`, `WIFI-${run}`, `INTERNAL-${run}`, "48213", "Alfa home", `Alfa client ${run}`, "Victim TEAM_LEAD", "passwordHash"]) {
+          assert.ok(!p.text.includes(secret), `the portal shows ${secret}`);
+        }
+      }
+      const other = await dana.req("GET", `/portal/listings/${sq.property.id}`);
+      assert.ok(!other.text.includes("Alfa home"), "another client's listing is not found");
+      const r = await dana.req("POST", "/api/portal/requests", { kind: "LISTING", message: "Change their listing", propertyId: sq.property.id });
+      assert.equal(r.status, 404, "a request can't target another client's listing");
+    });
+
+    await test("an owner's request lands on their team's board, and completing it closes the request", async () => {
+      const r = await dana.req("POST", "/api/portal/requests", { kind: "KNOWLEDGE_BASE", message: "The Wi-Fi password changed", propertyId: victim.property.id });
+      assert.equal(r.status, 200, r.text);
+      const request = await prisma.clientRequest.findFirstOrThrow({ where: { clientUserId: owner.id } });
+      const task = await prisma.task.findUniqueOrThrow({ where: { id: request.taskId! } });
+      assert.deepEqual([task.squadId, task.clientId, task.sourceRef], [sq.charlie.id, victim.client.id, `creq:${request.id}`]);
+      const leadTasks = (await charlieLead.req("GET", "/api/tasks")).text;
+      assert.ok(leadTasks.includes("asked to update property details"), "Charlie's lead sees it");
+      const done = await charlieLead.req("PATCH", `/api/tasks/${task.id}`, { status: "COMPLETED" });
+      assert.equal(done.status, 200, done.text);
+      assert.equal((await prisma.clientRequest.findUniqueOrThrow({ where: { id: request.id } })).status, "DONE");
+    });
+
+    await test("only an admin or the client's own team lead hands out owner logins", async () => {
+      const body = { name: "New Owner", email: `owner2-${run}@example.test` };
+      assert.equal((await emp.req("POST", `/api/clients/${victim.client.id}/portal`, body)).status, 403, "employee");
+      assert.equal((await hr.req("POST", `/api/clients/${victim.client.id}/portal`, body)).status, 403, "HR");
+      const alfaLead = new Client();
+      assert.equal(await alfaLead.signIn(sq.lead.email, sq.lead.password, "10.8.8.4"), null);
+      assert.equal((await alfaLead.req("POST", `/api/clients/${victim.client.id}/portal`, body)).status, 404, "another team's lead");
+      const ok = await charlieLead.req("POST", `/api/clients/${victim.client.id}/portal`, body);
+      assert.equal(ok.status, 200, ok.text);
+      assert.ok(JSON.parse(ok.text).link.startsWith(`${BASE}/portal/invite/`));
+      assert.equal((await dana.req("POST", `/api/clients/${victim.client.id}/portal`, body)).status, 401, "an owner can't invite");
+    });
+
+    await test("staff sessions aren't portal sessions, and a turned-off owner is out on the next click", async () => {
+      assert.ok([302, 303, 307].includes((await charlieLead.req("GET", "/portal")).status), "staff are sent to the owner sign-in");
+      await prisma.clientUser.update({ where: { id: owner.id }, data: { active: false } });
+      assert.ok([302, 303, 307].includes((await dana.req("GET", "/portal")).status), "turned off");
+      assert.equal((await dana.req("POST", "/api/portal/requests", { kind: "OTHER", message: "still here?" })).status, 401);
     });
 
     await test("password hashes never reach a browser", async () => {

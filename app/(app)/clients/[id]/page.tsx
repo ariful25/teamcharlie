@@ -12,6 +12,8 @@ import { ClientWorkspaceActions } from "@/components/clients/client-workspace-ac
 import { ClientIntegrationsPanel } from "@/components/clients/client-integrations-panel";
 import { ClientFilesPanel } from "@/components/clients/client-files-panel";
 import { ClientGoogleSheetPanel } from "@/components/clients/client-google-sheet-panel";
+import { ClientPortalPanel } from "@/components/clients/client-portal-panel";
+import { portalAccess } from "@/lib/portal/staff";
 import { getClientIntegrationOverview } from "@/lib/services/integrations";
 
 export default async function ClientWorkspacePage(props: { params: Promise<{ id: string }> }) {
@@ -36,6 +38,8 @@ export default async function ClientWorkspacePage(props: { params: Promise<{ id:
   if (!client) notFound();
 
   const canManageClients = permissions.canManageClients(currentUser.role);
+  // Owner logins: Admin, or the lead of this client's team (it's already in their reach to get here).
+  const portal = currentUser.role === "ADMIN" || currentUser.role === "TEAM_LEAD" ? await portalAccess(client.id) : null;
   const canManageProperties = permissions.canManageProperties(currentUser.role);
   const canManageIntegrations = permissions.canManageIntegrations(currentUser.role);
   const canManageClientFiles = permissions.canManageClientFiles(currentUser.role);
@@ -142,6 +146,7 @@ export default async function ClientWorkspacePage(props: { params: Promise<{ id:
       )}
 
       <div className="grid gap-5 lg:grid-cols-2">
+        {portal && <ClientPortalPanel clientId={client.id} clientName={client.name} access={portal} canManage />}
         <ClientIntegrationsPanel clientId={client.id} integrations={plainIntegrations} canManage={canManageIntegrations} />
         <ClientFilesPanel clientId={client.id} files={plainFiles} canManage={canManageClientFiles} />
         <ClientGoogleSheetPanel

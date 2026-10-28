@@ -7,6 +7,7 @@ import { taskEditSchema, taskQuickUpdateSchema } from "@/lib/validations";
 import { combineDateAndTime } from "@/lib/time";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { onStayTaskCompleted } from "@/lib/reviews/service";
+import { onClientRequestTaskCompleted } from "@/lib/portal/requests";
 import { notifyTaskEdited, notifyTaskDeleted, notifyTaskStatusChanged } from "@/lib/notifications";
 import { pushTaskAssigned } from "@/lib/push/notify";
 
@@ -169,6 +170,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const actorName = session.user.name ?? "Someone";
   // Review pipeline tasks move their guest's stay forward when completed.
   if (q.status === "COMPLETED") await onStayTaskCompleted(teamId, existing.sourceRef, userId);
+  // An owner's portal request is done when its task is.
+  if (q.status === "COMPLETED") await onClientRequestTaskCompleted(teamId, existing.sourceRef);
   if (q.status === "IN_PROGRESS" || q.status === "COMPLETED" || q.status === "BLOCKED") {
     await notifyTaskStatusChanged(teamId, task, q.status, actorName);
   } else {

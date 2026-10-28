@@ -410,6 +410,9 @@ model Client {
   googleSheet       ClientGoogleSheet?
   knowledgeColumns  KnowledgeColumn[]
   knowledgeSyncLogs KnowledgeSyncLog[]
+  portalUsers       ClientUser[]
+  portalInvites     ClientInvite[]
+  portalRequests    ClientRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1452,4 +1455,78 @@ model PushSubscription {
   lastUsedAt DateTime?
 
   @@index([teamId, userId])
+}
+
+// ---------------------------------------------------------------------------
+// Client portal (/portal). The property owner's own login: they see only their
+// client's listings, reviews, listing health and knowledge base, and ask the
+// team for changes. Separate from User on purpose, so a client account can
+// never appear in staff lists, rosters, payroll or notifications. Reads go
+// through lib/portal/queries.ts, which selects only owner-safe fields.
+
+model ClientUser {
+  id           String          @id @default(cuid())
+  teamId       String
+  clientId     String
+  client       Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name         String
+  email        String          @unique
+  passwordHash String
+  active       Boolean         @default(true)
+  lastLoginAt  DateTime?
+  requests     ClientRequest[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([clientId])
+}
+
+model ClientInvite {
+  id         String    @id @default(cuid())
+  teamId     String
+  clientId   String
+  client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  email      String
+  name       String?
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+  createdBy  String
+  createdAt  DateTime  @default(now())
+
+  @@index([clientId])
+}
+
+enum ClientRequestKind {
+  KNOWLEDGE_BASE
+  LISTING
+  REVIEW
+  OTHER
+}
+
+enum ClientRequestStatus {
+  OPEN
+  DONE
+  DECLINED
+}
+
+// Something the owner asked for. Each becomes a task for the client's team
+// (sourceRef creq:<id>); completing that task marks the request done.
+model ClientRequest {
+  id           String              @id @default(cuid())
+  teamId       String
+  clientId     String
+  client       Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientUserId String
+  clientUser   ClientUser          @relation(fields: [clientUserId], references: [id], onDelete: Cascade)
+  propertyId   String?
+  kind         ClientRequestKind
+  message      String
+  status       ClientRequestStatus @default(OPEN)
+  taskId       String?
+  resolvedAt   DateTime?
+  createdAt    DateTime            @default(now())
+
+  @@index([clientId, status])
 }
