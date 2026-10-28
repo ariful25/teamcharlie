@@ -4,13 +4,16 @@
 //              job/about   personal   emergency   documents   pay    time   private notes
 // self            view      edit       edit        view+add    view   view   —
 // team lead       view      —          view        —           —      view   —
-// admin           edit      edit       edit        edit        view   view   edit
+// admin, HR       edit      edit       edit        edit        view   view   edit
 // teammate        view      —          —           —           —      —      —
+//
+// A lead or teammate only ever reaches profiles in their own team: the
+// queries in lib/people/ 404 anyone outside it (lib/scope.ts).
 
 export type Viewer = { id: string; role: string };
 
 export function profileAccess(viewer: Viewer, subjectId: string) {
-  const admin = viewer.role === "ADMIN";
+  const admin = viewer.role === "ADMIN" || viewer.role === "HR";
   const lead = viewer.role === "TEAM_LEAD";
   const self = viewer.id === subjectId;
   return {

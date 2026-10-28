@@ -1,3 +1,4 @@
+import { getScope } from "@/lib/scope";
 import { getCurrentUser } from "@/lib/session";
 import { permissions } from "@/lib/auth";
 import { getWeekRoster } from "@/lib/services/shift-schedule";
@@ -25,7 +26,8 @@ function serialize(roster: Awaited<ReturnType<typeof getWeekRoster>>) {
 
 export default async function ShiftSchedulePage() {
   const currentUser = await getCurrentUser();
-  const roster = await getWeekRoster(currentUser.teamId, new Date());
+  const scope = await getScope(currentUser);
+  const roster = await getWeekRoster(scope, new Date());
 
   return (
     <div className="space-y-8">

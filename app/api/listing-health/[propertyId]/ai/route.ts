@@ -15,7 +15,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest, props: { params: Promise<{ propertyId: string }> }) {
   const params = await props.params;
-  const auth = await requireListingManager();
+  const auth = await requireListingManager({ propertyId: params.propertyId });
   if (auth.error) return auth.error;
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });

@@ -68,28 +68,32 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
   // assignedUserId — instead, whoever's actually scheduled WORKING that
   // shift today gets the generated instance. Resolved once per shift type,
   // not per template, since several templates can share one shift.
+  // Shift types are shared across the company's teams, so "whoever works
+  // Morning today" is resolved within the template's own team: a Charlie
+  // checklist never lands on someone from Bravo.
+  const shiftKey = (shiftTypeId: string, squadId: string | null) => `${shiftTypeId}|${squadId ?? ""}`;
   const shiftTypeIds = Array.from(new Set(dueTemplates.filter((t) => t.shiftTypeId).map((t) => t.shiftTypeId!)));
-  const shiftAssigneeByShiftTypeId = new Map<string, string | null>();
+  const userIdsByShift = new Map<string, string[]>();
   if (shiftTypeIds.length > 0) {
     const assignments = await prisma.shiftAssignment.findMany({
       where: { shiftTypeId: { in: shiftTypeIds }, date: today, status: "WORKING", user: { teamId } },
-      select: { shiftTypeId: true, userId: true },
+      select: { shiftTypeId: true, userId: true, user: { select: { squadId: true } } },
     });
-    const userIdsByShift = new Map<string, string[]>();
     for (const a of assignments) {
       if (!a.shiftTypeId) continue;
-      userIdsByShift.set(a.shiftTypeId, [...(userIdsByShift.get(a.shiftTypeId) ?? []), a.userId]);
-    }
-    for (const shiftTypeId of shiftTypeIds) {
-      const userIds = userIdsByShift.get(shiftTypeId) ?? [];
-      // Exactly one person scheduled WORKING that shift today -> assign to
-      // them. Nobody scheduled, or more than one (shared shift) -> leave
-      // unassigned rather than guess; the team picks it up from the board.
-      shiftAssigneeByShiftTypeId.set(shiftTypeId, userIds.length === 1 ? userIds[0] : null);
+      for (const key of [shiftKey(a.shiftTypeId, a.user.squadId), shiftKey(a.shiftTypeId, null)]) {
+        userIdsByShift.set(key, [...(userIdsByShift.get(key) ?? []), a.userId]);
+      }
     }
   }
-  const resolveAssignee = (t: (typeof dueTemplates)[number]) =>
-    t.shiftTypeId ? shiftAssigneeByShiftTypeId.get(t.shiftTypeId) ?? null : t.assignedUserId;
+  // Exactly one person scheduled WORKING that shift today -> assign to them.
+  // Nobody scheduled, or more than one (shared shift) -> leave unassigned
+  // rather than guess; the team picks it up from the board.
+  const resolveAssignee = (t: (typeof dueTemplates)[number]) => {
+    if (!t.shiftTypeId) return t.assignedUserId;
+    const userIds = userIdsByShift.get(shiftKey(t.shiftTypeId, t.squadId)) ?? [];
+    return userIds.length === 1 ? userIds[0] : null;
+  };
 
   // Every due template (start date reached, see above) gets a real instance
   // today, including its start day, unless one already exists (the dedup
@@ -121,6 +125,7 @@ export async function generateRecurringTaskInstances(teamId: string, referenceDa
       priority: t.priority,
       status: "UPCOMING",
       teamId,
+      squadId: t.squadId,
       isRecurringTemplate: false,
     })),
     skipDuplicates: true,

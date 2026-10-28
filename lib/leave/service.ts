@@ -1,3 +1,4 @@
+import { peopleActorReaches } from "@/lib/scope";
 import { Prisma, type LeaveType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getTeamTimezone } from "@/lib/team-timezone";
@@ -17,7 +18,7 @@ const STATUS_FOR: Record<LeaveType, "PAID_LEAVE" | "UNPAID_LEAVE" | "SICK_LEAVE"
   SICK: "SICK_LEAVE",
 };
 
-type Actor = { id: string; name: string; role: string; teamId: string };
+type Actor = { id: string; name: string; role: string; teamId: string; squadId?: string | null };
 type Replaced = { date: string; existed: boolean; status: string | null; shiftTypeId: string | null; customStart: string | null; customEnd: string | null };
 
 const dayKey = (d: Date) => d.toISOString().slice(0, 10);
@@ -95,7 +96,7 @@ export async function requestLeave(actor: Actor, input: { type: LeaveType; start
 }
 
 export async function reviewLeave(reviewer: Actor, id: string, input: { action: "APPROVE" | "REJECT" | "REVOKE"; note?: string | null }) {
-  const request = await prisma.leaveRequest.findFirst({ where: { id, teamId: reviewer.teamId } });
+  const request = await prisma.leaveRequest.findFirst({ where: { id, teamId: reviewer.teamId, user: peopleActorReaches(reviewer) } });
   if (!request) throw new AttendanceError("NOT_FOUND", "Leave request not found.", 404);
   if (!canReview(reviewer, request.userId)) {
     throw new AttendanceError("SELF_REVIEW", "You can't approve your own leave. Ask another team lead or an admin.", 403);

@@ -1,3 +1,4 @@
+import { inSquad, type Scope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfWeekMonday, weekDays } from "@/lib/time";
@@ -11,7 +12,9 @@ export async function getShiftTypes(teamId: string) {
  * each employee's 7 day-cells (Mon..Sun) and a daily WORKING headcount — the direct
  * digital equivalent of the team's spreadsheet.
  */
-export async function getWeekRoster(teamId: string, anyDateInWeek: Date) {
+export async function getWeekRoster(scope: Scope, anyDateInWeek: Date) {
+  const { teamId } = scope;
+  const people = inSquad(scope);
   const weekStart = startOfWeekMonday(anyDateInWeek, await getTeamTimezone(teamId));
   const days = weekDays(weekStart);
   const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -19,10 +22,10 @@ export async function getWeekRoster(teamId: string, anyDateInWeek: Date) {
   const [shiftTypes, assignments, employees] = await Promise.all([
     getShiftTypes(teamId),
     prisma.shiftAssignment.findMany({
-      where: { date: { gte: weekStart, lt: weekEnd }, user: { teamId } },
+      where: { date: { gte: weekStart, lt: weekEnd }, user: people },
       include: { user: true, shiftType: true },
     }),
-    prisma.user.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { ...people, active: true }, orderBy: { name: "asc" } }),
   ]);
 
   const employeeIdsInWeek = Array.from(new Set(assignments.map((a) => a.userId)));
@@ -136,20 +139,23 @@ export async function assignEmployeeToWeek(
  * date forward 7 days — the realistic day-to-day pattern (weeks look like the last
  * one, with a handful of exceptions the admin then edits). Skips days that already
  * have an assignment in the target week. */
-export async function copyPreviousWeek(teamId: string, targetWeekAnyDate: Date, createdBy: string) {
+export async function copyPreviousWeek(scope: Scope, targetWeekAnyDate: Date, createdBy: string) {
+  const { teamId } = scope;
+  // Only the team being looked at: a lead copying their week never touches another team's roster.
+  const people = inSquad(scope);
   const targetWeekStart = startOfWeekMonday(targetWeekAnyDate, await getTeamTimezone(teamId));
   const previousWeekStart = new Date(targetWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
   const previousWeekEnd = targetWeekStart;
 
   const previousAssignments = await prisma.shiftAssignment.findMany({
-    where: { date: { gte: previousWeekStart, lt: previousWeekEnd }, user: { teamId } },
+    where: { date: { gte: previousWeekStart, lt: previousWeekEnd }, user: people },
   });
 
   if (previousAssignments.length === 0) return { copied: 0 };
 
   const targetWeekEnd = new Date(targetWeekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
   const existingTarget = await prisma.shiftAssignment.findMany({
-    where: { date: { gte: targetWeekStart, lt: targetWeekEnd }, user: { teamId } },
+    where: { date: { gte: targetWeekStart, lt: targetWeekEnd }, user: people },
     select: { userId: true, date: true },
   });
   const existingKey = new Set(existingTarget.map((e) => `${e.userId}::${e.date.getTime()}`));

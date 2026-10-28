@@ -1,3 +1,4 @@
+import { getScope } from "@/lib/scope";
 import Link from "next/link";
 import { CalendarClock, ShieldCheck } from "lucide-react";
 import { permissions } from "@/lib/auth";
@@ -30,6 +31,7 @@ export default async function AttendancePage(
 ) {
   const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
+  const scope = await getScope(currentUser);
   const tz = await getTeamTimezone(currentUser.teamId);
   const isLead = permissions.canEditAttendance(currentUser.role);
 
@@ -46,15 +48,20 @@ export default async function AttendancePage(
 
   const [shiftState, mine, myOvertime, myWeek, myMonth, weekRows, monthRows, queue, leads, checklist, balances, myLeave] = await Promise.all([
     getShiftCardState(currentUser.id),
-    getEmployeeShifts(currentUser.teamId, currentUser.id, 14),
+    getEmployeeShifts(scope, currentUser.id, 14),
     getMyOvertime(currentUser.id),
-    getPeriodSummary(currentUser.teamId, thisWeek.start, thisWeek.end, currentUser.id),
-    getPeriodSummary(currentUser.teamId, thisMonth.start, thisMonth.end, currentUser.id),
-    getPeriodSummary(currentUser.teamId, week.start, week.end, onlyMe),
-    getPeriodSummary(currentUser.teamId, selectedMonth.start, selectedMonth.end, onlyMe),
-    isLead ? getReviewQueue(currentUser.teamId) : Promise.resolve([]),
+    getPeriodSummary(scope, thisWeek.start, thisWeek.end, currentUser.id),
+    getPeriodSummary(scope, thisMonth.start, thisMonth.end, currentUser.id),
+    getPeriodSummary(scope, week.start, week.end, onlyMe),
+    getPeriodSummary(scope, selectedMonth.start, selectedMonth.end, onlyMe),
+    isLead ? getReviewQueue(scope) : Promise.resolve([]),
     prisma.user.findMany({
-      where: { teamId: currentUser.teamId, active: true, role: { in: ["ADMIN", "TEAM_LEAD"] } },
+      // Who can approve this person's requests: Admin, HR and their own team's lead.
+      where: {
+        teamId: currentUser.teamId,
+        active: true,
+        OR: [{ role: { in: ["ADMIN", "HR"] } }, { role: "TEAM_LEAD", ...(currentUser.squadId ? { squadId: currentUser.squadId } : {}) }],
+      },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

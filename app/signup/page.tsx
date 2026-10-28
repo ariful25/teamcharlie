@@ -6,7 +6,7 @@ import { PRODUCT_NAME } from "@/lib/brand";
 import { AuthCard } from "@/components/auth/auth-card";
 import { SignupForm } from "@/components/auth/signup-form";
 
-export const metadata: Metadata = { title: `Create a team · ${PRODUCT_NAME}` };
+export const metadata: Metadata = { title: `Create a company · ${PRODUCT_NAME}` };
 
 export default async function SignupPage() {
   // Already signed in — a second team would need a second account anyway.
@@ -18,7 +18,7 @@ export default async function SignupPage() {
   }
 
   return (
-    <AuthCard title="Create your team" subtitle={`Start a new ${PRODUCT_NAME} workspace for your team in under a minute.`}>
+    <AuthCard title="Create your company" subtitle={`Start a new ${PRODUCT_NAME} workspace in under a minute. You can add teams inside it after.`}>
       <SignupForm />
     </AuthCard>
   );

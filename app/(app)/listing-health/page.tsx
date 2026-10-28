@@ -1,3 +1,4 @@
+import { getScope, inSquad } from "@/lib/scope";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -11,13 +12,14 @@ import { listInbox } from "@/lib/listing-health/inbox";
 export default async function ListingHealthPage(props: { searchParams: Promise<{ clientId?: string }> }) {
   const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
+  const scope = await getScope(currentUser);
   const clients = await prisma.client.findMany({
-    where: { teamId: currentUser.teamId, active: true },
+    where: { ...inSquad(scope), active: true },
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });
 
-  const clientId = searchParams.clientId ?? (await defaultClientId(currentUser.teamId)) ?? clients[0]?.id;
+  const clientId = searchParams.clientId ?? (await defaultClientId(scope)) ?? clients[0]?.id;
   if (!clientId) {
     return (
       <Card>
@@ -27,12 +29,12 @@ export default async function ListingHealthPage(props: { searchParams: Promise<{
   }
   const canManage = permissions.canManageKnowledgeBase(currentUser.role);
   const [data, aiReady, inbox, teamListings] = await Promise.all([
-    getPortfolio(currentUser.teamId, clientId),
+    getPortfolio(scope, clientId),
     isAiReady(currentUser.teamId),
     canManage ? listInbox(currentUser.teamId) : Promise.resolve([]),
     canManage
       ? prisma.propertyKnowledgeItem.findMany({
-          where: { client: { teamId: currentUser.teamId } },
+          where: { client: inSquad(scope) },
           select: { id: true, internalName: true, client: { select: { name: true } } },
           orderBy: { internalName: "asc" },
         })

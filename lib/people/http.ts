@@ -4,7 +4,7 @@ import { PeopleError } from "./service";
 
 export async function peopleActor() {
   const user = await getCurrentUserOrNull();
-  return user ? { id: user.id, role: user.role, teamId: user.teamId } : null;
+  return user ? { id: user.id, role: user.role, teamId: user.teamId, squadId: user.squadId } : null;
 }
 
 export function peopleErrorResponse(err: unknown, fallback: string) {

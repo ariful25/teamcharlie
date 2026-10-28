@@ -1,3 +1,4 @@
+import { getScope } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserOrNull } from "@/lib/session";
 import { permissions } from "@/lib/auth";
@@ -8,8 +9,9 @@ import { getReviewContext } from "@/lib/queries/attendance";
 export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUserOrNull();
   if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const scope = await getScope(currentUser);
   const sp = req.nextUrl.searchParams;
-  const context = await getReviewContext(currentUser.teamId, {
+  const context = await getReviewContext(scope, {
     recordId: sp.get("recordId"),
     userId: sp.get("userId"),
     date: sp.get("date"),

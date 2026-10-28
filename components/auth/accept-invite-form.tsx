@@ -7,9 +7,9 @@ import { Loader2, Lock, Mail, User } from "lucide-react";
 import { AuthField } from "./auth-field";
 import { FormError, submitButtonClass } from "./auth-card";
 
-export function AcceptInviteForm({ token, email }: { token: string; email: string }) {
+export function AcceptInviteForm({ token, email, name: invitedName }: { token: string; email: string; name?: string | null }) {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(invitedName ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

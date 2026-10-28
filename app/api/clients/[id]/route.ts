@@ -1,3 +1,4 @@
+import { walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -9,8 +10,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
-  const client = await prisma.client.findFirst({ where: { id: params.id, teamId } });
+  const { teamId, clientWall } = await walls();
+  const client = await prisma.client.findFirst({ where: { id: params.id, ...clientWall } });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   return NextResponse.json({ client });
@@ -33,8 +34,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
-  const existing = await prisma.client.findFirst({ where: { id: params.id, teamId } });
+  const { teamId, clientWall } = await walls();
+  const existing = await prisma.client.findFirst({ where: { id: params.id, ...clientWall } });
   if (!existing) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   const parsed = clientUpdateSchema.safeParse(await req.json().catch(() => ({})));
@@ -42,6 +43,16 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const client = await prisma.client.update({ where: { id: params.id }, data: parsed.data });
+  if (parsed.data.squadId && !(await prisma.squad.findFirst({ where: { id: parsed.data.squadId, teamId, active: true } }))) {
+    return NextResponse.json({ error: "That team doesn't exist." }, { status: 400 });
+  }
+  const client = await prisma.$transaction(async (tx) => {
+    const updated = await tx.client.update({ where: { id: params.id }, data: parsed.data });
+    // Its open work follows it, so the new team sees the client's tasks.
+    if (parsed.data.squadId && parsed.data.squadId !== existing.squadId) {
+      await tx.task.updateMany({ where: { clientId: params.id, teamId }, data: { squadId: parsed.data.squadId } });
+    }
+    return updated;
+  });
   return NextResponse.json({ client });
 }

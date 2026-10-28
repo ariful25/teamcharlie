@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   try {
-    const request = await reviewLeave({ id: user.id, name: user.name, role: user.role, teamId: user.teamId }, params.id, parsed.data);
+    const request = await reviewLeave({ id: user.id, name: user.name, role: user.role, teamId: user.teamId, squadId: user.squadId }, params.id, parsed.data);
     await pushLeaveDecided(user.teamId, request, parsed.data.action, user);
     return NextResponse.json({ request });
   } catch (err) {
@@ -31,7 +31,7 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
   const user = await getCurrentUserOrNull();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    await cancelLeave({ id: user.id, name: user.name, role: user.role, teamId: user.teamId }, params.id);
+    await cancelLeave({ id: user.id, name: user.name, role: user.role, teamId: user.teamId, squadId: user.squadId }, params.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return attendanceErrorResponse(err, "Could not cancel.");

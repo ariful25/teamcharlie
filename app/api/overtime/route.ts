@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
   try {
     const request = await createOvertimeRequest(
-      { id: currentUser.id, name: currentUser.name, role: currentUser.role, teamId: currentUser.teamId },
+      { id: currentUser.id, name: currentUser.name, role: currentUser.role, teamId: currentUser.teamId, squadId: currentUser.squadId },
       parsed.data
     );
     return NextResponse.json({ request });

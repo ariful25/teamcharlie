@@ -3,6 +3,7 @@ import { getCurrentUserOrNull } from "@/lib/session";
 import { permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateUserSchema } from "@/lib/validations";
+import { changeError } from "@/lib/people/adding";
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -28,6 +29,9 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   // (or disable, or promote) any user on the platform by id.
   const existing = await prisma.user.findFirst({ where: { id: params.id, teamId: currentUser.teamId } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (currentUser.role === "HR" && existing.role === "ADMIN") {
+    return NextResponse.json({ error: "Only an admin can change an admin." }, { status: 403 });
+  }
 
   // Never leave a team without an active admin — nobody could manage users,
   // settings or payroll again, and there's no in-app way back.
@@ -37,6 +41,25 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (otherAdmins === 0) {
       return NextResponse.json({ error: "Make someone else an admin first. A team always needs at least one active admin." }, { status: 400 });
     }
+  }
+
+  // Role and team changes follow lib/people/adding.ts: HR never touches an
+  // admin or makes one; Admin and HR are company-wide, everyone else in a team.
+  const changesPlacement = parsed.data.role !== undefined || parsed.data.squadId !== undefined;
+  const actor = { role: currentUser.role, squadId: currentUser.squadId };
+  if (changesPlacement || currentUser.role === "HR") {
+    const nextRole = parsed.data.role ?? existing.role;
+    const after = {
+      role: nextRole,
+      // Becoming Admin or HR takes someone out of their team.
+      squadId: nextRole === "ADMIN" || nextRole === "HR" ? null : parsed.data.squadId !== undefined ? parsed.data.squadId : existing.squadId,
+    };
+    const problem = changeError(actor, { role: existing.role, squadId: existing.squadId }, after);
+    if (problem) return NextResponse.json({ error: problem }, { status: 403 });
+    if (after.squadId && !(await prisma.squad.findFirst({ where: { id: after.squadId, teamId: currentUser.teamId } }))) {
+      return NextResponse.json({ error: "That team doesn't exist." }, { status: 400 });
+    }
+    parsed.data.squadId = after.squadId;
   }
 
   const user = await prisma.user.update({ where: { id: params.id }, data: parsed.data });

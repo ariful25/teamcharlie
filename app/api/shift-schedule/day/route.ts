@@ -1,10 +1,11 @@
+import { getScope } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserOrNull } from "@/lib/session";
 import { permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { shiftAssignmentUpdateSchema } from "@/lib/validations";
-import { teamOwnsShiftType, teamOwnsUser } from "@/lib/tenancy";
+import { scopeReachesUser, teamOwnsShiftType } from "@/lib/tenancy";
 
 const bodySchema = shiftAssignmentUpdateSchema.extend({
   userId: z.string(),
@@ -14,6 +15,7 @@ const bodySchema = shiftAssignmentUpdateSchema.extend({
 export async function POST(req: NextRequest) {
   const currentUser = await getCurrentUserOrNull();
   if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const scope = await getScope(currentUser);
 
   if (!permissions.canManageShiftSchedule(currentUser.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -26,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { userId, date, ...rest } = parsed.data;
-  if (!(await teamOwnsUser(currentUser.teamId, userId))) {
+  if (!(await scopeReachesUser(scope, userId))) {
     return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
   }
   if (!(await teamOwnsShiftType(currentUser.teamId, rest.shiftTypeId))) {

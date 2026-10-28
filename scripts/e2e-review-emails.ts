@@ -12,6 +12,9 @@ const run = Date.now().toString(36);
 let n = 0;
 const msg = (e: { subject: string; from: string; body: string; date: string }) => ({ id: `${run}-${n++}`, ...e });
 const d = (s: string) => new Date(`${s}T00:00:00Z`);
+// The fixtures are real emails from late October 2026; replay them as of the
+// day they arrived, not today, or date-driven moves (checkout reached) run first.
+const NOW = new Date("2026-10-27T12:00:00Z");
 let passed = 0;
 const ok = (name: string) => (passed++, console.log(`  ✓ ${name}`));
 
@@ -35,7 +38,7 @@ async function main() {
     const lena = await stay({ guestName: "Lena Park", propertyId: lux.id, checkOut: d("2026-10-25"), stage: "BOOKED" });
     const theo = await stay({ guestName: "Theo", propertyId: serene.id, confirmationCode: "HMCD34EF56", checkOut: d("2026-10-29"), stage: "BOOKED" });
 
-    const result = await ingestAirbnbEmails(team.id, [msg(F.CHANGE_REQUEST), msg(F.UPDATED), msg(F.WROTE_YOU), msg(F.ONE_STAR), msg(F.CHECKOUT), msg(F.CANCELLED), msg(F.CONFIRMED)]);
+    const result = await ingestAirbnbEmails(team.id, [msg(F.CHANGE_REQUEST), msg(F.UPDATED), msg(F.WROTE_YOU), msg(F.ONE_STAR), msg(F.CHECKOUT), msg(F.CANCELLED), msg(F.CONFIRMED)], NOW);
     const get = (id: string) => prisma.guestStay.findUniqueOrThrow({ where: { id }, include: { events: true } });
     const openTasks = async (id: string) =>
       (await prisma.task.findMany({ where: { teamId: team.id, sourceRef: { startsWith: `stay:${id}:` }, status: { not: "COMPLETED" } } })).map((t) => t.sourceRef!.split(":")[2]);
@@ -62,7 +65,7 @@ async function main() {
         .replace("Oct 3 – 5, 2026", "Oct 23 – 25, 2026")
         .replace(/\[https:\/\/www\.airbnb\.com\/co-hosts[^\]]*\]/, ""),
     };
-    await ingestAirbnbEmails(team.id, [msg(later)]);
+    await ingestAirbnbEmails(team.id, [msg(later)], NOW);
     p = await get(priya.id);
     assert.equal(p.rating, 4);
     assert.ok(p.reviewId);

@@ -7,6 +7,9 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { MobileTopbar } from "@/components/layout/mobile-topbar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TeamTimezoneProvider } from "@/components/providers/team-timezone";
+import { getScope, inSquad } from "@/lib/scope";
+import { isCompanyWide } from "@/lib/auth";
+import type { TeamView } from "@/components/teams/team-switcher";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const currentUser = await getCurrentUser();
@@ -28,11 +31,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // check-out) must not keep showing the user as checked in.
   const checkedIn = !!(await findOpenSession(user.id));
 
-  const clients = await prisma.client.findMany({
-    where: { teamId: user.teamId, active: true },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  const scope = await getScope(currentUser);
+  const [clients, squads] = await Promise.all([
+    prisma.client.findMany({ where: { ...inSquad(scope), active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.squad.findMany({ where: { teamId: user.teamId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
+  const teamView: TeamView = { canSwitch: isCompanyWide(currentUser.role), current: scope.squadId, squads };
 
   return (
     <TeamTimezoneProvider timezone={user.team.timezone}>
@@ -45,6 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             avatarUrl: user.avatarUrl,
           }}
           teamName={user.team.name}
+          teamView={teamView}
           checkedIn={checkedIn}
           clients={clients}
         />
@@ -53,7 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             this whole column wider instead of scrolling inside itself,
             causing real page-level horizontal scroll on mobile. */}
         <div className="min-w-0 flex-1 pb-[calc(76px+env(safe-area-inset-bottom))] md:pb-0 md:pl-64">
-          <MobileTopbar userName={user.name} teamName={user.team.name} />
+          <MobileTopbar userName={user.name} teamName={user.team.name} teamView={teamView} />
           <main className="mx-auto max-w-[1600px] px-4 py-6 md:px-8 md:py-8">{children}</main>
         </div>
         <MobileNav role={user.role} />

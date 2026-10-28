@@ -1,3 +1,4 @@
+import { walls, type ClientWall } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -18,18 +19,18 @@ function prepareTenancyData(data: any) {
   return prepared;
 }
 
-async function unitForTeam(unitId: string, teamId: string) {
-  return prisma.unit.findFirst({ where: { id: unitId, property: { client: { teamId } } } });
+async function unitForTeam(unitId: string, clientWall: ClientWall) {
+  return prisma.unit.findFirst({ where: { id: unitId, property: { client: clientWall } } });
 }
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
+  const { teamId, clientWall } = await walls();
   const unitId = req.nextUrl.searchParams.get("unitId") ?? undefined;
   const tenancies = await prisma.tenancy.findMany({
-    where: { unit: { property: { client: { teamId } } }, ...(unitId ? { unitId } : {}) },
+    where: { unit: { property: { client: clientWall } }, ...(unitId ? { unitId } : {}) },
     include: { unit: { include: { property: true } } },
     orderBy: [{ moveInDate: "desc" }, { createdAt: "desc" }],
   });
@@ -46,12 +47,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
+  const { teamId, clientWall } = await walls();
   const parsed = tenancySchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
-  if (!(await unitForTeam(parsed.data.unitId, teamId))) {
+  if (!(await unitForTeam(parsed.data.unitId, clientWall))) {
     return NextResponse.json({ error: "Unit not found" }, { status: 404 });
   }
 

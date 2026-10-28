@@ -1,9 +1,10 @@
+import { getScope } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUserOrNull } from "@/lib/session";
 import { addReview } from "@/lib/listing-health/service";
 import { lowStarReviews } from "@/lib/listing-health/queries";
-import { listingHealthErrorResponse, requireListingManager } from "@/lib/listing-health/http";
+import { listingHealthErrorResponse, reachesTarget, requireListingManager, targetNotFound } from "@/lib/listing-health/http";
 
 const schema = z.object({
   propertyId: z.string().min(1),
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
   if (auth.error) return auth.error;
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+  if (!(await reachesTarget(auth.user, { propertyId: parsed.data.propertyId }))) return targetNotFound();
   try {
     const review = await addReview({ teamId: auth.user.teamId, actorId: auth.user.id, ...parsed.data });
     return NextResponse.json({ review });
@@ -39,7 +41,7 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const clientId = req.nextUrl.searchParams.get("clientId") ?? "";
   const maxRating = Math.min(5, Math.max(1, Number(req.nextUrl.searchParams.get("maxRating") ?? 4)));
-  const reviews = await lowStarReviews(user.teamId, clientId, maxRating);
+  const reviews = await lowStarReviews(await getScope(user), clientId, maxRating);
   const header = ["Stars", "Listing", "Airbnb title", "Date", "Guest", "Review", "Private feedback", "Airbnb URL"];
   const lines = reviews.map((r) =>
     [r.rating, r.property.internalName, r.property.listingName, r.reviewDate?.toISOString().slice(0, 10) ?? "", r.guestName, r.comment, r.privateNote, r.property.airbnbUrl]

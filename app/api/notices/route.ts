@@ -4,15 +4,17 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { noticeSchema } from "@/lib/validations";
 import { pushNoticePosted } from "@/lib/push/notify";
+import { noticesIn, squadForNew, walls } from "@/lib/scope";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
+  const { scope } = await walls();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const notices = await prisma.notice.findMany({
-    where: { teamId },
+    where: noticesIn(scope),
     include: { author: { select: { id: true, name: true, avatarUrl: true } } },
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
   });
@@ -26,7 +28,8 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
+  const { teamId, scope } = await walls();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const authorId = session.user.id as string;
   const body = await req.json().catch(() => ({}));
   const parsed = noticeSchema.safeParse(body);
@@ -42,6 +45,9 @@ export async function POST(req: NextRequest) {
       checklist: parsed.data.checklist ?? undefined,
       authorId,
       teamId,
+      // A lead's or employee's notice belongs to their team. Admin and HR
+      // post to the team picked in the switcher, or company-wide on "All teams".
+      squadId: squadForNew(scope),
     },
     include: { author: { select: { id: true, name: true, avatarUrl: true } } },
   });

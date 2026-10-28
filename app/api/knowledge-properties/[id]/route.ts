@@ -1,3 +1,4 @@
+import { walls, type ClientWall } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
@@ -7,8 +8,8 @@ import { propertyKnowledgeItemSchema } from "@/lib/validations";
 import { computeCompletionPct, normalizeAirbnbUrl } from "@/lib/services/property-knowledge";
 import { syncPropertyToSheet } from "@/lib/google-sheets/sync";
 
-async function getItemForTeam(id: string, teamId: string) {
-  return prisma.propertyKnowledgeItem.findFirst({ where: { id, client: { teamId } } });
+async function getItemForTeam(id: string, clientWall: ClientWall) {
+  return prisma.propertyKnowledgeItem.findFirst({ where: { id, client: clientWall } });
 }
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -21,8 +22,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
-  const existing = await getItemForTeam(params.id, teamId);
+  const { teamId, clientWall } = await walls();
+  const existing = await getItemForTeam(params.id, clientWall);
   if (!existing) return NextResponse.json({ error: "Property not found" }, { status: 404 });
 
   const parsed = propertyKnowledgeItemSchema.partial().safeParse(await req.json().catch(() => ({})));
@@ -30,7 +31,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
   if (parsed.data.clientId) {
-    const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, teamId } });
+    const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, ...clientWall } });
     if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
 
@@ -75,8 +76,8 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
-  const existing = await getItemForTeam(params.id, teamId);
+  const { teamId, clientWall } = await walls();
+  const existing = await getItemForTeam(params.id, clientWall);
   if (!existing) return NextResponse.json({ error: "Property not found" }, { status: 404 });
 
   await prisma.propertyKnowledgeItem.delete({ where: { id: params.id } });

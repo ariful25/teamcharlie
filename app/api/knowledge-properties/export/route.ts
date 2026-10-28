@@ -1,3 +1,4 @@
+import { walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -18,9 +19,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
+  const { teamId, clientWall } = await walls();
   const clientId = req.nextUrl.searchParams.get("clientId") ?? undefined;
-  const where = { client: { teamId }, ...(clientId ? { clientId } : {}) };
+  const where = { client: clientWall, ...(clientId ? { clientId } : {}) };
 
   const items = await prisma.propertyKnowledgeItem.findMany({
     where,
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
   // Best-effort visibility into who exported sensitive operational data and
   // when — never blocks or fails the download itself if Discord isn't
   // configured or is unreachable.
-  const client = clientId ? items[0]?.client ?? (await prisma.client.findFirst({ where: { id: clientId, teamId } })) : null;
+  const client = clientId ? items[0]?.client ?? (await prisma.client.findFirst({ where: { id: clientId, ...clientWall } })) : null;
   const team = await prisma.team.findUnique({ where: { id: teamId }, select: { name: true } });
   await notifyKnowledgeExport(teamId, {
     actorName: session.user.name ?? "Unknown user",

@@ -73,6 +73,9 @@ export async function createTeamWithAdmin(input: {
     const team = await tx.team.create({
       data: { name: teamName, slug, timezone: input.timezone, settings: { create: {} } },
     });
+    // Every company starts with one team named after it; the admin renames
+    // it and adds more (Settings → Teams).
+    await tx.squad.create({ data: { teamId: team.id, name: teamName } });
     await tx.category.createMany({ data: DEFAULT_CATEGORIES.map((name) => ({ name, teamId: team.id })) });
     await tx.shiftType.createMany({ data: DEFAULT_SHIFT_TYPES.map((s) => ({ ...s, teamId: team.id })) });
     await tx.checklistItem.createMany({

@@ -22,8 +22,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconTooltip } from "@/components/ui/tooltip";
-import { permissions } from "@/lib/auth";
+import { permissions, type AppRole } from "@/lib/auth";
 import { PRODUCT_NAME } from "@/lib/brand";
+import { TeamSwitcher, type TeamView } from "@/components/teams/team-switcher";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -40,11 +41,13 @@ const navItems = [
 export function Sidebar({
   user,
   teamName,
+  teamView,
   checkedIn,
   clients,
 }: {
   user: { name: string; role: string; avatarUrl?: string | null };
   teamName: string;
+  teamView: TeamView;
   checkedIn: boolean;
   clients: { id: string; name: string }[];
 }) {
@@ -57,10 +60,11 @@ export function Sidebar({
           <Radar className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold uppercase leading-tight">{PRODUCT_NAME}</p>
+          <p className="text-sm font-semibold leading-tight">{PRODUCT_NAME}</p>
           <p className="truncate text-[11px] text-muted-foreground">{teamName}</p>
         </div>
       </div>
+      <TeamSwitcher view={teamView} className="px-5 pb-5" />
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3">
         {navItems.map((item) => {
@@ -82,7 +86,7 @@ export function Sidebar({
           );
         })}
 
-        {permissions.canEditAttendance(user.role as "ADMIN" | "TEAM_LEAD" | "EMPLOYEE") && (
+        {permissions.canEditAttendance(user.role as AppRole) && (
           <Link
             href="/attendance/admin"
             className={cn(
@@ -97,7 +101,7 @@ export function Sidebar({
           </Link>
         )}
 
-        {permissions.canManagePayroll(user.role as "ADMIN" | "TEAM_LEAD" | "EMPLOYEE") && (
+        {permissions.canManagePayroll(user.role as AppRole) && (
           <Link
             href="/payroll"
             className={cn(

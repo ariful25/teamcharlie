@@ -94,14 +94,48 @@ async function cleanup(teamIds: string[]) {
   await prisma.employeeEvent.deleteMany({ where });
   await prisma.employeeProfile.deleteMany({ where: { userId: { in: users.map((u) => u.id) } } });
   await prisma.task.deleteMany({ where });
+  await prisma.notice.deleteMany({ where });
+  await prisma.leaveRequest.deleteMany({ where });
+  await prisma.teamInvite.deleteMany({ where });
   await prisma.propertyKnowledgeItem.deleteMany({ where: { id: { in: pids } } });
   await prisma.client.deleteMany({ where });
   await prisma.shiftType.deleteMany({ where });
   await prisma.teamSettings.deleteMany({ where });
   await prisma.user.deleteMany({ where });
+  await prisma.squad.deleteMany({ where });
   await prisma.team.deleteMany({ where: { id: { in: teamIds } } });
   await prisma.rateLimit.deleteMany({ where: { key: { contains: run } } });
   await prisma.rateLimit.deleteMany({ where: { key: { in: users.map((u) => `login:account:${u.email}`) } } });
+}
+
+/** Two teams inside one company: the victim's existing lead, employee and
+ *  client become Team Charlie, and Team Alfa gets its own lead, employee,
+ *  client, listing, task, notice, stay, review and leave request. Plus HR. */
+async function makeSquads(company: Awaited<ReturnType<typeof makeTeam>>) {
+  const teamId = company.team.id;
+  const charlie = await prisma.squad.create({ data: { teamId, name: `Charlie ${run}` } });
+  const alfa = await prisma.squad.create({ data: { teamId, name: `Alfa ${run}` } });
+  await prisma.user.updateMany({ where: { id: { in: [company.users.TEAM_LEAD.id, company.users.EMPLOYEE.id] } }, data: { squadId: charlie.id } });
+  await prisma.client.update({ where: { id: company.client.id }, data: { squadId: charlie.id } });
+  await prisma.task.update({ where: { id: company.task.id }, data: { squadId: charlie.id } });
+  const person = async (role: "TEAM_LEAD" | "EMPLOYEE" | "HR", squadId: string | null) => {
+    const password = pw();
+    const email = `${role.toLowerCase()}-alfa-${run}@example.test`;
+    const u = await prisma.user.create({ data: { name: `Alfa ${role}`, email, passwordHash: await bcrypt.hash(password, 4), role, teamId, squadId } });
+    return { id: u.id, email, password };
+  };
+  const lead = await person("TEAM_LEAD", alfa.id);
+  const employee = await person("EMPLOYEE", alfa.id);
+  const hr = await person("HR", null);
+  const client = await prisma.client.create({ data: { name: `Alfa client ${run}`, teamId, squadId: alfa.id } });
+  const property = await prisma.propertyKnowledgeItem.create({ data: { clientId: client.id, internalName: "Alfa home", airbnbUrl: "https://www.airbnb.com/rooms/2" } as never });
+  const task = await prisma.task.create({ data: { teamId, squadId: alfa.id, clientId: client.id, title: `Alfa secret task ${run}`, date: new Date() } });
+  const notice = await prisma.notice.create({ data: { teamId, squadId: alfa.id, authorId: lead.id, content: `Alfa secret notice ${run}` } });
+  const stay = await prisma.guestStay.create({ data: { teamId, propertyId: property.id, guestName: "Alfa guest", checkOut: new Date() } });
+  const review = await prisma.listingReview.create({ data: { propertyId: property.id, source: "MANUAL", rating: 5, comment: "great", fingerprint: run + "alfa", createdById: lead.id } });
+  const day = new Date(Date.UTC(2027, 0, 4));
+  const leave = await prisma.leaveRequest.create({ data: { teamId, userId: employee.id, type: "PAID", startDate: day, endDate: day, days: 1, reason: "trip" } });
+  return { charlie, alfa, lead, employee, hr, client, property, task, notice, stay, review, leave };
 }
 
 /* ------------------------------------------------------------------- tests */
@@ -160,6 +194,77 @@ async function main() {
         const r = await emp.req(m, p, b);
         assert.ok(r.status === 401 || r.status === 403, `${m} ${p} must be forbidden, got ${r.status}`);
       }
+    });
+
+    const sq = await makeSquads(victim);
+    const charlieLead = new Client();
+    assert.equal(await charlieLead.signIn(victim.users.TEAM_LEAD.email, victim.users.TEAM_LEAD.password, "10.5.5.5"), null);
+
+    await test("a team lead never reaches another team inside the same company", async () => {
+      const a = sq;
+      const attempts: [string, string, unknown?][] = [
+        ["PATCH", `/api/tasks/${a.task.id}`, { status: "COMPLETED" }],
+        ["DELETE", `/api/tasks/${a.task.id}`],
+        ["PATCH", `/api/notices/${a.notice.id}`, { pinned: true }],
+        ["PATCH", `/api/leave/${a.leave.id}`, { action: "APPROVE" }],
+        ["POST", `/api/listing-health/${a.property.id}/refresh`, {}],
+        ["PATCH", `/api/reviews/stays/${a.stay.id}`, { action: "CLOSE" }],
+        ["PATCH", `/api/reviews/${a.review.id}`, { rating: 1 }],
+        ["POST", `/api/listing-health/reviews`, { propertyId: a.property.id, rating: 1, comment: "fake" }],
+        ["POST", `/api/tasks`, { title: "into alfa", clientId: a.client.id, date: "2026-10-27" }],
+        ["POST", `/api/shift-schedule`, { userId: a.employee.id, shiftTypeId: victim.shift.id, weekStart: "2026-10-26" }],
+        ["POST", `/api/people/add`, { people: [{ name: "Spy", email: `spy-${run}@example.test` }], role: "EMPLOYEE", squadId: a.alfa.id, method: "invite" }],
+        ["POST", `/api/people/add`, { people: [{ name: "Boss", email: `boss-${run}@example.test` }], role: "TEAM_LEAD", squadId: a.charlie.id, method: "invite" }],
+        ["PATCH", `/api/users/${victim.users.EMPLOYEE.id}`, { squadId: a.alfa.id }],
+      ];
+      for (const [m, p, b] of attempts) {
+        const r = await charlieLead.req(m, p, b);
+        assert.ok(r.status >= 400, `${m} ${p} must be refused, got ${r.status}: ${r.text.slice(0, 120)}`);
+      }
+      assert.equal((await prisma.task.findUniqueOrThrow({ where: { id: a.task.id } })).status, "UPCOMING");
+      assert.equal((await prisma.leaveRequest.findUniqueOrThrow({ where: { id: a.leave.id } })).status, "PENDING");
+      assert.equal(await prisma.teamInvite.count({ where: { email: { in: [`spy-${run}@example.test`, `boss-${run}@example.test`] } } }), 0);
+      for (const path of ["/api/tasks", "/api/notices", "/dashboard", "/tasks", "/notices", "/people", "/reviews", "/knowledge-base"]) {
+        const r = await charlieLead.req("GET", path);
+        assert.ok(!r.text.includes("Alfa secret") && !r.text.includes(`Alfa client ${run}`), `${path} shows another team's data`);
+      }
+      // The page streams (loading.tsx), so "not found" arrives inside a 200.
+      // What matters is that none of the person's details do.
+      const profile = await charlieLead.req("GET", `/people/${a.employee.id}`);
+      assert.ok(!profile.text.includes(a.employee.email) && !profile.text.includes("Alfa EMPLOYEE"), "another team's profile is shown");
+      assert.match(profile.text, /NEXT_HTTP_ERROR_FALLBACK;404|could not be found/i);
+    });
+
+    await test("a team lead adds employees to their own team", async () => {
+      const r = await charlieLead.req("POST", `/api/people/add`, { people: [{ name: "New Hire", email: `hire-${run}@example.test` }], role: "EMPLOYEE", squadId: sq.charlie.id, method: "invite" });
+      assert.equal(r.status, 200, r.text);
+      const link: string = JSON.parse(r.text).results[0].link;
+      assert.ok(link.startsWith(BASE), `invite link uses the address in use, got ${link}`);
+      const invite = await prisma.teamInvite.findFirstOrThrow({ where: { email: `hire-${run}@example.test` } });
+      assert.deepEqual([invite.squadId, invite.role, invite.name], [sq.charlie.id, "EMPLOYEE", "New Hire"]);
+    });
+
+    const hr = new Client();
+    assert.equal(await hr.signIn(sq.hr.email, sq.hr.password, "10.6.6.6"), null);
+
+    await test("HR sees every team but can't create or change an admin", async () => {
+      const tasks = (await hr.req("GET", "/api/tasks")).text;
+      assert.ok(tasks.includes("Alfa secret task") && tasks.includes("Victim task"), "HR sees all teams");
+      assert.equal((await hr.req("PATCH", `/api/users/${victim.users.EMPLOYEE.id}`, { role: "ADMIN" })).status, 403);
+      assert.equal((await hr.req("PATCH", `/api/users/${victim.users.ADMIN.id}`, { active: false })).status, 403);
+      assert.equal((await hr.req("POST", `/api/people/add`, { people: [{ name: "X", email: `x2-${run}@example.test` }], role: "ADMIN", squadId: null, method: "invite" })).status, 403);
+      assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: victim.users.EMPLOYEE.id } })).role, "EMPLOYEE");
+    });
+
+    await test("moving someone to another team takes effect on their next request", async () => {
+      const charlieEmp = new Client();
+      assert.equal(await charlieEmp.signIn(victim.users.EMPLOYEE.email, victim.users.EMPLOYEE.password, "10.7.7.7"), null);
+      assert.ok(!(await charlieEmp.req("GET", "/api/tasks")).text.includes("Alfa secret task"));
+      await prisma.user.update({ where: { id: victim.users.EMPLOYEE.id }, data: { squadId: sq.alfa.id } });
+      assert.ok((await charlieEmp.req("GET", "/api/tasks")).text.includes("Alfa secret task"), "same session, new team");
+      await prisma.user.update({ where: { id: victim.users.EMPLOYEE.id }, data: { active: false } });
+      assert.equal((await charlieEmp.req("GET", "/api/tasks")).status, 401, "deactivated mid-session loses access at once");
+      await prisma.user.update({ where: { id: victim.users.EMPLOYEE.id }, data: { active: true, squadId: sq.charlie.id } });
     });
 
     await test("password hashes never reach a browser", async () => {

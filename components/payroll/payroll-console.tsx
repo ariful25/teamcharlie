@@ -183,6 +183,7 @@ export function PayrollConsole({
                       <tr key={r.userId} className="border-b border-border/40 last:border-0">
                         <td className="px-5 py-3 font-medium">
                           {r.name}
+                          {r.team && <span className="block text-xs font-normal text-muted-foreground">{r.team}</span>}
                           {r.unresolved > 0 && <Badge tone="warning" className="ml-2">{r.unresolved} to review</Badge>}
                         </td>
                         {!b ? (

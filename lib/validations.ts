@@ -189,6 +189,8 @@ export const clientCreateSchema = clientSchema.extend({
   // the workspace panel, so this only controls whether it happens
   // automatically at creation time.
   createGoogleSheet: z.boolean().optional().default(true),
+  // Defaults to the team picked in the switcher.
+  squadId: z.string().min(1).nullable().optional(),
 });
 
 // Edit Client reuses the base fields plus active (deactivate/reactivate).
@@ -197,6 +199,8 @@ export const clientCreateSchema = clientSchema.extend({
 // normal per-client setting an admin should casually flip from this form.
 export const clientUpdateSchema = clientSchema.partial().extend({
   active: z.boolean().optional(),
+  // Moving a client to another team moves its listings, reviews and tasks with it.
+  squadId: z.string().min(1).optional(),
 });
 
 // Client creation only ever enables a capability (creates a NOT_CONNECTED or
@@ -262,12 +266,14 @@ export const shiftAssignmentUpdateSchema = z.object({
 export const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Enter a valid email"),
-  role: z.enum(["ADMIN", "TEAM_LEAD", "EMPLOYEE"]),
+  role: z.enum(["ADMIN", "HR", "TEAM_LEAD", "EMPLOYEE"]),
+  squadId: z.string().min(1).nullable().optional(),
   defaultShiftTypeId: z.string().optional().nullable(),
 });
 
 export const updateUserSchema = z.object({
-  role: z.enum(["ADMIN", "TEAM_LEAD", "EMPLOYEE"]).optional(),
+  role: z.enum(["ADMIN", "HR", "TEAM_LEAD", "EMPLOYEE"]).optional(),
+  squadId: z.string().min(1).nullable().optional(),
   active: z.boolean().optional(),
   defaultShiftTypeId: z.string().optional().nullable(),
   // A Discord snowflake (numeric string), not a username — see the schema
@@ -400,7 +406,7 @@ const timezoneField = z.string().refine(
 );
 
 export const signupSchema = z.object({
-  teamName: z.string().trim().min(2, "Team name is required").max(60, "Keep the team name under 60 characters"),
+  teamName: z.string().trim().min(2, "Company name is required").max(60, "Keep the company name under 60 characters"),
   name: z.string().trim().min(1, "Your name is required").max(80),
   email: z.string().trim().email("Enter a valid email"),
   password: passwordField,
@@ -409,7 +415,18 @@ export const signupSchema = z.object({
 
 export const inviteCreateSchema = z.object({
   email: z.string().trim().email("Enter a valid email"),
-  role: z.enum(["ADMIN", "TEAM_LEAD", "EMPLOYEE"]).default("EMPLOYEE"),
+  role: z.enum(["ADMIN", "HR", "TEAM_LEAD", "EMPLOYEE"]).default("EMPLOYEE"),
+  squadId: z.string().min(1).nullable().optional(),
+});
+
+export const addPeopleSchema = z.object({
+  people: z.array(z.object({ name: z.string().trim().min(1).max(80), email: z.string().trim().email() })).min(1, "Add at least one person").max(50, "Up to 50 people at a time"),
+  role: z.enum(["ADMIN", "HR", "TEAM_LEAD", "EMPLOYEE"]),
+  squadId: z.string().min(1).nullable(),
+  defaultShiftTypeId: z.string().min(1).nullable().optional(),
+  // invite: they set their own password from a link (recommended).
+  // password: a temporary password the adder hands over.
+  method: z.enum(["invite", "password"]),
 });
 
 export const inviteAcceptSchema = z.object({
@@ -432,3 +449,6 @@ export const teamSettingsSchema = z.object({
     })
     .optional(),
 });
+
+// Teams inside the company. "Team Bravo" and "Bravo" are the same name.
+export const squadNameSchema = z.string().trim().min(1, "Give the team a name").max(40).transform((n) => n.replace(/^team\s+/i, "").trim()).pipe(z.string().min(1, "Give the team a name"));

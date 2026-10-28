@@ -1,3 +1,4 @@
+import { getScope, reachable } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserOrNull } from "@/lib/session";
 import { permissions } from "@/lib/auth";
@@ -9,6 +10,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const params = await props.params;
   const currentUser = await getCurrentUserOrNull();
   if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const scope = await getScope(currentUser);
 
   if (!permissions.canManageShiftSchedule(currentUser.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -20,7 +22,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const existing = await prisma.shiftAssignment.findFirst({ where: { id: params.id, user: { teamId: currentUser.teamId } } });
+  const existing = await prisma.shiftAssignment.findFirst({ where: { id: params.id, user: reachable(scope) } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (!(await teamOwnsShiftType(currentUser.teamId, parsed.data.shiftTypeId))) {
     return NextResponse.json({ error: "Invalid shiftTypeId" }, { status: 400 });

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "An account with that email already exists. Sign in instead." }, { status: 409 });
     }
     if (err instanceof TeamNameTakenError) {
-      return NextResponse.json({ error: "A team with that name already exists. Try a different name." }, { status: 409 });
+      return NextResponse.json({ error: "A company with that name already exists. Try a different name." }, { status: 409 });
     }
     throw err;
   }

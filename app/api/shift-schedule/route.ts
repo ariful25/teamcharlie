@@ -1,5 +1,6 @@
+import { getScope } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
-import { teamOwnsShiftType, teamOwnsUser } from "@/lib/tenancy";
+import { scopeReachesUser, teamOwnsShiftType } from "@/lib/tenancy";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { parseDayParam } from "@/lib/time";
 import { getCurrentUserOrNull } from "@/lib/session";
@@ -10,12 +11,13 @@ import { shiftAssignmentCreateSchema } from "@/lib/validations";
 export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUserOrNull();
   if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const scope = await getScope(currentUser);
 
   const { searchParams } = new URL(req.url);
   const dateParam = searchParams.get("date");
   const anyDateInWeek = dateParam ? parseDayParam(dateParam, await getTeamTimezone(currentUser.teamId)) : new Date();
 
-  const roster = await getWeekRoster(currentUser.teamId, anyDateInWeek);
+  const roster = await getWeekRoster(scope, anyDateInWeek);
   return NextResponse.json(roster);
 }
 
@@ -34,7 +36,8 @@ export async function POST(req: NextRequest) {
   }
 
   const { userId, shiftTypeId, weekStart } = parsed.data;
-  if (!(await teamOwnsUser(currentUser.teamId, userId)) || !(await teamOwnsShiftType(currentUser.teamId, shiftTypeId))) {
+  const scope = await getScope(currentUser);
+  if (!(await scopeReachesUser(scope, userId)) || !(await teamOwnsShiftType(currentUser.teamId, shiftTypeId))) {
     return NextResponse.json({ error: "Invalid employee or shift" }, { status: 400 });
   }
   const tz = await getTeamTimezone(currentUser.teamId);

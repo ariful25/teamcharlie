@@ -1,3 +1,4 @@
+import { walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -14,20 +15,20 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
+  const { teamId, clientWall } = await walls();
   const body = await req.json().catch(() => ({}));
 
   // Restoring is the one operation allowed on an already-deleted task — it's
   // how the "Recently Deleted" view undoes a soft delete. Everything else
   // below only ever touches a currently-active task.
   if (body.restore === true) {
-    const deleted = await prisma.task.findFirst({ where: { id: params.id, teamId, deletedAt: { not: null } } });
+    const deleted = await prisma.task.findFirst({ where: { id: params.id, ...clientWall, deletedAt: { not: null } } });
     if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const task = await prisma.task.update({ where: { id: params.id }, data: { deletedAt: null, deletedBy: null } });
     return NextResponse.json({ task });
   }
 
-  const existing = await prisma.task.findFirst({ where: { id: params.id, teamId, deletedAt: null } });
+  const existing = await prisma.task.findFirst({ where: { id: params.id, ...clientWall, deletedAt: null } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const userId = session.user.id as string;
@@ -44,12 +45,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     }
     const data = parsed.data;
 
+    let movedToSquad: string | null = null;
     if (data.clientId) {
-      const client = await prisma.client.findFirst({ where: { id: data.clientId, teamId } });
+      const client = await prisma.client.findFirst({ where: { id: data.clientId, ...clientWall } });
       if (!client) return NextResponse.json({ error: "Invalid clientId" }, { status: 400 });
+      movedToSquad = client.squadId;
     }
     if (data.assignedUserId) {
-      const assignee = await prisma.user.findFirst({ where: { id: data.assignedUserId, teamId } });
+      const assignee = await prisma.user.findFirst({ where: { id: data.assignedUserId, ...clientWall } });
       if (!assignee) return NextResponse.json({ error: "Invalid assignedUserId" }, { status: 400 });
     }
     if (data.categoryId) {
@@ -60,6 +63,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const instanceData: Record<string, unknown> = {};
     if (data.title !== undefined) instanceData.title = data.title;
     if (data.clientId !== undefined) instanceData.clientId = data.clientId || null;
+    if (movedToSquad) instanceData.squadId = movedToSquad;
     if (data.propertyName !== undefined) instanceData.propertyName = data.propertyName || null;
     if (data.categoryId !== undefined) instanceData.categoryId = data.categoryId || null;
     if (data.assignedUserId !== undefined) instanceData.assignedUserId = data.assignedUserId || null;
@@ -122,7 +126,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const q = quick.data;
 
   if (q.assignedUserId) {
-    const assignee = await prisma.user.findFirst({ where: { id: q.assignedUserId, teamId } });
+    const assignee = await prisma.user.findFirst({ where: { id: q.assignedUserId, ...clientWall } });
     if (!assignee) return NextResponse.json({ error: "Invalid assignedUserId" }, { status: 400 });
   }
 
@@ -180,9 +184,9 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
+  const { teamId, clientWall } = await walls();
   const userId = session.user.id as string;
-  const existing = await prisma.task.findFirst({ where: { id: params.id, teamId, deletedAt: null } });
+  const existing = await prisma.task.findFirst({ where: { id: params.id, ...clientWall, deletedAt: null } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // ?series=true stops a recurring series: soft-deletes its template so no
@@ -193,7 +197,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const templateId = existing.isRecurringTemplate ? existing.id : existing.recurringTemplateId;
     if (!templateId) return NextResponse.json({ error: "This task is not part of a recurring series" }, { status: 400 });
     const stopped = await prisma.task.updateMany({
-      where: { id: templateId, teamId, isRecurringTemplate: true, deletedAt: null },
+      where: { id: templateId, ...clientWall, isRecurringTemplate: true, deletedAt: null },
       data: { deletedAt: new Date(), deletedBy: userId },
     });
     if (stopped.count === 0) return NextResponse.json({ error: "This series has already been stopped" }, { status: 404 });

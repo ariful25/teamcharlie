@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   }
   try {
     const request = await reviewOvertime(
-      { id: currentUser.id, name: currentUser.name, role: currentUser.role, teamId: currentUser.teamId },
+      { id: currentUser.id, name: currentUser.name, role: currentUser.role, teamId: currentUser.teamId, squadId: currentUser.squadId },
       params.id,
       parsed.data
     );
@@ -34,7 +34,7 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
   const currentUser = await getCurrentUserOrNull();
   if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    await cancelOvertime({ id: currentUser.id, name: currentUser.name, role: currentUser.role, teamId: currentUser.teamId }, params.id);
+    await cancelOvertime({ id: currentUser.id, name: currentUser.name, role: currentUser.role, teamId: currentUser.teamId, squadId: currentUser.squadId }, params.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return attendanceErrorResponse(err, "Could not cancel the request.");

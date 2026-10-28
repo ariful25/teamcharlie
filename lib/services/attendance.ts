@@ -1,3 +1,4 @@
+import { peopleActorReaches } from "@/lib/scope";
 import { Prisma, type AttendanceRecord } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC, minutesLate } from "@/lib/time";
@@ -22,7 +23,7 @@ export class AttendanceError extends Error {
   }
 }
 
-type Reviewer = { id: string; name: string; role: string; teamId: string };
+type Reviewer = { id: string; name: string; role: string; teamId: string; squadId?: string | null };
 
 async function loadUser(userId: string) {
   return prisma.user.findUniqueOrThrow({
@@ -456,9 +457,9 @@ export type ReviewInput = {
 export async function reviewRecord(reviewer: Reviewer, input: ReviewInput) {
   let record: AttendanceRecord | null = null;
   if (input.recordId) {
-    record = await prisma.attendanceRecord.findFirst({ where: { id: input.recordId, user: { teamId: reviewer.teamId } } });
+    record = await prisma.attendanceRecord.findFirst({ where: { id: input.recordId, user: { teamId: reviewer.teamId, ...peopleActorReaches(reviewer) } } });
   } else if (input.userId && input.date) {
-    const subject = await prisma.user.findFirst({ where: { id: input.userId, teamId: reviewer.teamId } });
+    const subject = await prisma.user.findFirst({ where: { id: input.userId, teamId: reviewer.teamId, ...peopleActorReaches(reviewer) } });
     if (subject) {
       const team = await prisma.team.findUniqueOrThrow({ where: { id: reviewer.teamId }, select: { timezone: true } });
       const date = dayFromKey(input.date);

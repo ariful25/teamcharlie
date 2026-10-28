@@ -3,15 +3,17 @@ import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfDayUTC, formatTime, combineDateAndTime } from "@/lib/time";
 import { differenceInMinutes } from "date-fns";
 import { boardPhase, dueAt, releaseAt } from "@/lib/tasks/visibility";
+import { byPeopleIn, inSquad, type Scope } from "@/lib/scope";
 
-export async function getDashboardData(teamId: string) {
+export async function getDashboardData(scope: Scope) {
+  const { teamId } = scope;
   const tz = await getTeamTimezone(teamId);
   const today = startOfDayUTC(new Date(), tz);
 
   const [allTasks, clients, attendanceRecords, employees] = await Promise.all([
     prisma.task.findMany({
       where: {
-        teamId,
+        ...inSquad(scope),
         deletedAt: null,
         // Templates are the recurrence rule, not a to-do item themselves —
         // excluded so they don't get caught by the "carried over" branch
@@ -27,9 +29,9 @@ export async function getDashboardData(teamId: string) {
       include: { client: true, category: true, assignedUser: true, shiftType: true },
       orderBy: { startTime: "asc" },
     }),
-    prisma.client.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } }),
-    prisma.attendanceRecord.findMany({ where: { date: today, user: { teamId } }, include: { user: true } }),
-    prisma.user.findMany({ where: { teamId, active: true } }),
+    prisma.client.findMany({ where: { ...inSquad(scope), active: true }, orderBy: { name: "asc" } }),
+    prisma.attendanceRecord.findMany({ where: { date: today, ...byPeopleIn(scope) }, include: { user: true } }),
+    prisma.user.findMany({ where: { ...inSquad(scope), active: true } }),
   ]);
 
   const tasks = allTasks.filter((t) => t.date.getTime() === today.getTime());

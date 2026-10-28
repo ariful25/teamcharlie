@@ -28,6 +28,8 @@ datasource db {
 
 enum Role {
   ADMIN
+  // Sees every team; edits people, attendance, leave and payroll.
+  HR
   TEAM_LEAD
   EMPLOYEE
 }
@@ -228,9 +230,32 @@ model Team {
   checklistItems    ChecklistItem[]
   categories        Category[]
   invites           TeamInvite[]
+  squads            Squad[]
   lastGeneratedAt   DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+}
+
+// A team inside the company (Alfa, Bravo, Charlie, Delta). The `Team` model
+// above is the company itself: the security wall every query is scoped by
+// (teamId). A Squad is the working unit inside it: its own people, clients,
+// tasks and notices. Admin and HR see all squads; everyone else sees only
+// their own (lib/scope.ts).
+model Squad {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name      String
+  active    Boolean  @default(true)
+  users     User[]
+  clients   Client[]
+  tasks     Task[]
+  notices   Notice[]
+  invites   TeamInvite[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teamId, name])
 }
 
 model TeamSettings {
@@ -319,6 +344,9 @@ model User {
   role              Role               @default(EMPLOYEE)
   teamId            String
   team              Team               @relation(fields: [teamId], references: [id])
+  // Null only for company-wide roles (Admin, HR). Everyone else works in one team.
+  squadId           String?
+  squad             Squad?             @relation(fields: [squadId], references: [id])
   active            Boolean            @default(true)
 
   // Their Discord user ID (an 18-ish digit snowflake, not a username) — set
@@ -352,6 +380,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@index([teamId])
+  @@index([squadId])
 }
 
 model Client {
@@ -369,6 +398,8 @@ model Client {
   workspaceTemplate           ClientWorkspaceTemplate @default(STANDARD)
   teamId                      String
   team                        Team                    @relation(fields: [teamId], references: [id])
+  squadId                     String?
+  squad                       Squad?                  @relation(fields: [squadId], references: [id])
 
   tasks             Task[]
   properties        Property[]
@@ -384,6 +415,7 @@ model Client {
   updatedAt DateTime @updatedAt
 
   @@index([teamId])
+  @@index([squadId])
 }
 
 // Capability/connection-status registry for a client's external
@@ -528,7 +560,11 @@ model TeamInvite {
   teamId     String
   team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
   email      String
+  // Filled in by whoever added them, so the join page is already personal.
+  name       String?
   role       Role      @default(EMPLOYEE)
+  squadId    String?
+  squad      Squad?    @relation(fields: [squadId], references: [id])
   tokenHash  String    @unique
   expiresAt  DateTime
   acceptedAt DateTime?
@@ -602,6 +638,9 @@ model Task {
 
   teamId String
   team   Team   @relation(fields: [teamId], references: [id])
+  // The team the task belongs to: its client's team, else the assignee's.
+  squadId String?
+  squad   Squad? @relation(fields: [squadId], references: [id])
 
   // Soft delete — a task with an audit trail (completedAt/completedBy) must
   // not be destroyable without a trace. Every read query filters
@@ -630,6 +669,7 @@ model Task {
   @@index([isRecurringTemplate])
   @@index([teamId, deletedAt])
   @@index([recurringTemplateId])
+  @@index([teamId, squadId])
 }
 
 model Property {
@@ -985,11 +1025,15 @@ model Notice {
 
   teamId String
   team   Team   @relation(fields: [teamId], references: [id])
+  // Null is a company-wide notice (posted by Admin or HR).
+  squadId String?
+  squad   Squad? @relation(fields: [squadId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([teamId, archived, pinned, createdAt])
+  @@index([squadId])
 }
 
 // ---- Listing Health (lib/listing-health) ----

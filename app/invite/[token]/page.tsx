@@ -47,10 +47,10 @@ export default async function InvitePage(props: { params: Promise<{ token: strin
 
   return (
     <AuthCard
-      title={`Join ${invite.team.name}`}
-      subtitle={`You've been invited to ${invite.team.name} on ${PRODUCT_NAME}. Set up your account to get started.`}
+      title={invite.squad ? `Join Team ${invite.squad.name}` : `Join ${invite.team.name}`}
+      subtitle={`You've been invited to ${invite.squad ? `Team ${invite.squad.name} at ` : ""}${invite.team.name} on ${PRODUCT_NAME}. Choose a password to get started.`}
     >
-      <AcceptInviteForm token={params.token} email={invite.email} />
+      <AcceptInviteForm token={params.token} email={invite.email} name={invite.name} />
     </AuthCard>
   );
 }

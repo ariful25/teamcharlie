@@ -117,7 +117,10 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-export type AppRole = "ADMIN" | "TEAM_LEAD" | "EMPLOYEE";
+export type AppRole = "ADMIN" | "HR" | "TEAM_LEAD" | "EMPLOYEE";
+
+/** Admin and HR work across every team in the company; everyone else in one. */
+export const isCompanyWide = (role: AppRole) => role === "ADMIN" || role === "HR";
 
 // Central permission map — keep role logic here so it stays modular
 // and easy to extend for future teams/modules.
@@ -126,15 +129,20 @@ export const permissions = {
   // Same tier as shift types — operational config, not a secret.
   canManageChecklists: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageClients: (role: AppRole) => role === "ADMIN",
-  canEditAttendance: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
+  canEditAttendance: (role: AppRole) => role === "ADMIN" || role === "HR" || role === "TEAM_LEAD",
   canManageProperties: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   canManageKnowledgeBase: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
   // Gates both the Discord and Slack settings panels/test-notification
   // routes — same tier, kept as one key since they're managed together.
   canManageNotificationSettings: (role: AppRole) => role === "ADMIN",
-  canViewAllAttendance: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
+  canViewAllAttendance: (role: AppRole) => role === "ADMIN" || role === "HR" || role === "TEAM_LEAD",
   canAssignTasks: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
-  canManageUsers: (role: AppRole) => role === "ADMIN",
+  canManageUsers: (role: AppRole) => role === "ADMIN" || role === "HR",
+  // Leads add people to their own team (as employees only, see
+  // lib/people/adding.ts); Admin and HR to any team, in any role.
+  canAddPeople: (role: AppRole) => role === "ADMIN" || role === "HR" || role === "TEAM_LEAD",
+  // Creating, renaming and closing teams inside the company.
+  canManageSquads: (role: AppRole) => role === "ADMIN",
   // Integration connection status is ADMIN-only, same as canManageClients
   // above (a Team Lead operates within existing clients but doesn't touch
   // integration status) — kept as its own key since the task treats them
@@ -151,7 +159,7 @@ export const permissions = {
   // Anyone can post a sticky note — it's a team bulletin board, not a
   // moderated feed. Pinning (keeping an announcement above the regular
   // notes) is the one privileged action, same tier as shift scheduling.
-  canPinNotices: (role: AppRole) => role === "ADMIN" || role === "TEAM_LEAD",
-  // Salaries and pay are admin-only.
-  canManagePayroll: (role: AppRole) => role === "ADMIN",
+  canPinNotices: (role: AppRole) => role === "ADMIN" || role === "HR" || role === "TEAM_LEAD",
+  // Salaries and pay: Admin and HR.
+  canManagePayroll: (role: AppRole) => role === "ADMIN" || role === "HR",
 };

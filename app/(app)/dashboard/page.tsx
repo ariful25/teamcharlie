@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { getScope, inSquad } from "@/lib/scope";
 import { runTeamMaintenance } from "@/lib/services/team-maintenance";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { getDashboardData } from "@/lib/queries/dashboard";
@@ -23,6 +24,7 @@ const CLIENT_PALETTE = ["#22d3ee", "#a78bfa", "#f472b6", "#facc15", "#34d399", "
 
 export default async function DashboardPage() {
   const currentUser = await getCurrentUser();
+  const scope = await getScope(currentUser);
 
   await runTeamMaintenance(currentUser.teamId);
 
@@ -35,10 +37,10 @@ export default async function DashboardPage() {
   // Every read below is independent — one round trip instead of three.
   const [{ stats, clientStats, operationRows, attendanceRows }, shiftState, clients, employees, categories, shiftTypes, checkoutChecklistItems] =
     await Promise.all([
-      getDashboardData(currentUser.teamId),
+      getDashboardData(scope),
       getShiftCardState(currentUser.id),
-      prisma.client.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { createdAt: "asc" } }),
-      prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true } }),
+      prisma.client.findMany({ where: { ...inSquad(scope), active: true }, orderBy: { createdAt: "asc" } }),
+      prisma.user.findMany({ where: { ...inSquad(scope), active: true } }),
       prisma.category.findMany({ where: { teamId: currentUser.teamId }, orderBy: { name: "asc" } }),
       prisma.shiftType.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { startTime: "asc" } }),
       prisma.checklistItem.findMany({

@@ -5,7 +5,7 @@
 
 export type PushMessage = { title: string; body: string; url: string; tag: string };
 
-type Role = "ADMIN" | "TEAM_LEAD" | "EMPLOYEE";
+type Role = "ADMIN" | "HR" | "TEAM_LEAD" | "EMPLOYEE";
 
 const clip = (s: string, n = 120) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
@@ -41,17 +41,30 @@ export function taskAssignedMessage(task: { id: string; title: string; dueTime?:
   };
 }
 
-export function noticeRecipients(members: { id: string; active: boolean }[], authorId: string) {
-  return members.filter((m) => m.active && m.id !== authorId).map((m) => m.id);
+type Member = { id: string; role: Role; active: boolean; squadId: string | null };
+
+/** A team notice reaches that team (plus Admin and HR); a company-wide one (squadId null) reaches everyone. */
+export function noticeRecipients(members: Member[], authorId: string, squadId: string | null = null) {
+  return members
+    .filter((m) => m.active && m.id !== authorId && (!squadId || m.squadId === squadId || m.role === "ADMIN" || m.role === "HR"))
+    .map((m) => m.id);
 }
 
 export function noticeMessage(notice: { id: string }, authorName: string): PushMessage {
   return { title: "New notice", body: `${authorName} posted on the notice board`, url: "/notices", tag: `notice:${notice.id}` };
 }
 
-/** Leave requests go to everyone who can decide them, never to the requester. */
-export function leaveReviewers(members: { id: string; role: Role; active: boolean }[], requesterId: string) {
-  return members.filter((m) => m.active && m.id !== requesterId && (m.role === "ADMIN" || m.role === "TEAM_LEAD")).map((m) => m.id);
+/** Leave requests go to everyone who can decide them: Admin, HR and the
+ *  requester's own team lead. Never the requester, never another team's lead. */
+export function leaveReviewers(members: Member[], requester: { id: string; squadId: string | null }) {
+  return members
+    .filter(
+      (m) =>
+        m.active &&
+        m.id !== requester.id &&
+        (m.role === "ADMIN" || m.role === "HR" || (m.role === "TEAM_LEAD" && !!m.squadId && m.squadId === requester.squadId))
+    )
+    .map((m) => m.id);
 }
 
 export function leaveRequestedMessage(req: { id: string; type: LeaveKind; startDate: Date; endDate: Date }, requesterName: string): PushMessage {

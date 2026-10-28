@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Bell, Building2, ClipboardCheck, Clock3, MailCheck, MessageSquare, Sparkles, UserPlus, Users, type LucideIcon } from "lucide-react";
+import { Bell, Building2, ClipboardCheck, Clock3, MailCheck, MessageSquare, Sparkles, UserPlus, Users, type LucideIcon, Network, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Settings as a two-pane control centre: a grouped section list with live
@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 const ICONS: Record<string, LucideIcon> = {
   team: Building2,
   members: Users,
+  teams: Network,
+  device: Smartphone,
   invites: UserPlus,
   shifts: Clock3,
   checklist: ClipboardCheck,

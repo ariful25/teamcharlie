@@ -1,3 +1,4 @@
+import { walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -26,8 +27,8 @@ export async function POST(
     return NextResponse.json({ error: "Unknown integration provider" }, { status: 400 });
   }
 
-  const teamId = session.user.teamId as string;
-  const client = await prisma.client.findFirst({ where: { id: params.id, teamId }, select: { id: true } });
+  const { teamId, clientWall } = await walls();
+  const client = await prisma.client.findFirst({ where: { id: params.id, ...clientWall }, select: { id: true } });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   const provider = params.provider as IntegrationProviderId;

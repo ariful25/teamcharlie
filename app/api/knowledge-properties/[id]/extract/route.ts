@@ -1,3 +1,4 @@
+import { walls } from "@/lib/scope";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -22,9 +23,9 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
+  const { teamId, clientWall } = await walls();
   const existing = await prisma.propertyKnowledgeItem.findFirst({
-    where: { id: params.id, client: { teamId } },
+    where: { id: params.id, client: clientWall },
   });
   if (!existing) return NextResponse.json({ error: "Property not found" }, { status: 404 });
   if (existing.status === "EXTRACTING") {

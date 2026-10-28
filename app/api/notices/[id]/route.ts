@@ -1,3 +1,4 @@
+import { canReach, walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -19,8 +20,9 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const userId = session.user.id as string;
   const role = session.user.role;
 
+  const { scope } = await walls();
   const existing = await prisma.notice.findFirst({ where: { id: params.id, teamId } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing || !scope || !canReach(scope, existing.squadId)) return NextResponse.json({ error: "Notice not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
   const parsed = noticeUpdateSchema.safeParse(body);
@@ -64,8 +66,9 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
   const userId = session.user.id as string;
   const role = session.user.role;
 
+  const { scope } = await walls();
   const existing = await prisma.notice.findFirst({ where: { id: params.id, teamId } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing || !scope || !canReach(scope, existing.squadId)) return NextResponse.json({ error: "Notice not found" }, { status: 404 });
 
   if (existing.authorId !== userId && role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

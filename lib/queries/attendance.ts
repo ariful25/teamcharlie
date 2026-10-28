@@ -1,3 +1,4 @@
+import { inSquad, reachable, type Scope } from "@/lib/scope";
 import type { AttendanceRecord, OvertimeRequest, ShiftAssignment, ShiftType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getTeamTimezone } from "@/lib/team-timezone";
@@ -157,15 +158,17 @@ async function namesFor(teamId: string) {
 const key = (userId: string, date: Date) => `${userId}:${date.getTime()}`;
 
 /** Everyone on one shift day — the Team Attendance roster. */
-export async function getTeamDay(teamId: string, day: Date) {
+export async function getTeamDay(scope: Scope, day: Date) {
+  const { teamId } = scope;
+  const people = inSquad(scope);
   const tz = await getTeamTimezone(teamId);
   await autoStopOpenSessions({ teamId });
   const now = new Date();
   const [employees, assignments, records, overtime, names] = await Promise.all([
-    prisma.user.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.shiftAssignment.findMany({ where: { date: day, user: { teamId } }, include: { shiftType: true } }),
-    prisma.attendanceRecord.findMany({ where: { date: day, user: { teamId } } }),
-    prisma.overtimeRequest.findMany({ where: { teamId, date: day } }),
+    prisma.user.findMany({ where: { ...people, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.shiftAssignment.findMany({ where: { date: day, user: people }, include: { shiftType: true } }),
+    prisma.attendanceRecord.findMany({ where: { date: day, user: people } }),
+    prisma.overtimeRequest.findMany({ where: { teamId, user: people, date: day } }),
     namesFor(teamId),
   ]);
 
@@ -187,7 +190,9 @@ export async function getTeamDay(teamId: string, day: Date) {
 
 /** Everything a lead still has to decide, across all days: pending records
  *  (auto-stopped, claims, check-in requests) and recent fully missed shifts. */
-export async function getReviewQueue(teamId: string) {
+export async function getReviewQueue(scope: Scope) {
+  const { teamId } = scope;
+  const people = inSquad(scope);
   const tz = await getTeamTimezone(teamId);
   await autoStopOpenSessions({ teamId });
   const now = new Date();
@@ -196,24 +201,24 @@ export async function getReviewQueue(teamId: string) {
 
   const [pending, recentAssignments, recentRecords, names] = await Promise.all([
     prisma.attendanceRecord.findMany({
-      where: { review: "PENDING", user: { teamId } },
+      where: { review: "PENDING", user: people },
       include: { user: { select: { id: true, name: true } } },
       orderBy: { date: "asc" },
     }),
     prisma.shiftAssignment.findMany({
-      where: { date: { gte: since, lte: today }, status: "WORKING", user: { teamId, active: true } },
+      where: { date: { gte: since, lte: today }, status: "WORKING", user: { ...people, active: true } },
       include: { shiftType: true, user: { select: { id: true, name: true } } },
     }),
-    prisma.attendanceRecord.findMany({ where: { date: { gte: since, lte: today }, user: { teamId } } }),
+    prisma.attendanceRecord.findMany({ where: { date: { gte: since, lte: today }, user: people } }),
     namesFor(teamId),
   ]);
   const days = Array.from(new Set([...pending.map((r) => r.date.getTime()), ...recentAssignments.map((a) => a.date.getTime())]));
   const [assignmentsForPending, overtime] = await Promise.all([
     prisma.shiftAssignment.findMany({
-      where: { user: { teamId }, date: { in: days.map((d) => new Date(d)) } },
+      where: { user: people, date: { in: days.map((d) => new Date(d)) } },
       include: { shiftType: true },
     }),
-    prisma.overtimeRequest.findMany({ where: { teamId, date: { in: days.map((d) => new Date(d)) } } }),
+    prisma.overtimeRequest.findMany({ where: { teamId, user: people, date: { in: days.map((d) => new Date(d)) } } }),
   ]);
   const assignmentByKey = new Map(assignmentsForPending.map((a) => [key(a.userId, a.date), a]));
   const otFor = (userId: string, date: Date) => overtime.filter((o) => o.userId === userId && o.date.getTime() === date.getTime());
@@ -295,11 +300,13 @@ async function overtimeViews(teamId: string, where: Parameters<typeof prisma.ove
   });
 }
 
-export async function getOvertimeBoard(teamId: string) {
+export async function getOvertimeBoard(scope: Scope) {
+  const { teamId } = scope;
+  const people = inSquad(scope);
   const since = new Date(Date.now() - 45 * DAY_MS);
   const [pending, decided] = await Promise.all([
-    overtimeViews(teamId, { where: { teamId, status: "PENDING" }, orderBy: { date: "asc" } }),
-    overtimeViews(teamId, { where: { teamId, status: { in: ["APPROVED", "REJECTED"] }, updatedAt: { gte: since } }, orderBy: { date: "desc" }, take: 60 }),
+    overtimeViews(teamId, { where: { teamId, user: people, status: "PENDING" }, orderBy: { date: "asc" } }),
+    overtimeViews(teamId, { where: { teamId, user: people, status: { in: ["APPROVED", "REJECTED"] }, updatedAt: { gte: since } }, orderBy: { date: "desc" }, take: 60 }),
   ]);
   return { pending, decided };
 }
@@ -323,15 +330,18 @@ export type PeriodRow = {
 
 /** Hour buckets per employee for [start, end): scheduled, approved regular,
  *  approved overtime, pending, and unapproved extra are never mixed. */
-export async function getPeriodSummary(teamId: string, start: Date, end: Date, onlyUserId?: string) {
+export async function getPeriodSummary(scope: Scope, start: Date, end: Date, onlyUserId?: string) {
+  const { teamId } = scope;
+  // One person's summary (their profile) is reachable for Admin and HR from any team view.
+  const people = onlyUserId ? reachable(scope) : inSquad(scope);
   const tz = await getTeamTimezone(teamId);
   await autoStopOpenSessions({ teamId });
   const userFilter = onlyUserId ? { id: onlyUserId } : {};
   const [employees, records, assignments, overtime] = await Promise.all([
-    prisma.user.findMany({ where: { teamId, active: true, ...userFilter }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.attendanceRecord.findMany({ where: { date: { gte: start, lt: end }, user: { teamId, ...userFilter } } }),
-    prisma.shiftAssignment.findMany({ where: { date: { gte: start, lt: end }, user: { teamId, ...userFilter } }, include: { shiftType: true } }),
-    prisma.overtimeRequest.findMany({ where: { teamId, status: "APPROVED", date: { gte: start, lt: end }, ...(onlyUserId ? { userId: onlyUserId } : {}) } }),
+    prisma.user.findMany({ where: { ...people, active: true, ...userFilter }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.attendanceRecord.findMany({ where: { date: { gte: start, lt: end }, user: { ...people, ...userFilter } } }),
+    prisma.shiftAssignment.findMany({ where: { date: { gte: start, lt: end }, user: { ...people, ...userFilter } }, include: { shiftType: true } }),
+    prisma.overtimeRequest.findMany({ where: { teamId, user: people, status: "APPROVED", date: { gte: start, lt: end }, ...(onlyUserId ? { userId: onlyUserId } : {}) } }),
   ]);
 
   return employees.map((u): PeriodRow => {
@@ -390,12 +400,14 @@ export async function weekRange(teamId: string, anyInstant: Date) {
 }
 
 /** One person's recent shifts (incl. missed scheduled days), newest first. */
-export async function getEmployeeShifts(teamId: string, userId: string, days = 45) {
+export async function getEmployeeShifts(scope: Scope, userId: string, days = 45) {
+  const { teamId } = scope;
+  const people = reachable(scope);
   const tz = await getTeamTimezone(teamId);
   const now = new Date();
   const today = startOfDayUTC(now, tz);
   const since = new Date(today.getTime() - days * DAY_MS);
-  const user = await prisma.user.findFirst({ where: { id: userId, teamId }, select: { id: true, name: true } });
+  const user = await prisma.user.findFirst({ where: { id: userId, ...reachable(scope) }, select: { id: true, name: true } });
   if (!user) return null;
   const [records, assignments, overtime, names] = await Promise.all([
     prisma.attendanceRecord.findMany({ where: { userId, date: { gte: since } } }),
@@ -430,20 +442,22 @@ export async function getMyOvertime(userId: string) {
 }
 
 /** Everything the review dialog needs about one shift. */
-export async function getReviewContext(teamId: string, ref: { recordId?: string | null; userId?: string | null; date?: string | null }) {
+export async function getReviewContext(scope: Scope, ref: { recordId?: string | null; userId?: string | null; date?: string | null }) {
+  const { teamId } = scope;
+  const people = reachable(scope);
   const tz = await getTeamTimezone(teamId);
   const now = new Date();
   let record: AttendanceRecord | null = null;
   let userId = ref.userId ?? null;
   let date: Date | null = ref.date && /^\d{4}-\d{2}-\d{2}$/.test(ref.date) ? new Date(`${ref.date}T00:00:00.000Z`) : null;
   if (ref.recordId) {
-    record = await prisma.attendanceRecord.findFirst({ where: { id: ref.recordId, user: { teamId } } });
+    record = await prisma.attendanceRecord.findFirst({ where: { id: ref.recordId, user: people } });
     if (!record) return null;
     userId = record.userId;
     date = record.date;
   }
   if (!userId || !date) return null;
-  const user = await prisma.user.findFirst({ where: { id: userId, teamId }, select: { id: true, name: true } });
+  const user = await prisma.user.findFirst({ where: { id: userId, ...reachable(scope) }, select: { id: true, name: true } });
   if (!user) return null;
   if (!record) record = await prisma.attendanceRecord.findUnique({ where: { userId_date: { userId, date } } });
 
@@ -567,8 +581,10 @@ export async function getShiftCardState(userId: string): Promise<ShiftCardState>
 }
 
 /** Today's team presence for the dashboard widget. */
-export async function getTodayPresence(teamId: string) {
+export async function getTodayPresence(scope: Scope) {
+  const { teamId } = scope;
+  const people = inSquad(scope);
   const tz = await getTeamTimezone(teamId);
   const today = startOfDayUTC(new Date(), tz);
-  return getTeamDay(teamId, today);
+  return getTeamDay(scope, today);
 }

@@ -5,7 +5,7 @@ import { listingHealthErrorResponse, requireListingManager } from "@/lib/listing
 // Move a stay through the review pipeline: { action, note? }.
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const auth = await requireListingManager();
+  const auth = await requireListingManager({ stayId: params.id });
   if (auth.error) return auth.error;
   try {
     await applyStayAction(auth.user.teamId, auth.user.id, params.id, await req.json().catch(() => ({})));

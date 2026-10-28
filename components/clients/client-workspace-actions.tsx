@@ -18,6 +18,7 @@ type Client = {
   clientCommunicationPlatform: string | null;
   notes: string | null;
   active: boolean;
+  squadId: string | null;
 };
 
 const STATUS_OPTIONS = [
@@ -38,10 +39,11 @@ async function submitJson(url: string, method: string, payload?: Record<string, 
   return data;
 }
 
-function EditClientModal({ client }: { client: Client }) {
+function EditClientModal({ client, squads }: { client: Client; squads: { id: string; name: string }[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(client.status);
+  const [squadId, setSquadId] = useState(client.squadId ?? "");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -57,6 +59,7 @@ function EditClientModal({ client }: { client: Client }) {
         operationPlatform: text("operationPlatform"),
         clientCommunicationPlatform: text("clientCommunicationPlatform"),
         notes: text("notes"),
+        ...(squadId ? { squadId } : {}),
       });
       toast.success("Client updated");
       setOpen(false);
@@ -82,6 +85,11 @@ function EditClientModal({ client }: { client: Client }) {
           <Field label="Status">
             <Select value={status} onValueChange={setStatus} options={STATUS_OPTIONS} />
           </Field>
+          {squads.length > 0 && (
+            <Field label="Team">
+              <Select value={squadId} onValueChange={setSquadId} placeholder="Pick a team" options={squads.map((s) => ({ value: s.id, label: `Team ${s.name}` }))} />
+            </Field>
+          )}
           <Field label="Guest Communication Platform">
             <input name="guestCommunicationPlatform" defaultValue={client.guestCommunicationPlatform ?? ""} className={inputClass} />
           </Field>
@@ -131,10 +139,10 @@ function DeactivateButton({ client }: { client: Client }) {
   );
 }
 
-export function ClientWorkspaceActions({ client }: { client: Client }) {
+export function ClientWorkspaceActions({ client, squads }: { client: Client; squads: { id: string; name: string }[] }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <EditClientModal client={client} />
+      <EditClientModal client={client} squads={squads} />
       <DeactivateButton client={client} />
     </div>
   );

@@ -1,3 +1,4 @@
+import { walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -8,13 +9,13 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
+  const { teamId, clientWall } = await walls();
   const clientId = req.nextUrl.searchParams.get("clientId") ?? undefined;
   const category = req.nextUrl.searchParams.get("category") ?? undefined;
 
   const files = await prisma.clientFile.findMany({
     where: {
-      client: { teamId },
+      client: clientWall,
       ...(clientId ? { clientId } : {}),
       ...(category ? { category: category as any } : {}),
     },
@@ -33,13 +34,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
+  const { teamId, clientWall } = await walls();
   const parsed = clientFileSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, teamId } });
+  const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, ...clientWall } });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   const file = await prisma.clientFile.create({

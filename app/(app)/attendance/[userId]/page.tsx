@@ -1,3 +1,4 @@
+import { getScope } from "@/lib/scope";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -13,6 +14,7 @@ import { hm } from "@/lib/attendance/format";
 export default async function EmployeeAttendancePage(props: { params: Promise<{ userId: string }> }) {
   const params = await props.params;
   const currentUser = await getCurrentUser();
+  const scope = await getScope(currentUser);
   const canReview = permissions.canEditAttendance(currentUser.role);
   // Employees can only see their own history.
   if (!canReview && params.userId !== currentUser.id) redirect("/attendance");
@@ -21,8 +23,8 @@ export default async function EmployeeAttendancePage(props: { params: Promise<{ 
   const today = startOfDayUTC(new Date(), tz);
   const month = monthRange(today.getUTCFullYear(), today.getUTCMonth());
   const [history, summary] = await Promise.all([
-    getEmployeeShifts(currentUser.teamId, params.userId, 45),
-    getPeriodSummary(currentUser.teamId, month.start, month.end, params.userId),
+    getEmployeeShifts(scope, params.userId, 45),
+    getPeriodSummary(scope, month.start, month.end, params.userId),
   ]);
   if (!history) notFound();
   const m = summary[0];

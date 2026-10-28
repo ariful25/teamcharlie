@@ -6,7 +6,7 @@ import { listingHealthErrorResponse, requireListingManager } from "@/lib/listing
 // the portfolio page loops over listings with a small concurrency.
 export async function POST(req: NextRequest, props: { params: Promise<{ propertyId: string }> }) {
   const params = await props.params;
-  const auth = await requireListingManager();
+  const auth = await requireListingManager({ propertyId: params.propertyId });
   if (auth.error) return auth.error;
   const force = req.nextUrl.searchParams.get("force") === "true";
   try {

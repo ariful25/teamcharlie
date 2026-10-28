@@ -1,3 +1,4 @@
+import { inSquad, squadForNew, walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -11,7 +12,8 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
+  const { scope } = await walls();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { searchParams } = new URL(req.url);
 
   const status = searchParams.get("status");
@@ -24,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   const tasks = await prisma.task.findMany({
     where: {
-      teamId,
+      ...inSquad(scope),
       deletedAt: showDeleted ? { not: null } : null,
       ...(status ? { status: status as any } : {}),
       ...(clientId ? { clientId } : {}),
@@ -42,7 +44,8 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
+  const { teamId, clientWall, scope } = await walls();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
   const parsed = taskSchema.safeParse(body);
 
@@ -52,13 +55,18 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
 
-  if (data.clientId) {
-    const client = await prisma.client.findFirst({ where: { id: data.clientId, teamId } });
-    if (!client) return NextResponse.json({ error: "Invalid clientId" }, { status: 400 });
-  }
+  // The task's team: its client's, else its assignee's, else the team the
+  // creator is working in. Both must be reachable from the creator's team.
+  let squadId = squadForNew(scope);
   if (data.assignedUserId) {
-    const assignee = await prisma.user.findFirst({ where: { id: data.assignedUserId, teamId } });
+    const assignee = await prisma.user.findFirst({ where: { id: data.assignedUserId, ...clientWall } });
     if (!assignee) return NextResponse.json({ error: "Invalid assignedUserId" }, { status: 400 });
+    squadId = assignee.squadId ?? squadId;
+  }
+  if (data.clientId) {
+    const client = await prisma.client.findFirst({ where: { id: data.clientId, ...clientWall } });
+    if (!client) return NextResponse.json({ error: "Invalid clientId" }, { status: 400 });
+    squadId = client.squadId ?? squadId;
   }
   if (data.categoryId) {
     const category = await prisma.category.findFirst({ where: { id: data.categoryId, teamId } });
@@ -93,6 +101,7 @@ export async function POST(req: NextRequest) {
       // than transitioned there later.
       ...(data.status === "COMPLETED" ? { completedAt: new Date(), completedBy: teamUserId } : {}),
       teamId,
+      squadId,
       // Recurrence lives directly on the Task row. If this task repeats, it becomes
       // its own template: lib/services/task-generation.ts spawns a fresh plain task
       // instance from it on each future day it's due, without a separate entity.

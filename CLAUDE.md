@@ -33,6 +33,26 @@ Google Sheets/Drive integration.
   of `npm run build`, so a normal Vercel deploy applies pending migrations
   automatically — don't reintroduce `db push`-only workflows.
 
+## Companies and teams
+
+Two walls, both server-side. The `Team` model is the **company** (the
+tenant): every query is scoped by `teamId`, and signup creates a company.
+Inside it, `Squad` is a **team** (Alfa, Bravo, Charlie, Delta) with its own
+people, clients, tasks and notices; listings, reviews, stays, attendance,
+leave and payroll follow through their client or person. Roles: Admin and
+HR are company-wide (`squadId` null) and pick a team with the switcher
+(`squad` cookie); Team lead and Employee belong to one team and only ever
+see it. Build every `where` from `lib/scope.ts` (`getScope`, `inSquad`,
+`reachable`, `byPeopleIn`, `byClientsIn`, `walls()` in API routes,
+`peopleActorReaches` in services); never from `user.teamId` alone for
+team data. `readUser()` reads role, team and active from the DB on each
+request, so moving or deactivating someone applies immediately. Who may
+add, move or promote whom is pure in `lib/people/adding.ts`
+(`npm run test:people`): leads add employees to their own team only, HR
+never creates or changes an admin. Unmatched guest stays and the review
+inbox are shared triage for every team. `npm run test:security` covers
+cross-team access inside one company.
+
 ## Attendance & overtime
 
 The rules (auto-stop after 10h, lead approval for missed punches, the

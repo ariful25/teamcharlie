@@ -1,5 +1,6 @@
 import { Building2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/session";
+import { getScope } from "@/lib/scope";
 import { permissions } from "@/lib/auth";
 import { ClientStatusCard } from "@/components/dashboard/client-status-card";
 import { AddClientWizard } from "@/components/clients/add-client-wizard";
@@ -7,7 +8,7 @@ import { getDashboardData } from "@/lib/queries/dashboard";
 
 export default async function ClientsIndexPage() {
   const currentUser = await getCurrentUser();
-  const { clientStats } = await getDashboardData(currentUser.teamId);
+  const { clientStats } = await getDashboardData(await getScope(currentUser));
   const canManageClients = permissions.canManageClients(currentUser.role);
 
   return (

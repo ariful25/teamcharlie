@@ -1,3 +1,4 @@
+import { peopleActorReaches } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { startOfDayUTC } from "@/lib/time";
 import { canReview, shiftWindow } from "@/lib/attendance/rules";
@@ -11,7 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const OVERTIME_MIN_MINUTES = 15;
 export const OVERTIME_MAX_MINUTES = 8 * 60;
 
-type Actor = { id: string; name: string; role: string; teamId: string };
+type Actor = { id: string; name: string; role: string; teamId: string; squadId?: string | null };
 
 const isLead = (role: string) => role === "ADMIN" || role === "TEAM_LEAD";
 
@@ -34,7 +35,9 @@ export async function createOvertimeRequest(
   if (targetId !== actor.id && !isLead(actor.role)) {
     throw new AttendanceError("FORBIDDEN", "Only a team lead or admin can add overtime for someone else.", 403);
   }
-  const target = await prisma.user.findFirst({ where: { id: targetId, teamId: actor.teamId, active: true } });
+  const target = await prisma.user.findFirst({
+    where: { id: targetId, teamId: actor.teamId, active: true, ...(targetId === actor.id ? {} : peopleActorReaches(actor)) },
+  });
   if (!target) throw new AttendanceError("NOT_FOUND", "Employee not found.", 404);
   if (input.approveNow && !canReview(actor, targetId)) {
     throw new AttendanceError("SELF_REVIEW", "You can't pre-approve your own overtime. Ask another team lead or an admin.", 403);
@@ -53,7 +56,7 @@ export async function createOvertimeRequest(
   }
 
   if (input.askedById) {
-    const asker = await prisma.user.findFirst({ where: { id: input.askedById, teamId: actor.teamId, role: { in: ["ADMIN", "TEAM_LEAD"] } } });
+    const asker = await prisma.user.findFirst({ where: { id: input.askedById, teamId: actor.teamId, role: { in: ["ADMIN", "HR", "TEAM_LEAD"] } } });
     if (!asker) throw new AttendanceError("INVALID_ASKER", "“Asked by” must be a team lead or admin on your team.");
   }
 
@@ -97,7 +100,7 @@ export async function reviewOvertime(
   id: string,
   input: { action: "APPROVE" | "REJECT"; approvedMinutes?: number | null; note?: string | null }
 ) {
-  const request = await prisma.overtimeRequest.findFirst({ where: { id, teamId: reviewer.teamId } });
+  const request = await prisma.overtimeRequest.findFirst({ where: { id, teamId: reviewer.teamId, user: peopleActorReaches(reviewer) } });
   if (!request) throw new AttendanceError("NOT_FOUND", "Overtime request not found.", 404);
   if (!canReview(reviewer, request.userId)) {
     throw new AttendanceError("SELF_REVIEW", "You can't approve your own overtime. Ask another team lead or an admin.", 403);

@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     });
     if (claimed.count === 0) return null;
     return tx.user.create({
-      data: { name: parsed.data.name, email: invite.email, passwordHash, role: invite.role, teamId: invite.teamId },
+      data: { name: parsed.data.name, email: invite.email, passwordHash, role: invite.role, teamId: invite.teamId, squadId: invite.squadId },
       select: { email: true },
     });
   });

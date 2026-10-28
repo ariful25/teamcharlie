@@ -1,3 +1,4 @@
+import { walls, type ClientWall } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -8,8 +9,8 @@ function prepareLeadData(data: any) {
   return "contactedDate" in data ? { ...data, contactedDate: data.contactedDate ? new Date(data.contactedDate) : null } : data;
 }
 
-async function canAccessLead(id: string, teamId: string) {
-  return prisma.lead.findFirst({ where: { id, client: { teamId } } });
+async function canAccessLead(id: string, clientWall: ClientWall) {
+  return prisma.lead.findFirst({ where: { id, client: clientWall } });
 }
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -22,8 +23,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
-  const existing = await canAccessLead(params.id, teamId);
+  const { teamId, clientWall } = await walls();
+  const existing = await canAccessLead(params.id, clientWall);
   if (!existing) return NextResponse.json({ error: "Lead not found" }, { status: 404 });
 
   const parsed = leadSchema.partial().safeParse(await req.json().catch(() => ({})));
@@ -31,12 +32,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
   if (parsed.data.clientId) {
-    const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, teamId } });
+    const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, ...clientWall } });
     if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
   if (parsed.data.interestedUnitId) {
     const unit = await prisma.unit.findFirst({
-      where: { id: parsed.data.interestedUnitId, property: { client: { teamId } } },
+      where: { id: parsed.data.interestedUnitId, property: { client: clientWall } },
     });
     if (!unit) return NextResponse.json({ error: "Interested unit not found" }, { status: 404 });
   }
@@ -55,8 +56,8 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
-  const existing = await canAccessLead(params.id, teamId);
+  const { teamId, clientWall } = await walls();
+  const existing = await canAccessLead(params.id, clientWall);
   if (!existing) return NextResponse.json({ error: "Lead not found" }, { status: 404 });
 
   await prisma.lead.delete({ where: { id: params.id } });

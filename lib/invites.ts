@@ -18,7 +18,7 @@ export async function findUsableInvite(token: string) {
   if (!token || token.length > 200) return null;
   const invite = await prisma.teamInvite.findUnique({
     where: { tokenHash: hashInviteToken(token) },
-    include: { team: { select: { id: true, name: true } } },
+    include: { team: { select: { id: true, name: true } }, squad: { select: { name: true } } },
   });
   if (!invite || invite.acceptedAt || invite.revokedAt || invite.expiresAt.getTime() < Date.now()) return null;
   return invite;

@@ -1,3 +1,4 @@
+import { isCompanyWide, type AppRole } from "@/lib/auth";
 import { Prisma, type EmployeeEventKind } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +14,7 @@ export class PeopleError extends Error {
   }
 }
 
-type Actor = Viewer & { teamId: string };
+type Actor = Viewer & { teamId: string; squadId?: string | null };
 
 const day = z
   .string()
@@ -63,8 +64,13 @@ const JOB_LABELS: Record<string, string> = {
   probationEndDate: "Probation end",
 };
 
-async function subjectInTeam(userId: string, teamId: string) {
-  const user = await prisma.user.findFirst({ where: { id: userId, teamId }, include: { profile: true } });
+// Admin and HR reach anyone in the company; a lead or employee only their own team.
+async function subjectInTeam(userId: string, actor: Actor) {
+  const ownTeamOnly = !isCompanyWide(actor.role as AppRole) && userId !== actor.id;
+  const user = await prisma.user.findFirst({
+    where: { id: userId, teamId: actor.teamId, ...(ownTeamOnly ? { squadId: actor.squadId ?? "__none__" } : {}) },
+    include: { profile: true },
+  });
   if (!user) throw new PeopleError("Person not found.", 404);
   return user;
 }
@@ -76,7 +82,7 @@ function show(v: unknown): string | null {
 }
 
 export async function updateProfile(actor: Actor, userId: string, raw: unknown) {
-  const subject = await subjectInTeam(userId, actor.teamId);
+  const subject = await subjectInTeam(userId, actor);
   const access = profileAccess(actor, userId);
   const parsed = profileSchema.safeParse(raw);
   if (!parsed.success) throw new PeopleError(parsed.error.issues[0]?.message ?? "Check the highlighted fields.");
@@ -143,7 +149,7 @@ const contactSchema = z.object({
 });
 
 export async function addEmergencyContact(actor: Actor, userId: string, raw: unknown) {
-  await subjectInTeam(userId, actor.teamId);
+  await subjectInTeam(userId, actor);
   if (!profileAccess(actor, userId).editEmergency) throw new PeopleError("You can't change these contacts.", 403);
   const parsed = contactSchema.safeParse(raw);
   if (!parsed.success) throw new PeopleError(parsed.error.issues[0].message);
@@ -152,7 +158,7 @@ export async function addEmergencyContact(actor: Actor, userId: string, raw: unk
 }
 
 export async function deleteEmergencyContact(actor: Actor, userId: string, contactId: string) {
-  await subjectInTeam(userId, actor.teamId);
+  await subjectInTeam(userId, actor);
   if (!profileAccess(actor, userId).editEmergency) throw new PeopleError("You can't change these contacts.", 403);
   const r = await prisma.emergencyContact.deleteMany({ where: { id: contactId, userId } });
   if (!r.count) throw new PeopleError("Contact not found.", 404);
@@ -170,7 +176,7 @@ const documentSchema = z.object({
 });
 
 export async function addDocument(actor: Actor, userId: string, raw: unknown) {
-  await subjectInTeam(userId, actor.teamId);
+  await subjectInTeam(userId, actor);
   if (!profileAccess(actor, userId).addDocuments) throw new PeopleError("You can't add documents here.", 403);
   const parsed = documentSchema.safeParse(raw);
   if (!parsed.success) throw new PeopleError(parsed.error.issues[0].message);
@@ -178,7 +184,7 @@ export async function addDocument(actor: Actor, userId: string, raw: unknown) {
 }
 
 export async function deleteDocument(actor: Actor, userId: string, documentId: string) {
-  await subjectInTeam(userId, actor.teamId);
+  await subjectInTeam(userId, actor);
   const doc = await prisma.employeeDocument.findFirst({ where: { id: documentId, userId } });
   if (!doc) throw new PeopleError("Document not found.", 404);
   if (actor.role !== "ADMIN" && doc.addedById !== actor.id) throw new PeopleError("Only an admin or whoever added it can remove this.", 403);
@@ -192,7 +198,7 @@ const eventSchema = z.object({
 });
 
 export async function addEvent(actor: Actor, userId: string, raw: unknown) {
-  await subjectInTeam(userId, actor.teamId);
+  await subjectInTeam(userId, actor);
   const access = profileAccess(actor, userId);
   const parsed = eventSchema.safeParse(raw);
   if (!parsed.success) throw new PeopleError(parsed.error.issues[0].message);

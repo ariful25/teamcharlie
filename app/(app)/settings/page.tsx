@@ -6,7 +6,9 @@ import { SettingsShell, type SettingsSection } from "@/components/settings/setti
 import { PushToggle } from "@/components/pwa/push";
 import { NotificationSettingsPanel } from "@/components/settings/notification-settings-panel";
 import { ShiftTypesPanel } from "@/components/settings/shift-types-panel";
-import { AddUserModal } from "@/components/settings/add-user-modal";
+import { AddPeopleDialog } from "@/components/people/add-people-dialog";
+import { TeamsPanel, type TeamRow } from "@/components/teams/teams-panel";
+import { getScope, inSquad } from "@/lib/scope";
 import { UsersManagementTable } from "@/components/settings/users-management-table";
 import { CheckoutChecklistPanel } from "@/components/settings/checkout-checklist-panel";
 import { TeamProfileForm } from "@/components/settings/team-profile-form";
@@ -22,13 +24,16 @@ import { ReviewSyncPanel } from "@/components/settings/review-sync-panel";
 export default async function SettingsPage() {
   const currentUser = await getCurrentUser();
   const canManageUsers = permissions.canManageUsers(currentUser.role);
+  const canAddPeople = permissions.canAddPeople(currentUser.role);
+  const scope = await getScope(currentUser);
   const canManageChecklists = permissions.canManageChecklists(currentUser.role);
 
   const canManageNotifications = permissions.canManageNotificationSettings(currentUser.role);
 
-  const [team, users, shiftTypes, checklistItems, invites] = await Promise.all([
+  const [team, users, shiftTypes, checklistItems, invites, squads] = await Promise.all([
     prisma.team.findUniqueOrThrow({ where: { id: currentUser.teamId }, include: { settings: { select: { discordWebhookUrl: true, autoCheckoutHours: true, anthropicModel: true, openaiModel: true } } } }),
-    prisma.user.findMany({ where: { teamId: currentUser.teamId }, orderBy: { name: "asc" } }),
+    // Members of the team being looked at (Admin and HR: the switcher's pick, or everyone).
+    prisma.user.findMany({ where: inSquad(scope), orderBy: { name: "asc" } }),
     prisma.shiftType.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { startTime: "asc" } }),
     prisma.checklistItem.findMany({
       where: { teamId: currentUser.teamId, type: "CHECKOUT" },
@@ -37,11 +42,40 @@ export default async function SettingsPage() {
     canManageUsers
       ? prisma.teamInvite.findMany({
           where: { teamId: currentUser.teamId, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
-          select: { id: true, email: true, role: true, expiresAt: true },
+          select: { id: true, email: true, name: true, role: true, expiresAt: true, squad: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
         })
       : Promise.resolve([]),
+    prisma.squad.findMany({
+      where: { teamId: currentUser.teamId },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        active: true,
+        users: { where: { active: true }, select: { name: true, role: true } },
+        _count: { select: { clients: { where: { active: true } } } },
+      },
+    }),
   ]);
+  const activeSquads = squads.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name }));
+  const teamRows: TeamRow[] = squads.map((s) => ({
+    id: s.id,
+    name: s.name,
+    active: s.active,
+    leads: s.users.filter((u) => u.role === "TEAM_LEAD").map((u) => u.name),
+    people: s.users.length,
+    clients: s._count.clients,
+  }));
+  const addPeople = canAddPeople ? (
+    <AddPeopleDialog
+      actor={{ role: currentUser.role, squadId: currentUser.squadId }}
+      squads={activeSquads}
+      shiftTypes={shiftTypes.map((s) => ({ id: s.id, name: s.name }))}
+      companyName={team.name}
+      defaultSquadId={scope.squadId}
+    />
+  ) : undefined;
 
   const [aiConfig, aiUsage] = canManageNotifications
     ? await Promise.all([
@@ -86,8 +120,8 @@ export default async function SettingsPage() {
     {
       id: "team",
       group: "Workspace",
-      label: "Team",
-      description: "Your team's name, the timezone for shifts and reports, plus when a forgotten check-out stops the timer.",
+      label: "Company",
+      description: "Your company's name, the timezone for shifts and reports, plus when a forgotten check-out stops the timer.",
       status: { text: team.timezone.split("/").pop()!.replace("_", " "), tone: "info" },
       content: (
         <TeamProfileForm
@@ -126,16 +160,36 @@ export default async function SettingsPage() {
           },
         ]
       : []),
+    ...(canManageUsers
+      ? [
+          {
+            id: "teams",
+            group: "People" as const,
+            label: "Teams",
+            description: "The teams inside your company. Each has its own people, clients, roster, tasks and notices. Admin and HR see them all.",
+            status: { text: String(activeSquads.length), tone: "info" as const },
+            content: <TeamsPanel teams={teamRows} canManage={permissions.canManageSquads(currentUser.role)} />,
+          },
+        ]
+      : []),
     {
       id: "members",
       group: "People",
       label: "Members",
-      description: canManageUsers ? "Everyone on the team: roles, shifts and who can sign in." : "Everyone on the team.",
+      description: canManageUsers
+        ? "Everyone in the team you're looking at: their team, role and who can sign in. Use the team switcher to see another team."
+        : "Everyone on your team.",
       status: { text: `${activeUsers.length} active`, tone: "info" },
-      action: canManageUsers ? <AddUserModal shiftTypes={shiftTypes.map((s) => ({ id: s.id, name: s.name }))} /> : undefined,
+      action: addPeople,
       content: canManageUsers ? (
         <div className="-mx-5 -mb-5 -mt-2">
-          <UsersManagementTable users={users} currentUserId={currentUser.id} showSlack={isHomeTeam} />
+          <UsersManagementTable
+            users={users}
+            currentUserId={currentUser.id}
+            showSlack={isHomeTeam}
+            squads={activeSquads}
+            actor={{ role: currentUser.role, squadId: currentUser.squadId }}
+          />
         </div>
       ) : (
         <ul className="divide-y divide-border/60">
@@ -157,9 +211,9 @@ export default async function SettingsPage() {
             id: "invites",
             group: "People" as const,
             label: "Invites",
-            description: "Send an invite link so a teammate can create their own account and join this team.",
+            description: "Invite links that haven't been used yet. Add people from Members; revoke a link here if it went to the wrong person.",
             status: invites.length ? { text: `${invites.length} pending`, tone: "warn" as const } : undefined,
-            content: <InvitesPanel invites={invites.map((i) => ({ ...i, expiresAt: i.expiresAt.toISOString() }))} />,
+            content: <InvitesPanel invites={invites.map((i) => ({ id: i.id, email: i.email, name: i.name, role: i.role, team: i.squad?.name ?? null, expiresAt: i.expiresAt.toISOString() }))} />,
           },
         ]
       : []),

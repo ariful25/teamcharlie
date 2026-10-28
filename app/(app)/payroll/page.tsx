@@ -1,3 +1,4 @@
+import { getScope } from "@/lib/scope";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { permissions } from "@/lib/auth";
@@ -19,6 +20,7 @@ export default async function PayrollPage(
   const month = Number.isInteger(monthParam) && monthParam >= 0 && monthParam <= 11 && searchParams.month !== undefined ? monthParam : today.getUTCMonth();
   const tab = searchParams.tab === "salaries" || searchParams.tab === "rules" ? searchParams.tab : "payroll";
 
-  const payroll = await getPayroll(currentUser.teamId, year, month);
+  const scope = await getScope(currentUser);
+  const payroll = await getPayroll(currentUser.teamId, year, month, scope.squadId);
   return <PayrollConsole year={year} month={month} tab={tab} status={payroll.status} finalizedAt={payroll.finalizedAt} rows={payroll.rows} rules={payroll.rules} />;
 }

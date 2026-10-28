@@ -1,11 +1,13 @@
+import { reachable, type Scope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfDayUTC } from "@/lib/time";
 
-export async function getClientWorkspaceData(clientId: string, teamId: string) {
+export async function getClientWorkspaceData(clientId: string, scope: Scope) {
+  const { teamId } = scope;
   const today = startOfDayUTC(new Date(), await getTeamTimezone(teamId));
 
-  const client = await prisma.client.findFirst({ where: { id: clientId, teamId } });
+  const client = await prisma.client.findFirst({ where: { id: clientId, ...reachable(scope) } });
   if (!client) {
     return { client: null, tasks: [], recurringTasks: [], properties: [], leads: [] };
   }

@@ -1,3 +1,4 @@
+import { reachable, type Scope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 
 // Ownership checks for ids that arrive from the browser. Every write that
@@ -6,6 +7,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function teamOwnsUser(teamId: string, userId: string) {
   return !!(await prisma.user.findFirst({ where: { id: userId, teamId }, select: { id: true } }));
+}
+
+/** Is this person in the team the caller may manage? Admin and HR: anyone in the company. */
+export async function scopeReachesUser(scope: Scope, userId: string) {
+  return !!(await prisma.user.findFirst({ where: { id: userId, ...reachable(scope) }, select: { id: true } }));
 }
 
 /** null/undefined counts as owned — "no shift type" is always allowed. */

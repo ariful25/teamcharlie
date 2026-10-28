@@ -188,7 +188,7 @@ function LoginForm() {
         <p className="mt-5 text-center text-xs text-muted-foreground">
           New here?{" "}
           <Link href="/signup" className="font-medium text-primary hover:brightness-110">
-            Create a team
+            Create a company
           </Link>{" "}
           or ask your admin for an invite link.
         </p>

@@ -1,3 +1,4 @@
+import { inSquad, squadForNew, walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -9,8 +10,9 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
-  const clients = await prisma.client.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } });
+  const { scope } = await walls();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const clients = await prisma.client.findMany({ where: { ...inSquad(scope), active: true }, orderBy: { name: "asc" } });
   return NextResponse.json({ clients });
 }
 
@@ -35,13 +37,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
+  const { teamId, scope } = await walls();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const parsed = clientCreateSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { integrations, createGoogleSheet, ...clientData } = parsed.data;
+  const { integrations, createGoogleSheet, squadId: pickedSquad, ...clientData } = parsed.data;
+  const squadId = pickedSquad ?? squadForNew(scope);
+  if (squadId && !(await prisma.squad.findFirst({ where: { id: squadId, teamId, active: true } }))) {
+    return NextResponse.json({ error: "That team doesn't exist." }, { status: 400 });
+  }
   // De-duplicate in case the client sent the same provider twice — the
   // @@unique([clientId, provider]) constraint would reject that anyway,
   // but failing the whole transaction over a duplicate checkbox click isn't
@@ -50,7 +57,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const client = await prisma.$transaction(async (tx) => {
-      const created = await tx.client.create({ data: { ...clientData, teamId } });
+      const created = await tx.client.create({ data: { ...clientData, teamId, squadId } });
       if (uniqueIntegrations.length > 0) {
         await tx.clientIntegration.createMany({
           data: uniqueIntegrations.map((provider) => ({

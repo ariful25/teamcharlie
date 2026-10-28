@@ -1,3 +1,4 @@
+import { walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -8,8 +9,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
-  const client = await prisma.client.findFirst({ where: { id: params.id, teamId }, select: { id: true } });
+  const { teamId, clientWall } = await walls();
+  const client = await prisma.client.findFirst({ where: { id: params.id, ...clientWall }, select: { id: true } });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   const logs = await prisma.knowledgeSyncLog.findMany({

@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/session";
+import { getScope, noticesIn } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { permissions } from "@/lib/auth";
 import { NoticeBoard } from "@/components/notices/notice-board";
@@ -7,7 +8,7 @@ export default async function NoticesPage() {
   const currentUser = await getCurrentUser();
 
   const notices = await prisma.notice.findMany({
-    where: { teamId: currentUser.teamId },
+    where: noticesIn(await getScope(currentUser)),
     include: { author: { select: { id: true, name: true, avatarUrl: true } } },
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
   });

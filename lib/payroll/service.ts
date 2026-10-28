@@ -88,21 +88,29 @@ export type PayrollRow = {
   breakdown: PayrollBreakdown | null;
   adjustmentNote: string | null;
   unresolved: number;
+  /** Their team inside the company, for the per-team breakdown. */
+  team: string | null;
+  squadId: string | null;
 };
 
-export async function getPayroll(teamId: string, year: number, month: number) {
+/** One company-wide run per month. `squadId` only narrows what's shown (the
+ *  team switcher); finalizing and reopening always cover the whole company. */
+export async function getPayroll(teamId: string, year: number, month: number, squadId: string | null = null) {
   const rules = await payrollRules(teamId);
   const run = await prisma.payrollRun.findUnique({ where: { teamId_year_month: { teamId, year, month } }, include: { lines: true } });
 
-  const people = await prisma.user.findMany({ where: { teamId, active: true }, include: { salary: true }, orderBy: { name: "asc" } });
+  const people = await prisma.user.findMany({ where: { teamId, active: true }, include: { salary: true, squad: { select: { name: true } } }, orderBy: { name: "asc" } });
+  const shown = (rows: PayrollRow[]) => (squadId ? rows.filter((r) => r.squadId === squadId) : rows);
 
   if (run?.status === "FINALIZED") {
-    const names = new Map((await prisma.user.findMany({ where: { teamId }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
+    const everyone = await prisma.user.findMany({ where: { teamId }, select: { id: true, name: true, squadId: true, squad: { select: { name: true } } } });
+    const byId = new Map(everyone.map((u) => [u.id, u]));
     const rows: PayrollRow[] = run.lines.map((l) => {
       const details = l.details as unknown as PayrollBreakdown & { adjustmentNote?: string; monthlyGross: number; basicPercent: number };
-      return { userId: l.userId, name: names.get(l.userId) ?? "Former employee", hasSalary: true, monthlyGross: details.monthlyGross, basicPercent: details.basicPercent, breakdown: details, adjustmentNote: details.adjustmentNote ?? null, unresolved: 0 };
+      const u = byId.get(l.userId);
+      return { userId: l.userId, name: u?.name ?? "Former employee", team: u?.squad?.name ?? null, squadId: u?.squadId ?? null, hasSalary: true, monthlyGross: details.monthlyGross, basicPercent: details.basicPercent, breakdown: details, adjustmentNote: details.adjustmentNote ?? null, unresolved: 0 };
     });
-    return { rules, status: "FINALIZED" as const, finalizedAt: run.finalizedAt?.toISOString() ?? null, rows: rows.sort((a, b) => a.name.localeCompare(b.name)) };
+    return { rules, status: "FINALIZED" as const, finalizedAt: run.finalizedAt?.toISOString() ?? null, rows: shown(rows).sort((a, b) => a.name.localeCompare(b.name)) };
   }
 
   const inputs = await monthInputs(teamId, year, month);
@@ -113,6 +121,8 @@ export async function getPayroll(teamId: string, year: number, month: number) {
     return {
       userId: p.id,
       name: p.name,
+      team: p.squad?.name ?? null,
+      squadId: p.squadId,
       hasSalary: !!p.salary,
       monthlyGross: p.salary?.monthlyGross ?? null,
       basicPercent: p.salary?.basicPercent ?? null,
@@ -121,7 +131,7 @@ export async function getPayroll(teamId: string, year: number, month: number) {
       unresolved: i.unresolved,
     };
   });
-  return { rules, status: "DRAFT" as const, finalizedAt: null, rows };
+  return { rules, status: "DRAFT" as const, finalizedAt: null, rows: shown(rows) };
 }
 
 async function draftRun(teamId: string, year: number, month: number) {

@@ -5,11 +5,14 @@ import { listInbox } from "@/lib/listing-health/inbox";
 import { isAiReady } from "@/lib/ai/client";
 import { daysLeft, firstName } from "./pipeline";
 import { getTemplates } from "./service";
+import { byListingIn, inSquad, type Scope } from "@/lib/scope";
 
 const DAY = 86_400_000;
 const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
 
-export async function getReviewHub(teamId: string) {
+export async function getReviewHub(scope: Scope) {
+  const { teamId } = scope;
+  const staysIn = byListingIn(scope);
   const tz = await getTeamTimezone(teamId);
   const today = startOfDayUTC(new Date(), tz);
   const since90 = new Date(today.getTime() - 90 * DAY);
@@ -18,23 +21,23 @@ export async function getReviewHub(teamId: string) {
     prisma.guestStay.findMany({
       where: {
         teamId,
-        OR: [{ stage: { in: ["BOOKED", "CHECKED_OUT", "FOLLOW_UP_SENT", "ISSUE", "ASK_REVIEW", "REVIEW_REQUESTED"] } }, { updatedAt: { gte: new Date(today.getTime() - 30 * DAY) } }],
+        AND: [staysIn, { OR: [{ stage: { in: ["BOOKED", "CHECKED_OUT", "FOLLOW_UP_SENT", "ISSUE", "ASK_REVIEW", "REVIEW_REQUESTED"] } }, { updatedAt: { gte: new Date(today.getTime() - 30 * DAY) } }] }],
       },
       include: { property: { select: { id: true, internalName: true, listingName: true, airbnbUrl: true } }, events: { orderBy: { at: "desc" }, take: 20 } },
       orderBy: [{ checkOut: "asc" }],
       take: 400,
     }),
     prisma.listingReview.findMany({
-      where: { property: { client: { teamId } } },
+      where: { property: { client: inSquad(scope) } },
       include: { property: { select: { id: true, internalName: true, clientId: true } } },
       orderBy: [{ reviewDate: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       take: 400,
     }),
     listInbox(teamId),
     getTemplates(teamId),
-    prisma.propertyKnowledgeItem.findMany({ where: { client: { teamId } }, select: { id: true, internalName: true, clientId: true }, orderBy: { internalName: "asc" } }),
+    prisma.propertyKnowledgeItem.findMany({ where: { client: inSquad(scope) }, select: { id: true, internalName: true, clientId: true }, orderBy: { internalName: "asc" } }),
     isAiReady(teamId),
-    prisma.client.findMany({ where: { teamId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.client.findMany({ where: { ...inSquad(scope), active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   // KPIs over the last 90 days of reviews / checked-out stays.
@@ -42,12 +45,12 @@ export async function getReviewHub(teamId: string) {
   const fiveStar = recent.filter((r) => r.rating === 5).length;
   const closed90 = await prisma.guestStay.groupBy({
     by: ["stage"],
-    where: { teamId, checkOut: { gte: since90, lte: today }, stage: { in: ["REVIEWED", "EXPIRED"] } },
+    where: { teamId, ...staysIn, checkOut: { gte: since90, lte: today }, stage: { in: ["REVIEWED", "EXPIRED"] } },
     _count: { _all: true },
   });
   const reviewed = closed90.find((c) => c.stage === "REVIEWED")?._count._all ?? 0;
   const expired = closed90.find((c) => c.stage === "EXPIRED")?._count._all ?? 0;
-  const asked = await prisma.guestStay.findMany({ where: { teamId, reviewRequestedAt: { gte: since90 }, stage: "REVIEWED" }, select: { rating: true } });
+  const asked = await prisma.guestStay.findMany({ where: { teamId, ...staysIn, reviewRequestedAt: { gte: since90 }, stage: "REVIEWED" }, select: { rating: true } });
 
   return {
     today: iso(today)!,

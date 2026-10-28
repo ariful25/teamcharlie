@@ -28,27 +28,32 @@ test("task message: title, client and due time; no empty separators", () => {
   assert.ok(M.taskAssignedMessage({ id: "t3", title: "x".repeat(300) }, "A").body.length <= 120);
 });
 
-test("notices go to every active teammate except the author, and never carry the text", () => {
+test("notices reach their team (or everyone if company-wide), never the author, never the text", () => {
   const team = [
-    { id: "a", active: true },
-    { id: "b", active: true },
-    { id: "c", active: false },
+    { id: "a", role: "EMPLOYEE" as const, active: true, squadId: "charlie" },
+    { id: "b", role: "EMPLOYEE" as const, active: true, squadId: "charlie" },
+    { id: "c", role: "EMPLOYEE" as const, active: false, squadId: "charlie" },
+    { id: "d", role: "EMPLOYEE" as const, active: true, squadId: "bravo" },
+    { id: "hr", role: "HR" as const, active: true, squadId: null },
   ];
-  assert.deepEqual(M.noticeRecipients(team, "a"), ["b"]);
+  assert.deepEqual(M.noticeRecipients(team, "a"), ["b", "d", "hr"], "company-wide notice");
+  assert.deepEqual(M.noticeRecipients(team, "a", "charlie"), ["b", "hr"], "a team notice stays in the team");
   const m = M.noticeMessage({ id: "n1" }, "Ayesha");
   assert.equal(m.body, "Ayesha posted on the notice board");
   assert.equal(m.url, "/notices");
 });
 
-test("leave requests go to active admins and leads, never the requester", () => {
+test("leave requests go to admin, HR and the requester's own lead, never the requester", () => {
   const team = [
-    { id: "admin", role: "ADMIN" as const, active: true },
-    { id: "lead", role: "TEAM_LEAD" as const, active: true },
-    { id: "oldlead", role: "TEAM_LEAD" as const, active: false },
-    { id: "john", role: "EMPLOYEE" as const, active: true },
+    { id: "admin", role: "ADMIN" as const, active: true, squadId: null },
+    { id: "hr", role: "HR" as const, active: true, squadId: null },
+    { id: "lead", role: "TEAM_LEAD" as const, active: true, squadId: "charlie" },
+    { id: "bravolead", role: "TEAM_LEAD" as const, active: true, squadId: "bravo" },
+    { id: "oldlead", role: "TEAM_LEAD" as const, active: false, squadId: "charlie" },
+    { id: "john", role: "EMPLOYEE" as const, active: true, squadId: "charlie" },
   ];
-  assert.deepEqual(M.leaveReviewers(team, "john"), ["admin", "lead"]);
-  assert.deepEqual(M.leaveReviewers(team, "lead"), ["admin"], "a lead asking for leave");
+  assert.deepEqual(M.leaveReviewers(team, { id: "john", squadId: "charlie" }), ["admin", "hr", "lead"], "never another team's lead");
+  assert.deepEqual(M.leaveReviewers(team, { id: "lead", squadId: "charlie" }), ["admin", "hr"], "a lead asking for leave");
   const m = M.leaveRequestedMessage({ id: "l1", type: "PAID", startDate: d("2026-10-26"), endDate: d("2026-10-27") }, "John Doe");
   assert.equal(m.body, "John Doe asked for paid leave: Mon 26 Oct to Tue 27 Oct");
   assert.equal(m.url, "/attendance/admin");

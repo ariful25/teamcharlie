@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getClientWorkspaceData } from "@/lib/queries/clients";
 import { getCurrentUser } from "@/lib/session";
+import { getScope } from "@/lib/scope";
 import { permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -23,13 +24,14 @@ export default async function ClientWorkspacePage(props: { params: Promise<{ id:
   // for this team, these reads are simply discarded below by notFound();
   // they're scoped by clientId, not team, so there's no cross-tenant data
   // ever reaching the response either way.
-  const [{ client, tasks, recurringTasks, properties, leads }, integrations, files, googleSheet, propertiesSynced] =
+  const [{ client, tasks, recurringTasks, properties, leads }, integrations, files, googleSheet, propertiesSynced, squads] =
     await Promise.all([
-      getClientWorkspaceData(params.id, currentUser.teamId),
+      getClientWorkspaceData(params.id, await getScope(currentUser)),
       getClientIntegrationOverview(params.id),
       prisma.clientFile.findMany({ where: { clientId: params.id }, orderBy: [{ category: "asc" }, { createdAt: "desc" }] }),
       prisma.clientGoogleSheet.findUnique({ where: { clientId: params.id } }),
       prisma.propertyKnowledgeItem.count({ where: { clientId: params.id, googleSheetSyncedAt: { not: null } } }),
+      prisma.squad.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     ]);
   if (!client) notFound();
 
@@ -73,7 +75,7 @@ export default async function ClientWorkspacePage(props: { params: Promise<{ id:
           >
             Prepare Knowledge Base
           </Link>
-          {canManageClients && <ClientWorkspaceActions client={client} />}
+          {canManageClients && <ClientWorkspaceActions client={client} squads={squads} />}
         </div>
       </div>
 

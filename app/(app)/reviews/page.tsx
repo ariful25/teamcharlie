@@ -1,3 +1,4 @@
+import { getScope } from "@/lib/scope";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/session";
 import { permissions } from "@/lib/auth";
@@ -8,7 +9,7 @@ import { ReviewHub } from "@/components/reviews/review-hub";
 export default async function ReviewsPage() {
   const user = await getCurrentUser();
   await advanceStays(user.teamId);
-  const hub = await getReviewHub(user.teamId);
+  const hub = await getReviewHub(await getScope(user));
   return (
     <Suspense>
       <ReviewHub hub={hub} canManage={permissions.canManageKnowledgeBase(user.role)} />

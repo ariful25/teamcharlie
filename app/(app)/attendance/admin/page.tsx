@@ -1,3 +1,4 @@
+import { byPeopleIn, getScope, inSquad } from "@/lib/scope";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -13,6 +14,7 @@ import { leaveViews } from "@/lib/leave/service";
 export default async function TeamAttendancePage(props: { searchParams: Promise<{ day?: string; tab?: string }> }) {
   const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
+  const scope = await getScope(currentUser);
   if (!permissions.canEditAttendance(currentUser.role)) redirect("/attendance");
 
   const tz = await getTeamTimezone(currentUser.teamId);
@@ -21,12 +23,12 @@ export default async function TeamAttendancePage(props: { searchParams: Promise<
   const tab = searchParams.tab === "review" || searchParams.tab === "overtime" || searchParams.tab === "leave" ? searchParams.tab : "roster";
 
   const [teamDay, queue, overtime, people, leavePending, leaveRecent] = await Promise.all([
-    getTeamDay(currentUser.teamId, day),
-    getReviewQueue(currentUser.teamId),
-    getOvertimeBoard(currentUser.teamId),
-    prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, role: true } }),
-    leaveViews(currentUser.teamId, { status: "PENDING" }),
-    leaveViews(currentUser.teamId, { status: { in: ["APPROVED", "REJECTED", "CANCELLED"] }, updatedAt: { gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) } }, 40),
+    getTeamDay(scope, day),
+    getReviewQueue(scope),
+    getOvertimeBoard(scope),
+    prisma.user.findMany({ where: { ...inSquad(scope), active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, role: true } }),
+    leaveViews(currentUser.teamId, { status: "PENDING", ...byPeopleIn(scope) }),
+    leaveViews(currentUser.teamId, { ...byPeopleIn(scope), status: { in: ["APPROVED", "REJECTED", "CANCELLED"] }, updatedAt: { gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) } }, 40),
   ]);
 
   return (

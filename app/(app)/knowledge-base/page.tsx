@@ -1,3 +1,4 @@
+import { getScope, inSquad } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { permissions } from "@/lib/auth";
@@ -10,16 +11,17 @@ export default async function KnowledgeBasePage(
 ) {
   const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
+  const scope = await getScope(currentUser);
   const canManage = permissions.canManageKnowledgeBase(currentUser.role);
 
   const [clients, items] = await Promise.all([
     prisma.client.findMany({
-      where: { teamId: currentUser.teamId, active: true },
+      where: { ...inSquad(scope), active: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
     prisma.propertyKnowledgeItem.findMany({
-      where: { client: { teamId: currentUser.teamId } },
+      where: { client: inSquad(scope) },
       include: { client: { select: { id: true, name: true } } },
       orderBy: [{ createdAt: "desc" }],
     }),

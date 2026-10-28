@@ -1,3 +1,4 @@
+import { inSquad, reachable, type Scope } from "@/lib/scope";
 import type { ListingHealthSnapshot } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { CategoryKey } from "./parse";
@@ -79,8 +80,8 @@ export type PortfolioRow = {
   imported: { total: number; low: number; byStar: Record<1 | 2 | 3 | 4 | 5, number> };
 };
 
-export async function getPortfolio(teamId: string, clientId: string) {
-  const client = await prisma.client.findFirst({ where: { id: clientId, teamId }, select: { id: true, name: true } });
+export async function getPortfolio(scope: Scope, clientId: string) {
+  const client = await prisma.client.findFirst({ where: { id: clientId, ...reachable(scope) }, select: { id: true, name: true } });
   if (!client) return null;
   const listings = await prisma.propertyKnowledgeItem.findMany({
     where: { clientId },
@@ -184,9 +185,10 @@ function genericIssueTitle(i: Issue) {
   }
 }
 
-export async function getListingDetail(teamId: string, propertyId: string) {
+export async function getListingDetail(scope: Scope, propertyId: string) {
+  const { teamId } = scope;
   const property = await prisma.propertyKnowledgeItem.findFirst({
-    where: { id: propertyId, client: { teamId } },
+    where: { id: propertyId, client: reachable(scope) },
     select: {
       id: true,
       internalName: true,
@@ -213,7 +215,7 @@ export async function getListingDetail(teamId: string, propertyId: string) {
       select: { id: true, sourceRef: true, status: true },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.user.findMany({ where: { teamId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { ...inSquad(scope), active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     isAiReady(teamId),
   ]);
   const latestNote = (kind: string) => notes.find((n) => n.kind === kind) ?? null;
@@ -260,15 +262,15 @@ export async function getListingDetail(teamId: string, propertyId: string) {
 }
 
 /** Default client: the one with the most knowledge-base listings. */
-export async function defaultClientId(teamId: string) {
-  const rows = await prisma.propertyKnowledgeItem.groupBy({ by: ["clientId"], where: { client: { teamId } }, _count: { _all: true } });
+export async function defaultClientId(scope: Scope) {
+  const rows = await prisma.propertyKnowledgeItem.groupBy({ by: ["clientId"], where: { client: inSquad(scope) }, _count: { _all: true } });
   return rows.sort((a, b) => b._count._all - a._count._all)[0]?.clientId ?? null;
 }
 
 /** All imported reviews at or below a star rating, for the CSV list export. */
-export async function lowStarReviews(teamId: string, clientId: string, maxRating: number) {
+export async function lowStarReviews(scope: Scope, clientId: string, maxRating: number) {
   return prisma.listingReview.findMany({
-    where: { rating: { lte: maxRating }, property: { clientId, client: { teamId } } },
+    where: { rating: { lte: maxRating }, property: { clientId, client: reachable(scope) } },
     include: { property: { select: { internalName: true, listingName: true, airbnbUrl: true } } },
     orderBy: [{ rating: "asc" }, { reviewDate: { sort: "desc", nulls: "last" } }],
   });

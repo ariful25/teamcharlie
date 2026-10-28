@@ -17,17 +17,19 @@ export async function pushTaskAssigned(
 }
 
 async function members(teamId: string) {
-  return prisma.user.findMany({ where: { teamId }, select: { id: true, role: true, active: true } });
+  return prisma.user.findMany({ where: { teamId }, select: { id: true, role: true, active: true, squadId: true } });
 }
 
-export async function pushNoticePosted(teamId: string, notice: { id: string }, author: Actor) {
-  await pushToUsers(teamId, M.noticeRecipients(await members(teamId), author.id), M.noticeMessage(notice, author.name));
+export async function pushNoticePosted(teamId: string, notice: { id: string; squadId: string | null }, author: Actor) {
+  await pushToUsers(teamId, M.noticeRecipients(await members(teamId), author.id, notice.squadId), M.noticeMessage(notice, author.name));
 }
 
 type Leave = Parameters<typeof M.leaveDecidedMessage>[0] & { userId: string };
 
 export async function pushLeaveRequested(teamId: string, request: Leave, requester: Actor) {
-  await pushToUsers(teamId, M.leaveReviewers(await members(teamId), requester.id), M.leaveRequestedMessage(request, requester.name));
+  const team = await members(teamId);
+  const squadId = team.find((m) => m.id === requester.id)?.squadId ?? null;
+  await pushToUsers(teamId, M.leaveReviewers(team, { id: requester.id, squadId }), M.leaveRequestedMessage(request, requester.name));
 }
 
 export async function pushLeaveDecided(teamId: string, request: Leave, action: "APPROVE" | "REJECT" | "REVOKE", reviewer: Actor) {

@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/session";
+import { getScope, inSquad } from "@/lib/scope";
 import { getTaskHistory } from "@/lib/queries/tasks";
 import { prisma } from "@/lib/prisma";
 import { TaskHistoryView } from "@/components/tasks/task-history-view";
@@ -10,19 +11,20 @@ export default async function TaskHistoryPage(
 ) {
   const searchParams = await props.searchParams;
   const currentUser = await getCurrentUser();
+  const scope = await getScope(currentUser);
 
   const status = (searchParams.status as "ALL" | "COMPLETED" | "DELETED") ?? "ALL";
 
   const [tasks, clients, employees, categories] = await Promise.all([
-    getTaskHistory(currentUser.teamId, {
+    getTaskHistory(scope, {
       status,
       clientId: searchParams.clientId,
       assignedUserId: searchParams.assignedUserId,
       from: searchParams.from,
       to: searchParams.to,
     }),
-    prisma.client.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { teamId: currentUser.teamId, active: true }, orderBy: { name: "asc" } }),
+    prisma.client.findMany({ where: { ...inSquad(scope), active: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { ...inSquad(scope), active: true }, orderBy: { name: "asc" } }),
     prisma.category.findMany({ where: { teamId: currentUser.teamId }, orderBy: { name: "asc" } }),
   ]);
 

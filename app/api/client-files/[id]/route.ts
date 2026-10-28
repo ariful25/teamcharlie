@@ -1,3 +1,4 @@
+import { walls } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -13,8 +14,8 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
-  const existing = await prisma.clientFile.findFirst({ where: { id: params.id, client: { teamId } } });
+  const { teamId, clientWall } = await walls();
+  const existing = await prisma.clientFile.findFirst({ where: { id: params.id, client: clientWall } });
   if (!existing) return NextResponse.json({ error: "File not found" }, { status: 404 });
 
   await prisma.clientFile.delete({ where: { id: params.id } });

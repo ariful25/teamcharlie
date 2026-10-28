@@ -1,3 +1,4 @@
+import { walls, type ClientWall } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
@@ -5,8 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { clientIntegrationCreateSchema, clientIntegrationUpdateSchema } from "@/lib/validations";
 import { getClientIntegrationOverview } from "@/lib/services/integrations";
 
-async function getClientForTeam(id: string, teamId: string) {
-  return prisma.client.findFirst({ where: { id, teamId }, select: { id: true } });
+async function getClientForTeam(id: string, clientWall: ClientWall) {
+  return prisma.client.findFirst({ where: { id, ...clientWall }, select: { id: true } });
 }
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -14,8 +15,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const teamId = session.user.teamId as string;
-  const client = await getClientForTeam(params.id, teamId);
+  const { teamId, clientWall } = await walls();
+  const client = await getClientForTeam(params.id, clientWall);
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   const integrations = await getClientIntegrationOverview(params.id);
@@ -35,8 +36,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
-  const client = await getClientForTeam(params.id, teamId);
+  const { teamId, clientWall } = await walls();
+  const client = await getClientForTeam(params.id, clientWall);
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   const parsed = clientIntegrationCreateSchema.safeParse(await req.json().catch(() => ({})));

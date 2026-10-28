@@ -2,14 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { getTeamTimezone } from "@/lib/team-timezone";
 import { startOfDayUTC } from "@/lib/time";
 import { releaseAt } from "@/lib/tasks/visibility";
+import { inSquad, type Scope } from "@/lib/scope";
 
-export async function getTasksPageData(teamId: string) {
+export async function getTasksPageData(scope: Scope) {
+  const { teamId } = scope;
   const tz = await getTeamTimezone(teamId);
   const today = startOfDayUTC(new Date(), tz);
   const [rows, clients, employees, categories, shiftTypes] = await Promise.all([
     prisma.task.findMany({
       where: {
-        teamId,
+        ...inSquad(scope),
         deletedAt: null,
         // Templates are the recurrence rule, not a to-do item themselves —
         // they never get marked COMPLETED, so without this they'd get
@@ -25,8 +27,8 @@ export async function getTasksPageData(teamId: string) {
       include: { client: true, category: true, assignedUser: true, shiftType: true },
       orderBy: { startTime: "asc" },
     }),
-    prisma.client.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { teamId, active: true }, orderBy: { name: "asc" } }),
+    prisma.client.findMany({ where: { ...inSquad(scope), active: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { ...inSquad(scope), active: true }, orderBy: { name: "asc" } }),
     prisma.category.findMany({ where: { teamId }, orderBy: { name: "asc" } }),
     prisma.shiftType.findMany({ where: { teamId, active: true }, orderBy: { startTime: "asc" } }),
   ]);
@@ -49,9 +51,9 @@ export type TaskHistoryFilters = {
 // deleted — so a task that's "done" or "removed" stays findable by date
 // instead of just being gone. Templates are excluded; they're a recurrence
 // rule, not a task someone did or didn't do.
-export async function getTaskHistory(teamId: string, filters: TaskHistoryFilters = {}) {
+export async function getTaskHistory(scope: Scope, filters: TaskHistoryFilters = {}) {
   const statusFilter = filters.status ?? "ALL";
-  const where: Record<string, unknown> = { teamId, isRecurringTemplate: false };
+  const where: Record<string, unknown> = { ...inSquad(scope), isRecurringTemplate: false };
 
   if (statusFilter === "COMPLETED") {
     where.status = "COMPLETED";

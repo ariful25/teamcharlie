@@ -139,9 +139,9 @@ async function moveStay(stayId: string, to: Stage, actorId: string | null, extra
 }
 
 /** Date-driven moves (checkout reached, window closed). Cheap; run on page loads. */
-export async function advanceStays(teamId: string) {
+export async function advanceStays(teamId: string, now: Date = new Date()) {
   const tz = await getTeamTimezone(teamId);
-  const today = startOfDayUTC(new Date(), tz);
+  const today = startOfDayUTC(now, tz);
   const candidates = await prisma.guestStay.findMany({
     where: { teamId, stage: { in: ["BOOKED", ...OPEN_STAGES] }, checkOut: { lte: today } },
     select: { id: true, stage: true, checkOut: true },
@@ -233,7 +233,8 @@ export async function linkReviewToStay(
 
 export type InboundMessage = { id: string; subject: string; from: string; date: string; body: string };
 
-export async function ingestAirbnbEmails(teamId: string, messages: InboundMessage[]) {
+/** `now` is the real clock, except in tests that replay dated emails. */
+export async function ingestAirbnbEmails(teamId: string, messages: InboundMessage[], now: Date = new Date()) {
   const settings = await prisma.teamSettings.findUnique({ where: { teamId }, select: { reviewInboxCreatedById: true } });
   const actorId = settings?.reviewInboxCreatedById ?? null;
   const tz = await getTeamTimezone(teamId);
@@ -320,7 +321,7 @@ export async function ingestAirbnbEmails(teamId: string, messages: InboundMessag
           if (Object.keys(data).length) await prisma.guestStay.update({ where: { id: existing.id }, data });
           await log(existing.id, read.kind === "ALTERED" ? "ALTERED" : "BOOKED", changes.join(", ") || m.subject, null, receivedAt);
           // An alteration that moves checkout back to the future reopens a "checked out" stay.
-          if (read.kind === "ALTERED" && data.checkOut && existing.stage === "CHECKED_OUT" && day(dates.checkOut!).getTime() > startOfDayUTC(new Date(), tz).getTime()) {
+          if (read.kind === "ALTERED" && data.checkOut && existing.stage === "CHECKED_OUT" && day(dates.checkOut!).getTime() > startOfDayUTC(now, tz).getTime()) {
             await moveStay(existing.id, "BOOKED", null, {}, "Dates changed");
           }
         }
@@ -396,7 +397,7 @@ export async function ingestAirbnbEmails(teamId: string, messages: InboundMessag
     if (status === "NEEDS_REVIEW") result.needsReview++;
   }
   await prisma.teamSettings.update({ where: { teamId }, data: { reviewInboxLastSeenAt: new Date() } }).catch(() => {});
-  await advanceStays(teamId);
+  await advanceStays(teamId, now);
   return result;
 }
 

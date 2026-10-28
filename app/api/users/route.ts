@@ -1,8 +1,10 @@
+import { getScope, inSquad } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserOrNull } from "@/lib/session";
 import { permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createUserSchema } from "@/lib/validations";
+import { placementError } from "@/lib/people/adding";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -11,7 +13,7 @@ export async function GET() {
   if (!currentUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const users = await prisma.user.findMany({
-    where: { teamId: currentUser.teamId },
+    where: inSquad(await getScope(currentUser)),
     orderBy: { name: "asc" },
     include: { defaultShiftType: true },
   });
@@ -37,6 +39,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
   const data = parsed.data;
+  const squadId = data.role === "ADMIN" || data.role === "HR" ? null : data.squadId ?? null;
+  const problem = placementError({ role: currentUser.role, squadId: currentUser.squadId }, { role: data.role, squadId });
+  if (problem) return NextResponse.json({ error: problem }, { status: 403 });
+  if (squadId && !(await prisma.squad.findFirst({ where: { id: squadId, teamId: currentUser.teamId } }))) {
+    return NextResponse.json({ error: "That team doesn't exist." }, { status: 400 });
+  }
 
   const existing = await prisma.user.findUnique({ where: { email: data.email.toLowerCase() } });
   if (existing) {
@@ -53,6 +61,7 @@ export async function POST(req: NextRequest) {
       passwordHash,
       role: data.role,
       teamId: currentUser.teamId,
+      squadId,
       defaultShiftTypeId: data.defaultShiftTypeId || null,
     },
   });

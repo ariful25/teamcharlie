@@ -30,7 +30,7 @@ export function SignupForm() {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Could not create your team. Try again.");
+      setError(data.error ?? "Could not create your company. Try again.");
       setLoading(false);
       return;
     }
@@ -48,7 +48,7 @@ export function SignupForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <AuthField
-        label="Team name"
+        label="Company name"
         icon={Building2}
         value={teamName}
         onChange={setTeamName}
@@ -80,22 +80,22 @@ export function SignupForm() {
         autoComplete="new-password"
         placeholder="At least 8 characters"
       />
-      <TimezoneSelect value={timezone} onChange={setTimezone} detectOnMount label="Team timezone" />
+      <TimezoneSelect value={timezone} onChange={setTimezone} detectOnMount label="Company timezone" />
 
       <FormError message={error} />
 
       <button type="submit" disabled={loading} className={submitButtonClass}>
         {loading ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Creating your team...
+            <Loader2 className="h-4 w-4 animate-spin" /> Creating your company...
           </>
         ) : (
-          "Create team"
+          "Create company"
         )}
       </button>
 
       <p className="text-center text-xs text-muted-foreground">
-        You&apos;ll be the team&apos;s admin and can invite teammates from Settings.
+        You&apos;ll be the admin. Add your teams and people from Settings.
       </p>
       <p className="text-center text-xs text-muted-foreground">
         Already have an account?{" "}

@@ -1,11 +1,12 @@
+import { walls, type ClientWall } from "@/lib/scope";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, permissions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { propertySchema } from "@/lib/validations";
 
-async function canAccessProperty(id: string, teamId: string) {
-  return prisma.property.findFirst({ where: { id, client: { teamId } } });
+async function canAccessProperty(id: string, clientWall: ClientWall) {
+  return prisma.property.findFirst({ where: { id, client: clientWall } });
 }
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -18,8 +19,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
-  const existing = await canAccessProperty(params.id, teamId);
+  const { teamId, clientWall } = await walls();
+  const existing = await canAccessProperty(params.id, clientWall);
   if (!existing) return NextResponse.json({ error: "Property not found" }, { status: 404 });
 
   const parsed = propertySchema.partial().safeParse(await req.json().catch(() => ({})));
@@ -28,7 +29,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   }
 
   if (parsed.data.clientId) {
-    const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, teamId } });
+    const client = await prisma.client.findFirst({ where: { id: parsed.data.clientId, ...clientWall } });
     if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
 
@@ -46,8 +47,8 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const teamId = session.user.teamId as string;
-  const existing = await canAccessProperty(params.id, teamId);
+  const { teamId, clientWall } = await walls();
+  const existing = await canAccessProperty(params.id, clientWall);
   if (!existing) return NextResponse.json({ error: "Property not found" }, { status: 404 });
 
   const property = await prisma.property.update({ where: { id: params.id }, data: { active: false } });

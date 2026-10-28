@@ -4,6 +4,7 @@ import { startOfDayUTC } from "@/lib/time";
 import { getPeriodSummary, getTeamDay, monthRange } from "@/lib/queries/attendance";
 import { leaveBalances } from "@/lib/leave/service";
 import { daysUntilBirthday, profileAccess, tenure, type Viewer } from "./access";
+import { inSquad, reachable, type Scope } from "@/lib/scope";
 
 // Read models for the People pages. Fields the viewer may not see are left
 // out here, server-side — never sent and hidden in the browser.
@@ -38,12 +39,13 @@ function completenessOf(p: Record<string, unknown> | null) {
   return Math.round((filled / (keys.length + 1)) * 100);
 }
 
-export async function getDirectory(teamId: string) {
+export async function getDirectory(scope: Scope) {
+  const { teamId } = scope;
   const tz = await getTeamTimezone(teamId);
   const today = startOfDayUTC(new Date(), tz);
   const [users, day] = await Promise.all([
-    prisma.user.findMany({ where: { teamId, active: true }, include: { profile: true }, orderBy: { name: "asc" } }),
-    getTeamDay(teamId, today),
+    prisma.user.findMany({ where: { ...inSquad(scope), active: true }, include: { profile: true }, orderBy: { name: "asc" } }),
+    getTeamDay(scope, today),
   ]);
   const stateOf = new Map<string, string>(day.rows.map((r) => [r.userId, r.state]));
   const people: PersonCard[] = users.map((u) => {
@@ -70,9 +72,10 @@ export async function getDirectory(teamId: string) {
   return { people, departments };
 }
 
-export async function getProfile(viewer: Viewer & { teamId: string }, userId: string) {
+export async function getProfile(viewer: Viewer & { teamId: string }, userId: string, scope: Scope) {
   const user = await prisma.user.findFirst({
-    where: { id: userId, teamId: viewer.teamId },
+    // Outside the viewer's team (leads, employees) the profile doesn't exist for them.
+    where: { id: userId, ...reachable(scope) },
     include: {
       profile: { include: { manager: { select: { id: true, name: true } } } },
       directReports: { where: { user: { active: true } }, select: { user: { select: { id: true, name: true } } } },
@@ -87,7 +90,7 @@ export async function getProfile(viewer: Viewer & { teamId: string }, userId: st
   const shiftType = user.defaultShiftTypeId ? await prisma.shiftType.findFirst({ where: { id: user.defaultShiftTypeId, teamId: viewer.teamId } }) : null;
 
   const [month, leave, contacts, documents, events, teammates] = await Promise.all([
-    access.viewTime ? getPeriodSummary(viewer.teamId, start, end, userId).then((r) => r[0] ?? null) : Promise.resolve(null),
+    access.viewTime ? getPeriodSummary(scope, start, end, userId).then((r) => r[0] ?? null) : Promise.resolve(null),
     access.viewPersonal ? leaveBalances(userId, viewer.teamId, today.getUTCFullYear()) : Promise.resolve(null),
     access.viewEmergency ? prisma.emergencyContact.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }) : Promise.resolve([]),
     access.viewDocuments ? prisma.employeeDocument.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }) : Promise.resolve([]),
