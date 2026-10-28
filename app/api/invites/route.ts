@@ -57,6 +57,8 @@ export async function POST(req: NextRequest) {
     select: { id: true, email: true, role: true, expiresAt: true, createdAt: true },
   });
 
-  const origin = process.env.NEXTAUTH_URL || req.nextUrl.origin;
-  return NextResponse.json({ invite, link: `${origin.replace(/\/$/, "")}/invite/${token}` });
+  // The address the admin is actually using. NEXTAUTH_URL is often a
+  // leftover http://localhost:3000 copied from .env, which made links that
+  // only worked on the admin's own machine.
+  return NextResponse.json({ invite, link: `${req.nextUrl.origin}/invite/${token}` });
 }
